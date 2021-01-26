@@ -35,7 +35,7 @@ hydroweight(
 
 \item{flow_accum}{character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).}
 
-\item{weighting_scheme}{character. One or more weighting schemes: c("FLO", "FLS", "EucO", "EucS", "HAFLO", "HAFLS")}
+\item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "EucO", "EucS", "FLO", "FLS", "HAFLO", "HAFLS")}
 
 \item{inv_function}{function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}}
 
@@ -62,4 +62,20 @@ Spatial layers should align (i.e., identical coordinate reference systems - CRS)
 Through processing, targets are converted to the resolution and CRS of the
 digital elevation model/flow accumulation CRS. TEMP-* files are generated in
 \code{hydroweight_dir} depending on processing step and can be overwritten.
+
+For \code{weighting_scheme}:
+
+"lumped" indicates all weights = 1
+
+"EucO" indicates Euclidean distance to \code{target_O}
+
+"EucS" indicates Euclidean distance to \code{target_S}
+
+"FLO" indicates d8 flow-path distance to \code{target_O}
+
+"FLS" indicates d8 flow-path distance to \code{target_S}
+
+"HAFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_O}
+
+"HAFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_S}
 }

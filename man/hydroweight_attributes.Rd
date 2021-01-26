@@ -14,7 +14,8 @@ hydroweight_attributes(
   resample = NULL,
   return_products = TRUE,
   uid = NULL,
-  uid_col = NULL
+  uid_col = NULL,
+  attr_col = NULL
 )
 }
 \arguments{
@@ -37,9 +38,11 @@ hydroweight_attributes(
 \item{uid}{character. Unique identifier value for the roi}
 
 \item{uid_col}{character. Column name that will be assigned to the uid.}
+
+\item{attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
 }
 \value{
-If \code{return_products = TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weight} raster. If \code{return_products = FALSE}, attribute summary table only.
+If \code{return_products = TRUE}, a list containing 1) attribute summary table, 2) the \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 3) the \code{roi-} and \code{remove_region}-masked \code{distance_weight} raster. If \code{return_products = FALSE}, attribute summary table only.
 }
 \description{
 \code{hydroweight::hydroweight_attributes()} calculates distance-weighted attributes using distance-weighted rasters generated in \code{hydroweight::hydroweight()}, a region of interest

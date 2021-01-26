@@ -17,6 +17,22 @@
 #' digital elevation model/flow accumulation CRS. TEMP-* files are generated in
 #'  \code{hydroweight_dir} depending on processing step and can be overwritten.
 #'
+#' For \code{weighting_scheme}:
+#'
+#' "lumped" indicates all weights = 1
+#'
+#' "EucO" indicates Euclidean distance to \code{target_O}
+#'
+#' "EucS" indicates Euclidean distance to \code{target_S}
+#'
+#' "FLO" indicates d8 flow-path distance to \code{target_O}
+#'
+#' "FLS" indicates d8 flow-path distance to \code{target_S}
+#'
+#' "HAFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_O}
+#'
+#' "HAFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_S}
+#'
 #' @param hydroweight_dir character. File path for read/write.
 #' @param target_O \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for EucO or FLO.
 #' @param target_S \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for EucS or FLS.
@@ -25,7 +41,7 @@
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
 #' @param dem_crs \code{CRS-class}. Digital elevation model coordinate reference system.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
-#' @param weighting_scheme character. One or more weighting schemes: c("FLO", "FLS", "EucO", "EucS", "HAFLO", "HAFLS")
+#' @param weighting_scheme character. One or more weighting schemes: c("lumped", "EucO", "EucS", "FLO", "FLS", "HAFLO", "HAFLS")
 #' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}
 #' @param uid character. Unique identifier to precede exported list \code{*.rds} (i.e., uid_hydrology.rds)
 #' @return A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
@@ -227,6 +243,12 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## allows user to ignore OS_combine if only doing stream distances
   if (is.null(OS_combine)) { OS_combine <- FALSE }
+
+  if ("lumped" %in% weighting_scheme){
+
+    lumped_inv <- dem_clip
+    lumped_inv[!is.na(lumped_inv)] <- 1
+  }
 
   ## EucO, Euclidean distance to target_O ----
   if ("EucO" %in% weighting_scheme) {
@@ -461,7 +483,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   saveRDS(dist_list, file = file.path(
     hydroweight_dir,
-    paste0(uid, "_hydrology.rds")
+    paste0(uid, "_inv_distances.rds")
   ))
 
   return(dist_list)
