@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 ## 1.0 Introduction
 
-Environmental scientists often want to calculate landscape statistics within upstream areas (i.e., catchments) 
+Environmental scientists often want to calculate landscape statistics within upstream contributing areas (i.e., catchments) 
 to examine their potential effects on a target (e.g., stream network point or waterbody of interest). 
 Practitioners typically use a "lumped" approach; this approach gives equal weight 
 to areas nearby and those farther away from the target when calculating landscape statistics like 
@@ -36,7 +36,7 @@ through GRASS GIS (Pearse et al. 2019).
 ***hydroweight*** replicates this approach and further provides a set of simple and 
 flexible functions to accommodate a wider set of scenarios and statistics 
 through WhiteboxTools (e.g., numeric rasters and categorical rasters). 
-WhiteboxTools (Lindsay 2016, Wu 2020). Some advantages of **hydroweight**: 
+WhiteboxTools (Lindsay 2016, Wu 2020). Some advantages of ***hydroweight***: 
 
 * users can provide numeric rasters to be summarized (summary statistics: 
 inverse distance-weighted mean, inverse distance-weighted standard deviation, 
@@ -72,15 +72,19 @@ more targets and layers.
 
 ## 2.0 System setup 
 
-The most critical component of running `hydroweight::` is having an 
-an installation of WhiteboxTools. See https://github.com/giswqs/whiteboxR for 
+WhiteboxTools must be installed for ***hydroweight*** to run. Other libraries 
+should be installed on installation of ***hydroweight***. 
+
+See https://github.com/giswqs/whiteboxR for 
 installation instructions or here:
 
-```{r} 
+```{r, eval = FALSE} 
 ## Follow instructions for whitebox installation accordingly
 
-# install.packages("whitebox", repos="http://R-Forge.R-project.org")
-# whitebox::wbt_init()
+#TODO: Github Brian - Install hydroweight
+
+install.packages("whitebox", repos="http://R-Forge.R-project.org")
+whitebox::wbt_init()
 
 ```
 ## 3.0 Generate inverse distance-weighted rasters using `hydroweight()`
@@ -107,7 +111,7 @@ using a toy dataset. First, we generate ensure continuous flow using wbt::breach
 calculate the flow accumulation in units of cells using the d8 algorithm, and extract cells that have 
 at least accumulated 2000 cells as our streams.
 
-```{r, echo = FALSE}
+```{r, message = FALSE, error = FALSE}
 
 library(dplyr)
 library(foreach) 
@@ -124,12 +128,12 @@ devtools::load_all()
 ## Import toy_dem from whitebox package
 toy_file <- system.file("extdata", "DEM.tif", package="whitebox")
 toy_dem <- raster::raster(toy_file, values  = TRUE)
-raster::crs(toy_dem)<-CRS("+init=epsg:3161") # arbitrary
+raster::crs(toy_dem)<-CRS("+init=epsg:3161")
 
 ## Generate hydroweight_output dir
 hydroweight_dir <- tempdir()
 
-## Write toy_dem and run some processing through whitebox
+## Write toy_dem to hydroweight_dir
 raster::writeRaster(toy_dem,
                     file.path(hydroweight_dir, "toy_dem.tif"), overwrite = T)
 
@@ -137,11 +141,11 @@ raster::writeRaster(toy_dem,
 wbt_breach_depressions(file.path(hydroweight_dir, "toy_dem.tif"),
                        file.path(hydroweight_dir, "toy_dem_breached.tif"))
 
-## Generate d8 flow pointer 
+## Generate d8 flow pointer (note: other flow directions are available) 
 wbt_d8_pointer(dem = file.path(hydroweight_dir, "toy_dem_breached.tif"), 
                output = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"))
 
-## Generate d-8 flow accumulation in units of cells
+## Generate d8 flow accumulation in units of cells (note: other flow directions are available)
 wbt_d8_flow_accumulation(input = file.path(hydroweight_dir, "toy_dem_breached.tif"), 
                           output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"), 
                           out_type = "cells")
@@ -161,7 +165,7 @@ assigned `NA`. The raster of positive cells are converted to a polygon to
 represent the lake. Target streams (`tg_S`) are loaded from the 
 `whitebox::wbt_extract_streams()` output.
 
-```{r, fig.width = 7, fig.height = 7}
+```{r, fig.width = 7, fig.height = 7, message = FALSE, error = FALSE}
 ## For hydroweight, there are target_O and target_S
 ## target_O is a target point/area for calculating distances
 ## target_S is a stream/waterbody target for calculating distances
@@ -194,48 +198,58 @@ strings. Our weighting schemes are and the inverse function are indicated. Final
 a unique identifier that will be used when exporting the result of `hydroweight::hydroweight()` 
 to `hydroweight_dir`.
 
-```{r, fig.width = 6, fig.height = 3}
+```{r, fig.width = 7, fig.height = 3.5, message = FALSE, error = FALSE}
 ## Generate inverse distance-weighting function
-myinv <- function(x){ (x * 0.001 + 1)^-1 }
+myinv <- function(x){ (x * 0.001 + 1)^-1 } ## 0.001 multiplier turns m to km
 
-## Run hydroweight
+## Run hydroweight::hydroweight()
 hydroweight_test <- hydroweight::hydroweight(
   hydroweight_dir = hydroweight_dir,
   target_O = tg_O,
   target_S = tg_S,
   OS_combine = TRUE,
-  clip_region = 8000,
   dem = "toy_dem_breached.tif",
   dem_crs = crs(toy_dem),
   flow_accum = "toy_dem_breached_accum.tif",
   weighting_scheme = c("lumped", "EucO", "FLO", "HAFLO",
                        "EucS", "FLS", "HAFLS"),
   inv_function = myinv,
-  uid = "1"
+  roi_uid = "1"
 )
 
-length(hydroweight_test) ## 1 set of targets and 7 distance-weighted rasters
+## Resultant structure:
+# length(hydroweight_test) ## 1 set of targets and 7 distance-weighted rasters
+# hydroweight_test[[1]] ## lumped
+# hydroweight_test[[2]] ## EucO
+# hydroweight_test[[3]] ## FLO 
+# hydroweight_test[[4]] ## HAFLO 
+# hydroweight_test[[5]] ## EucS
+# hydroweight_test[[6]] ## FLS  
+# hydroweight_test[[7]] ## HAFLS
 
-## Plot different weighting schemes; Purple --> yellow == low --> high weight
+## Plot different weighting schemes; where purple --> yellow == low --> high weight
 par(mfrow=c(2,4), mar=c(1,1,1,1), oma = c(0,0,0,0))
 layout(matrix(c(1, 2, 3, 4,
                 1, 5, 6, 7), nrow = 2, byrow = TRUE))
-plot(hydroweight_test[[1]], main=names(hydroweight_test)[1], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
-plot(hydroweight_test[[2]], main=names(hydroweight_test)[2], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
-plot(hydroweight_test[[3]], main=names(hydroweight_test)[2], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
-plot(log(hydroweight_test[[4]]), main=names(hydroweight_test)[3], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(hydroweight_test[[1]], main="Lumped", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(hydroweight_test[[2]], main="EucO", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(hydroweight_test[[3]], main="FLO", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(log(hydroweight_test[[4]]), main="HAFLO", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
 plot.new()
-plot(hydroweight_test[[5]], main=names(hydroweight_test)[4], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
-plot(hydroweight_test[[6]], main=names(hydroweight_test)[5], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
-plot(log(hydroweight_test[[7]]), main=names(hydroweight_test)[6], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(hydroweight_test[[5]], main="EucS", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(hydroweight_test[[6]], main="FLS", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(log(hydroweight_test[[7]]), main="HAFLS", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
 
 ```
 
 Important things to note from this plot: 
 
-* The region was clipped by an 8000 m buffer extended outward from `target_O`. 
+* lumped_inv is equal weighting where all values = 1 
+* EucO_inv extents outward to the extent of the DEM
+* FLO only includes areas draining to target_O
+* EucS and FLS include those areas draining to all streams (i.e., target_S)
 * HAFLO and HAFLS were log transformed to visualize the result. 
-* For FLO/HAFLO/FLS/HAFLS, only those cells contributing to the areas of interest are calculated (e.g., no radial pattern in EucO_inv as in lumped_inv)
+* For FLO/HAFLO/FLS/HAFLS, only those cells contributing to the areas of interest are calculated
 * As in Peterson *et al.* (2011), for HAFLO and HAFLS, the targets are set to NoData (i.e., NA) since they likely represent concentrated flow areas. 
 
 The temporary files made per instance of `hydroweight::hydroweight()`:
@@ -244,9 +258,37 @@ The temporary files made per instance of `hydroweight::hydroweight()`:
 list.files(hydroweight_dir)[grep("TEMP-", list.files(hydroweight_dir))]
 ```
 
-Now ignoring target_O or ignoring target_S:
+A few options to consider: 
 
-```{r}
+```{r, fig.width = 7, fig.height = 7, message = FALSE, error = FALSE}
+## Setting a clip region, see ?hydroweight 
+hydroweight_test_clip <- hydroweight::hydroweight(
+  hydroweight_dir = hydroweight_dir,
+  target_O = tg_O,
+  target_S = tg_S,
+  OS_combine = TRUE, 
+  clip_region = 8000,
+  dem = "toy_dem_breached.tif",
+  dem_crs = crs(toy_dem),
+  flow_accum = "toy_dem_breached_accum.tif",
+  weighting_scheme = c("lumped", "EucO", "FLO", "HAFLO",
+                       "EucS", "FLS", "HAFLS"),
+  inv_function = myinv,
+  roi_uid = "1"
+)
+
+## Resultant structure:
+# length(hydroweight_test_clip) ## 1 set of targets and 7 distance-weighted rasters
+# hydroweight_test_clip[[1]] ## lumped
+# hydroweight_test_clip[[2]] ## EucO
+# hydroweight_test_clip[[3]] ## FLO 
+# hydroweight_test_clip[[4]] ## HAFLO 
+# hydroweight_test_clip[[5]] ## EucS
+# hydroweight_test_clip[[6]] ## FLS  
+# hydroweight_test_clip[[7]] ## HAFLS
+
+plot(hydroweight_test_clip[[2]], main="EucO - 8000 m clip", axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+
 ## Ignoring target_O
 hydroweight_test_no_O <- hydroweight::hydroweight(
   hydroweight_dir = hydroweight_dir,
@@ -257,10 +299,14 @@ hydroweight_test_no_O <- hydroweight::hydroweight(
   flow_accum = "toy_dem_breached_accum.tif",
   weighting_scheme = c("EucS", "FLS", "HAFLS"),
   inv_function = myinv,
-  uid = "1"
+  roi_uid = "1"
 )
 
-length(hydroweight_test_no_O) ## 1 stream target and 3 distance weightings
+## Resultant structure:
+# length(hydroweight_test_no_O) ## 1 set of targets and 3 distance-weighted rasters
+# hydroweight_test_no_O[[1]] ## EucS
+# hydroweight_test_no_O[[2]] ## FLS
+# hydroweight_test_no_O[[3]] ## HAFLS 
 
 ## Ignoring target_S
 hydroweight_test_no_S <- hydroweight::hydroweight(
@@ -272,13 +318,17 @@ hydroweight_test_no_S <- hydroweight::hydroweight(
   flow_accum = "toy_dem_breached_accum.tif",
   weighting_scheme = c("EucO", "FLO", "HAFLO"),
   inv_function = myinv,
-  uid = "1"
+  roi_uid = "1"
 )
 
-length(hydroweight_test_no_S) ## 1 area target and 3 distance weightings
+## Resultant structure:
+# length(hydroweight_test_no_O) ## 1 set of targets and 3 distance-weighted rasters
+# hydroweight_test_no_O[[1]] ## EucO
+# hydroweight_test_no_O[[2]] ## FLO
+# hydroweight_test_no_O[[3]] ## HAFLO 
 ```
 
-### 3.4 Running `hydroweight()` across a sequence of sites
+### 3.4 Running `hydroweight()` across a set of sites
 
 We wanted users an opportunity to access/investigate processed data as much as possible. 
 For simplicity, we wanted only two functions that could fit within `for`-, `foreach`-, 
@@ -296,7 +346,7 @@ allows users to assign the results of `hydroweight()` to an object in the curren
 environment or to run `hydroweight()` alone and upload the `.rds` afterwards. See below. 
 
 
-```{r}
+```{r, message = FALSE, error = FALSE}
 ## Generate column for unique id, put 5 instances in a list, bind together, 
 ## and assign unique identifiers - these are our new "sites"
 tg_O$id <- 1
@@ -321,24 +371,47 @@ hydroweight_test_x5 <- foreach(x = 1:5, .errorhandling = "pass") %do% {
   weighting_scheme = c("lumped", "EucO", "FLO", "HAFLO",
                        "EucS", "FLS", "HAFLS"),
   inv_function = myinv,
-  uid = tg_O_x5$id[x]                          ### the important piece to change
+  roi_uid = tg_O_x5$id[x]                          ### the important piece to change
   )
 
   return(hydroweight_test)
 }  
-  
-length(hydroweight_test_x5) # 5 sites
 
-length(hydroweight_test_x5[[1]]) # 7 distance-weighted rasters for each site
-
-hydroweight_test_x5[[1]][[2]] # site 1, distance-weighted raster 1 
-
-hydroweight_test_x5[[2]][[3]] # site 2, distance-weighted raster 2 
+## Resultant structure: 
+## length(hydroweight_test_x5) # 5 sites 
+## length(hydroweight_test_x5[[1]]) # 7 distance-weighted rasters for each site
+## hydroweight_test_x5[[1]][[1]] # site 1, lumped
+## hydroweight_test_x5[[1]][[2]] # site 1, EucO
+## hydroweight_test_x5[[1]][[3]] # site 1, FLO
+## hydroweight_test_x5[[1]][[4]] # site 1, HAFLO
+## hydroweight_test_x5[[1]][[5]] # site 1, EucS
+## hydroweight_test_x5[[1]][[6]] # site 1, FLS
+## hydroweight_test_x5[[1]][[7]] # site 1, HAFLS 
+## ... 
+## ... 
+## ...
+## hydroweight_test_x5[[5]][[7]] # site 5, HAFLS
 
 ## Loading up data after if didn't assign as an object while running
 hydroweight_dir_files <- list.files(hydroweight_dir, full.names = TRUE)
 hydroweight_test_x5 <- hydroweight_dir_files[grep("_inv_distances.rds", hydroweight_dir_files)]
+hydroweight_test_x5
 hydroweight_test_x5 <- lapply(hydroweight_test_x5, function(x) { readRDS(x) })
+
+## Resultant structure: 
+## length(hydroweight_test_x5) # 5 sites 
+## length(hydroweight_test_x5[[1]]) # 7 distance-weighted rasters for each site
+## hydroweight_test_x5[[1]][[1]] # site 1, lumped
+## hydroweight_test_x5[[1]][[2]] # site 1, EucO
+## hydroweight_test_x5[[1]][[3]] # site 1, FLO
+## hydroweight_test_x5[[1]][[4]] # site 1, HAFLO
+## hydroweight_test_x5[[1]][[5]] # site 1, EucS
+## hydroweight_test_x5[[1]][[6]] # site 1, FLS
+## hydroweight_test_x5[[1]][[7]] # site 1, HAFLS 
+## ... 
+## ... 
+## ...
+## hydroweight_test_x5[[5]][[7]] # site 5, HAFLS
 ```
 
 ## 4.0 Generate inverse distance-weighted attributes using `hydroweight_attributes()`
@@ -358,9 +431,9 @@ Applying the same approach as above (i.e., using `foreach()`), we can generate
 distance-weighted attributes for a single site across all of our distance-weighted rasters.
 Remember that we clipped the distance-weighted rasters by 8000 m in the plots below.
 
-### 4.1 Using a numeric raster layer of interest 
+### 4.1 Generate catchment for lake  
 
-```{r, fig.width = 6, fig.height = 6}
+```{r, fig.width = 7, fig.height = 7, message = FALSE, error = FALSE}
 ## Generate catchment for lake 
 tg_O_r <- toy_dem<220
 tg_O_r[tg_O_r@data@values != 1] <- NA
@@ -374,48 +447,69 @@ wbt_watershed(
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_r_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = T)
+tg_O_catchment <- st_as_sf(tg_O_catchment)
 
+## Plot 
+plot(hydroweight_test[[2]], axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(st_geometry(tg_O_catchment),  col = adjustcolor("grey", alpha.f = 0.5), add=T)
+plot(tg_O, col="red", add = T, legend = FALSE)
+plot(tg_S, col="blue", add = T, legend = FALSE)
+legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"), fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n" )
+
+```
+### 4.1 Using a numeric raster layer of interest 
+
+```{r, fig.width = 7, fig.height = 7, message = FALSE, error = FALSE}
 ## Construct continuous dataset
 ndvi <- tg_O_r 
 ndvi@data@values <- runif(n = (ndvi@ncols * ndvi@nrows), min = 0, max = 1)
 names(ndvi) <- "ndvi"
 
-## Continuous dataset and roi over which statistics will be calculation
-plot(ndvi, main = "NDVI values")
-plot(tg_O_r, col = "red", add = T, legend = FALSE)
-plot(tg_O_catchment, add=T, col = adjustcolor("blue", alpha.f = 0.5))
-legend("bottom", legend = c("lake", "lake catchment"), fill = c("red", adjustcolor("blue", alpha.f = 0.5)), horiz = TRUE, bty = "n")
+## Plot 
+plot(ndvi, axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(st_geometry(tg_O_catchment),  col = adjustcolor("grey", alpha.f = 0.5), add=T)
+plot(tg_O, col="red", add = T, legend = FALSE)
+plot(tg_S, col="blue", add = T, legend = FALSE)
+legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"), fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n" )
 
-## Foreach distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
+## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
 hydroweight_attribute_test_numeric <- foreach(x = 1:length(hydroweight_test), .errorhandling = "pass") %do% {
 
   test_numericraster <- hydroweight_attributes(roi = tg_O_catchment,
                                                loi = ndvi, 
                                                loi_numeric = TRUE, 
-                                               distance_weight = hydroweight_test[[x]], ## Important 
+                                               distance_weight = hydroweight_test[[x]], ## Important to change
                                                remove_region = tg_O, 
                                                resample = "bilinear", 
                                                return_products = TRUE, 
-                                               uid = "1",
-                                               uid_col = "site",
-                                               attr_col = "ndvi")
+                                               roi_uid = "1",
+                                               roi_uid_col = "site",
+                                               loi_attr_col = "ndvi")
 
 return(test_numericraster)
 }
 
-## Results structure
-length(hydroweight_attribute_test_numeric) # 7 distance-weighted rasters 
-hydroweight_attribute_test_numeric[[1]][[1]] # attribute summary table 
-hydroweight_attribute_test_numeric[[1]][[2]] # processed loi raster used in calculations
-hydroweight_attribute_test_numeric[[1]][[3]] # processed distance-weighted raster used in calculations 
 
-## Extract results and apply name changes to specify distance-weighting
-results <- foreach(x = 1:length(hydroweight_attribute_test_categorical), .errorhandling = "pass") %do% { 
+## Resultant structure: 
+## length(hydroweight_attribute_test_numeric) # Attributes and processing components for 7 inputted distance-weighted rasters 
+## hydroweight_attribute_test_numeric[[1]][[1]] # Attributes calculated for lumped attribute statistics
+## hydroweight_attribute_test_numeric[[1]][[2]] # processed loi used in calculating lumped attribute statistics 
+## hydroweight_attribute_test_numeric[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics 
+## ... 
+## ... 
+## ... 
+## hydroweight_attribute_test_numeric[[7]][[3]] # processed distance-weighted raster used in calculating HAFLS attribute statistics 
+
+## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
+results <- foreach(x = 1:length(hydroweight_attribute_test_numeric), .errorhandling = "pass") %do% { 
   
+  ## Get names of distance-weighted rasters from hydroweight_test
   (names_hwtn <- names(hydroweight_test)[x]) 
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_numeric[[x]][[1]])[-1]))
-  (names_hwtn <- gsub("_inv", "", names_hwtn))
   
+  ## Paste distance-weighted raster name together with attribute column names except "site" from above
+  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_numeric[[x]][[1]])[-1]))
+  
+  ## Assign column names 
   colnames(hydroweight_attribute_test_numeric[[x]][[1]])[-1] <- names_hwtn
  
    return(hydroweight_attribute_test_numeric[[x]])
@@ -428,8 +522,7 @@ results_agg <- Reduce(merge, results_agg)
 names(results_agg)
 ``` 
 
-```{r, fig.width=5, fig.height=10}
-
+```{r, fig.width=7, fig.height=14, message = FALSE, error = FALSE}
 ## Plot results
 par(mfrow=c(3,2), mar=c(1,1,1,1), oma = c(0,0,0,0))
 
@@ -450,22 +543,23 @@ plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi")
 plot(results[[3]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi * distance_weight")
 plot(results[[3]]$`loi_Raster*_bounded` * results[[3]]$distance_weight_bounded, main="Lumped \n- loi * distance_weight", axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
-
-
-
 ```
 
 ### 4.2 Using a categorical raster layer of interest 
 
-```{r, fig.height = 3, fig.width = 6}
-## Reclassify elevation values into categories
+```{r, fig.width=7, fig.height=7, message = FALSE, error = FALSE}
+## Construct categorical dataset by reclassify elevation values into categories
 lulc <- toy_dem
 m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4)
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 lulc <- reclassify(lulc, rclmat)
 
-plot(lulc)
-plot(tg_O_catchment, col = adjustcolor("blue", alpha.f = 0.5), add = T)
+## Plot 
+plot(lulc, axes=F, legend=F, box = FALSE, col=viridis::viridis(101))
+plot(st_geometry(tg_O_catchment),  col = adjustcolor("grey", alpha.f = 0.5), add=T)
+plot(tg_O, col="red", add = T, legend = FALSE)
+plot(tg_S, col="blue", add = T, legend = FALSE)
+legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"), fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n" )
 
 ## Run hydroweight attributes
 hydroweight_attribute_test_categorical <- foreach(x = 1:length(hydroweight_test), .errorhandling = "pass") %do% {
@@ -473,32 +567,38 @@ hydroweight_attribute_test_categorical <- foreach(x = 1:length(hydroweight_test)
   test_categoricalraster <- hydroweight_attributes(roi = tg_O_catchment,
                                                loi = lulc, 
                                                loi_numeric = FALSE, 
-                                               distance_weight = hwr, 
+                                               distance_weight = hydroweight_test[[x]], # Important to change
                                                remove_region = tg_O, 
                                                resample = "ngb", 
                                                return_products = TRUE, 
-                                               uid = "1",
-                                               uid_col = "site",
-                                               attr_col = "lulc", 
+                                               roi_uid = "1",
+                                               roi_uid_col = "site",
+                                               loi_attr_col = "lulc", 
                                                )
 }
 
-## Results structure
-length(hydroweight_attribute_test_categorical) # 7 distance-weighted rasters 
-hydroweight_attribute_test_categorical[[1]][[1]] # attribute summary table 
-hydroweight_attribute_test_categorical[[1]][[2]] # processed loi raster used in calculations, RasterBrick
-hydroweight_attribute_test_categorical[[1]][[2]][[1]] # processed loi raster used in calculations, RasterLayer category 4 
-hydroweight_attribute_test_categorical[[1]][[2]][[2]] # processed loi raster used in calculations, RasterLayer category 3
-hydroweight_attribute_test_categorical[[1]][[2]][[3]] # processed loi raster used in calculations, RasterLayer category 2 
-hydroweight_attribute_test_categorical[[1]][[3]] # processed distance-weighted raster used in calculations 
+## Resultant structure: 
+## length(hydroweight_attribute_test_categorical) # Attributes and processing components for 7 inputted distance-weighted rasters 
+## hydroweight_attribute_test_categorical[[1]][[1]] # Attributes calculated for lumped attribute statistics
+## hydroweight_attribute_test_categorical[[1]][[2]][[1]] # processed loi used in calculating lumped attribute statistics, RasterLayer category 4 
+## hydroweight_attribute_test_categorical[[1]][[2]][[2]] # processed loi used in calculating lumped attribute statistics, RasterLayer category 3 
+## hydroweight_attribute_test_categorical[[1]][[2]][[3]] # processed loi used in calculating lumped attribute statistics, RasterLayer category 2 
+## hydroweight_attribute_test_categorical[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics 
+## ... 
+## ... 
+## ... 
+## hydroweight_attribute_test_categorical[[7]][[3]] # processed distance-weighted raster used in calculating HAFLS attribute statistics 
 
-## Extract results and apply name changes to specify distance-weighting
+## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
 results <- foreach(x = 1:length(hydroweight_attribute_test_categorical), .errorhandling = "pass") %do% { 
   
+  ## Get names of distance-weighted rasters from hydroweight_test
   (names_hwtn <- names(hydroweight_test)[x]) 
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_categorical[[x]][[1]])[-1]))
-  (names_hwtn <- gsub("_inv", "", names_hwtn))
   
+  ## Paste distance-weighted raster name together with attribute column names except "site" from above
+  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_categorical[[x]][[1]])[-1]))
+  
+  ## Assign column names 
   colnames(hydroweight_attribute_test_categorical[[x]][[1]])[-1] <- names_hwtn
  
    return(hydroweight_attribute_test_categorical[[x]])
@@ -509,47 +609,432 @@ results <- foreach(x = 1:length(hydroweight_attribute_test_categorical), .errorh
 results_agg <- lapply(results, function(x){x[[1]]})
 results_agg <- Reduce(merge, results_agg) 
 names(results_agg)
+```
 
+```{r, fig.height = 7, fig.width = 14, message = FALSE, error = FALSE} 
 ## Plot results
-par(mfrow=c(3,4), mar=c(1,1,1,1), oma = c(0,0,0,0))
+par(mfrow=c(3,4), mar=c(1,1,1,1), oma = c(0,0,0,0), cex = 0.75)
 
 ## Lumped 
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - ")
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped")
 plot(results[[1]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col="yellow", add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (category: 4")
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
 plot(results[[1]][[2]][[1]]* results[[1]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
-
-
-results[[1]][[2]][[2]]
-results[[1]][[2]][[3]]
-
-
-
-
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
+plot(results[[1]][[2]][[2]]* results[[1]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
+plot(results[[1]][[2]][[3]]* results[[1]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
 
 ## EucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO - loi")
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO")
 plot(results[[2]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO - loi * distance_weight")
-plot(results[[2]]$`loi_Raster*_bounded` * results[[2]]$distance_weight_bounded, main="Lumped \n- loi * distance_weight", axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO - loi * lulc (cat: 4)")
+plot(results[[2]][[2]][[1]]* results[[2]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO - loi * lulc (cat: 3)")
+plot(results[[2]][[2]][[2]]* results[[2]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "EucO - loi * lulc (cat: 2)")
+plot(results[[2]][[2]][[3]]* results[[2]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
 
-## FLO 
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi")
+## FLO
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO")
 plot(results[[3]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi * distance_weight")
-plot(results[[3]]$`loi_Raster*_bounded` * results[[3]]$distance_weight_bounded, main="Lumped \n- loi * distance_weight", axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
-
-
-
-
-
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi * lulc (cat: 4)")
+plot(results[[3]][[2]][[1]]* results[[3]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi * lulc (cat: 3)")
+plot(results[[3]][[2]][[2]]* results[[3]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "FLO - loi * lulc (cat: 2)")
+plot(results[[3]][[2]][[3]]* results[[3]]$distance_weight_bounded, axes=F, legend=F, box = FALSE, col=viridis::viridis(101), add = TRUE)
 ```
 
 ### 4.3 Using a polygon layer of interest with numeric data in the column 
 
+```{r, fig.height = 7, fig.width = 14, message = FALSE, error = FALSE}
+## Construct polygons with numeric data by converting lulc to polygons and assigning values to columns 
+lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
+lulc_p <- st_as_sf(lulc_p)
+
+lulc_p$var_1 <- runif(n = 4, min = 0, max = 10)
+lulc_p$var_2 <- runif(n = 4, min = 0, max = 1)
+
+hydroweight_attribute_test_numeric_polygon <- foreach(x = 1:length(hydroweight_test), .errorhandling = "pass") %do% {
+  
+  test_categoricalraster <- hydroweight_attributes(roi = tg_O_catchment,
+                                               loi = lulc_p, 
+                                               loi_numeric = TRUE, 
+                                               loi_categories = c("var_1", "var_2"),
+                                               distance_weight = hydroweight_test[[x]], # Important to change
+                                               remove_region = tg_O, 
+                                               resample = "ngb", 
+                                               return_products = TRUE, 
+                                               roi_uid = "1",
+                                               roi_uid_col = "site",
+                                               loi_attr_col = "lulc" 
+                                               )
+}
+
+## Resultant structure: 
+# length(hydroweight_attribute_test_numeric_polygon) # Attributes and processing components for 7 inputted distance-weighted rasters 
+# hydroweight_attribute_test_numeric_polygon[[1]][[1]] # Attributes calculated for lumped attribute statistics
+# hydroweight_attribute_test_numeric_polygon[[1]][[2]][[1]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_1
+# hydroweight_attribute_test_numeric_polygon[[1]][[2]][[2]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_2 
+# hydroweight_attribute_test_numeric_polygon[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics 
+# ... 
+# ... 
+# ... 
+# hydroweight_attribute_test_numeric_polygon[[7]][[3]] # processed distance-weighted raster used in calculating HAFLS attribute statistics 
+
+## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
+results <- foreach(x = 1:length(hydroweight_attribute_test_numeric_polygon), .errorhandling = "pass") %do% { 
+  
+  ## Get names of distance-weighted rasters from hydroweight_test
+  (names_hwtn <- names(hydroweight_test)[x]) 
+  
+  ## Paste distance-weighted raster name together with attribute column names except "site" from above
+  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_numeric_polygon[[x]][[1]])[-1]))
+  
+  ## Assign column names 
+  colnames(hydroweight_attribute_test_numeric_polygon[[x]][[1]])[-1] <- names_hwtn
+ 
+   return(hydroweight_attribute_test_numeric_polygon[[x]])
+  
+}
+
+## Extract only the summary table and bind results, see names of dataframe
+results_agg <- lapply(results, function(x){x[[1]]})
+results_agg <- Reduce(merge, results_agg) 
+names(results_agg)
+```
+
 ### 4.4 Using a polygon layer of interest with categorical data in the column 
 
-### 4.5 Running hydroweight_attributes() across a sequence of sites 
+```{r, message = FALSE, error = FALSE}
+## Construct polygons with categorical data by converting lulc to polygons and assigning values to columns 
+lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
+lulc_p <- st_as_sf(lulc_p)
+
+lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
+lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
+
+hydroweight_attribute_test_categorical_polygon <- foreach(x = 1:length(hydroweight_test), .errorhandling = "pass") %do% {
+  
+  test_categoricalraster <- hydroweight_attributes(roi = tg_O_catchment,
+                                               loi = lulc_p,                            # Important to change
+                                               loi_numeric = FALSE,                     # Important to change
+                                               loi_categories = c("var_1", "var_2"),
+                                               distance_weight = hydroweight_test[[x]], # Important to change
+                                               remove_region = tg_O, 
+                                               resample = "ngb", 
+                                               return_products = TRUE, 
+                                               roi_uid = "1",
+                                               roi_uid_col = "site",
+                                               loi_attr_col = "lulc" 
+                                               )
+}
+
+## Resultant structure: 
+# length(hydroweight_attribute_test_categorical_polygon) # Attributes and processing components for 7 inputted distance-weighted rasters 
+# hydroweight_attribute_test_categorical_polygon[[1]][[1]] # Attributes calculated for lumped attribute statistics
+# hydroweight_attribute_test_categorical_polygon[[1]][[2]][[1]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_1
+# hydroweight_attribute_test_categorical_polygon[[1]][[2]][[2]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_2 
+# hydroweight_attribute_test_categorical_polygon[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics 
+# ... 
+# ... 
+# ... 
+# hydroweight_attribute_test_categorical_polygon[[7]][[3]] # processed distance-weighted raster used in calculating HAFLS attribute statistics 
+
+## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
+results <- foreach(x = 1:length(hydroweight_attribute_test_categorical_polygon), .errorhandling = "pass") %do% { 
+  
+  ## Get names of distance-weighted rasters from hydroweight_test
+  (names_hwtn <- names(hydroweight_test)[x]) 
+  
+  ## Paste distance-weighted raster name together with attribute column names except "site" from above
+  (names_hwtn <- paste0(names_hwtn, "_", colnames(hydroweight_attribute_test_categorical_polygon[[x]][[1]])[-1]))
+  
+  ## Assign column names 
+  colnames(hydroweight_attribute_test_categorical_polygon[[x]][[1]])[-1] <- names_hwtn
+ 
+   return(hydroweight_attribute_test_categorical_polygon[[x]])
+  
+}
+
+## Extract only the summary table and bind results, see names of dataframe
+results_agg <- lapply(results, function(x){x[[1]]})
+results_agg <- Reduce(merge, results_agg) 
+names(results_agg)
+```
+### 4.5 Bringing it all together: Running hydroweight() and hydroweight_attributes() across sites and layers
+
+By setting up a `do.call()` using a list of parameters, both functions can be 
+run across. 
+
+```{r}
+
+## Sites 
+tg_O_x5
+
+## Generate catchments
+tg_O_catchment$id <- 1
+tg_O_catchment_x5 <- list(tg_O_catchment, tg_O_catchment, tg_O_catchment, tg_O_catchment, tg_O_catchment)
+tg_O_catchment_x5 <- do.call(dplyr::bind_rows, tg_O_catchment_x5)  
+tg_O_catchment_x5$id <- seq(1:5)  
+
+tg_O_catchment_x5
+
+## Set up a series of the layers to iterate over sites (indexed `xx` below) and layers (indexed 'yy' below)
+ndvi
+lulc
+lulc_p
+
+?hydroweight_attributes
+
+# the consistent pieces
+layers_consist <- list(roi = tg_O_catchment_x5[xx,]
+                       distance_weight = sites_weights[[yy]], 
+                       remove_region = tg_O_x5[xx,], 
+                       return_products = TRUE, 
+                       roi_uid_col = "site", 
+                       
+                       
+
+
+
+## Generate list of layer_call where each element of the list is a hydroweight_attribute() call 
+foreach(xx = 1:5, .errorhandling = "pass") %do% {
+  
+  site_weights <- hydroweight::hydroweight(
+    hydroweight_dir = hydroweight_dir,
+    target_O = tg_O_x5[xx,], 
+    roi_uid = tg_O_x5$id[xx], # important to change
+    target_S = tg_S,
+    OS_combine = TRUE,
+    dem = "toy_dem_breached.tif", 
+    dem_crs = crs(toy_dem), 
+    flow_accum = "toy_dem_breached_accum.tif", 
+    weighting_scheme = c("lumped", "EucO", "FLO", "HAFLO", "EucS", "FLS", "HAFLS"), 
+    inv_function = myinv,
+    ) 
+
+  layers_consist <- list(roi = tg_O_catchment[xx,],
+                       distance_weight = sites_weights[[yy]], 
+                       remove_region = tg_O, 
+                       return_products = TRUE,
+                       roi_uid_col = "site") 
+  
+  
+
+  
+      
+  
+  
+  
+    
+    
+}
+  
+  
+  
+  sites_call <- list(
+    
+  
+    
+    
+  sites_weights <- do.call(hydroweight, sites_call)
+  
+  
+  
+  
+  
+}
+
+
+
+## Generate an iterative site_call, where site index is `xx`
+
+
+
+
+this <- list("see", "this", "here")
+this2 <- list("see")
+
+c(this, this2)
+
+sites_call
+
+do.call(hydroweight, sites_call) 
+do.call(hydroweight_attributes, layers_call)
+
+
+## 
+layer_1 <- list(roi = 
+                loi = ndvi, 
+                
+                loi_numeric = TRUE, 
+                )
+  
+
+
+  
+  resample = "ngb", 
+                       
+  
+roi = tg_O_catchment,
+                                               loi = lulc_p,                            # Important to change
+                                               loi_numeric = FALSE,                     # Important to change
+                                               loi_categories = c("var_1", "var_2"),
+                                                
+                                               )  
+  
+  
+  
+  
+sites_unique
+
+
+layer_consist <- 
+
+  
+  lapply(1:nrow(tg_O_x5), function(x){tg_O_x5})
+
+
+?split
+
+
+sites_change <- list(target_O = )
+
+
+
+```
+## Setup call for sites 
+
+
+ hydroweight_test <- hydroweight::hydroweight(
+  hydroweight_dir = hydroweight_dir,
+  target_O = tg_O_x5[x,],                      ### the important piece to change
+  target_S = tg_S,
+  
+  roi_uid = tg_O_x5$id[x]
+
+
+
+## Setup calls for layers 
+## Clean up layer names 
+## Export up by combining 
+
+
+## Unique sites 
+
+## Unique layers 
+
+
+foreach(sites) 
+
+  unique sites + basic setup 
+  
+  foreach(layers) 
+  
+  unique layers + basic setup
+
+
+foreach site, weights 
+foreach site, attributes
+
+
+sites <- 
+roi_uids <- 
+
+
+
+
+
+list(sites) 
+list(parameters) 
+
+
+list(roi = tg_O_catchment, 
+loi = lulc_p, loi_numeric = FALSE, loi_categories = c("var_1", "var_2"),
+distance_weight = hydroweight_test[[x]], # Important to change
+remove_region = tg_O, 
+resample = "ngb", 
+return_products = TRUE, 
+                                               roi_uid = "1",
+                                               roi_uid_col = "site",
+                                               loi_attr_col = "lulc" 
+
+
+lapply()
+
+?foreach
+
+
+
+lulc_r_numeric
+lulc_r_categorical
+lulc_p_numeric 
+lulc_p_categorical
+
+
+hydroweight_test_x5_attributes <- foreach(x = 1:5, .errorhandling = "pass") %do {
+  
+  ## For each site 
+  
+  ## For each layer 
+  
+  loi_1 <- 
+  
+  
+  ## For each site, 
+  
+  ## For each layer, 
+  loi_1
+  
+  
+  
+  
+  
+  
+  
+  
+}
+
+
+
+
+## Use foreach() but could use lapply() as well.
+hydroweight_test_x5 <- foreach(x = 1:5, .errorhandling = "pass") %do% {
+  
+  message("Running hydroweight for site ", x, " at ", Sys.time())
+  
+  hydroweight_test <- hydroweight::hydroweight(
+  hydroweight_dir = hydroweight_dir,
+  target_O = tg_O_x5[x,],                      ### the important piece to change
+  target_S = tg_S,
+  OS_combine = TRUE,
+  clip_region = 8000,
+  dem = "toy_dem_breached.tif",
+  dem_crs = crs(toy_dem),
+  flow_accum = "toy_dem_breached_accum.tif",
+  weighting_scheme = c("lumped", "EucO", "FLO", "HAFLO",
+                       "EucS", "FLS", "HAFLS"),
+  inv_function = myinv,
+  roi_uid = tg_O_x5$id[x]                          ### the important piece to change
+  )
+
+  return(hydroweight_test)
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 4.6 Running hydroweight_attributes() across a sequence of sites and layers of interest
 
@@ -813,7 +1298,7 @@ plot(lulc_p)
 #   weighting_scheme = c("iEucO", "iFLO", "HAiFLO", 
 #                        "iEucS", "iFLS", "HAiFLS"), 
 #   inv_function = function(x){ (x * 0.001 + 1)^-1 },
-#   uid = "1"
+#   roi_uid = "1"
 # )
 # 
 # par(mfrow=c(2,3), mar=c(1,1,3,1))

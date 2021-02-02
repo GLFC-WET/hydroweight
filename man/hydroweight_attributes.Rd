@@ -13,9 +13,9 @@ hydroweight_attributes(
   remove_region = NULL,
   resample = NULL,
   return_products = TRUE,
-  uid = NULL,
-  uid_col = NULL,
-  attr_col = NULL
+  roi_uid = NULL,
+  roi_uid_col = NULL,
+  loi_attr_col = NULL
 )
 }
 \arguments{
@@ -35,11 +35,11 @@ hydroweight_attributes(
 
 \item{return_products}{logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weight} raster. If \code{FALSE}, attribute summary table only.}
 
-\item{uid}{character. Unique identifier value for the roi}
+\item{roi_uid}{character. Unique identifier value for the roi}
 
-\item{uid_col}{character. Column name that will be assigned to the uid.}
+\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
 
-\item{attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
+\item{loi_attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
 }
 \value{
 If \code{return_products = TRUE}, a list containing 1) attribute summary table, 2) the \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 3) the \code{roi-} and \code{remove_region}-masked \code{distance_weight} raster. If \code{return_products = FALSE}, attribute summary table only.

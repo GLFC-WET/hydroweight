@@ -16,9 +16,9 @@
 #' @param remove_region \code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)
 #' @param resample character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?
 #' @param return_products logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weight} raster. If \code{FALSE}, attribute summary table only.
-#' @param uid character. Unique identifier value for the roi
-#' @param uid_col character. Column name that will be assigned to the uid.
-#' @param attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
+#' @param roi_uid character. Unique identifier value for the roi
+#' @param roi_uid_col character. Column name that will be assigned to the roi_uid.
+#' @param loi_attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
 #' @return If \code{return_products = TRUE}, a list containing 1) attribute summary table, 2) the \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 3) the \code{roi-} and \code{remove_region}-masked \code{distance_weight} raster. If \code{return_products = FALSE}, attribute summary table only.
 #' @export
 
@@ -30,16 +30,16 @@ hydroweight_attributes <- function(roi = NULL,
                                    remove_region = NULL,
                                    resample = NULL,
                                    return_products = TRUE,
-                                   uid = NULL,
-                                   uid_col = NULL,
-                                   attr_col = NULL)
+                                   roi_uid = NULL,
+                                   roi_uid_col = NULL,
+                                   loi_attr_col = NULL)
 {
 
   if(class(loi)[1] == "RasterLayer"){
 
       message("\n Reprojecting `loi` to `distance_weight` extent, resolution, and origin.
       This could be very slow given our choice of algorithm.
-      Consider reprojecting loi before this step.")
+      Consider reprojecting loi before this step.\n")
 
         loi_r <- raster::projectRaster(from = loi,
                                        to  = distance_weight,
@@ -59,18 +59,18 @@ hydroweight_attributes <- function(roi = NULL,
 
     if(loi_numeric == TRUE){
 
-      loi_r <- lapply(categories, function(x){
+      loi_r <- lapply(loi_categories, function(x){
 
         loi_return <- fasterize::fasterize(loi, raster = distance_weight,
                                            field = x)
       })
-      names(loi_r) <- categories
+      names(loi_r) <- loi_categories
       loi_r <- brick(loi_r)
     }
 
     if(loi_numeric == FALSE){
 
-      loi_r <- lapply(categories, function(x){
+      loi_r <- lapply(loi_categories, function(x){
 
         brick_ret <- fasterize::fasterize(loi, raster = distance_weight,
                                           by = x)
@@ -81,6 +81,7 @@ hydroweight_attributes <- function(roi = NULL,
     }
 
   }
+
 
   ## Mask to roi
   if(class(roi)[1] == "sf"){
@@ -113,34 +114,55 @@ hydroweight_attributes <- function(roi = NULL,
     (loi_dist <- loi_r_mask * distance_weight_mask)
     names(loi_dist) <- names(loi_r_mask)
 
-    loi_dist_ret <- lapply(names(loi_dist), function(x){
+    ## Weighted mean
+    (loi_distwtd_mean <- cellStats(loi_dist, stat = "sum", na.rm = TRUE) / cellStats(distance_weight_mask, stat = "sum", na.rm=T))
 
-      ## Weighted mean
-      loi_distwtd_mean <- cellStats(loi_dist, "sum", na.rm = TRUE) / cellStats(distance_weight_mask, "sum", na.rm=T)
+    ## Weighted standard deviation
+    ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
+    (term1 <- cellStats( (distance_weight_mask * (loi_r_mask - loi_distwtd_mean)^2), stat = "sum", na.rm = TRUE))
+    (M <- cellStats(distance_weight_mask !=0, "sum", na.rm = T))
+    (term2 <- ((M-1)/M) * cellStats(distance_weight_mask, stat = "sum", na.rm = TRUE))
 
-      ## Weighted standard deviation
-      ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
-      term1 <- cellStats( (distance_weight_mask * (loi_r_mask - loi_distwtd_mean)^2), "sum", na.rm = TRUE)
-      M <- cellStats(distance_weight_mask !=0, "sum", na.rm = T)
-      term2 <- ((M-1)/M) * cellStats(distance_weight_mask, "sum", na.rm = TRUE)
+    (loi_distwtd_sd <- sqrt(term1/term2))
 
-      loi_distwtd_sd <- sqrt(term1/term2)
+    ## Non-weighted statistics
+    (loi_median <- median(loi_r_mask@data@values, na.rm = T))
+    (loi_min <- cellStats(loi_r_mask, stat = "min", na.rm=T))
+    (loi_max <- cellStats(loi_r_mask, stat = "max", na.rm=T))
+    (loi_sum <- cellStats(loi_r_mask, stat = "sum", na.rm=T))
+    (loi_pixel_is_na <- !is.na(loi_r_mask))
+    (loi_pixel_count <- cellStats(loi_pixel_is_na, "sum", na.rm=T))
 
-      ## Non-weighted statistics
-      (loi_median <- median(loi_r_mask[[x]]@data@values, na.rm=T))
-      (loi_min <- min(loi_r_mask[[x]]@data@values, na.rm=T))
-      (loi_max <- max(loi_r_mask[[x]]@data@values, na.rm=T))
-      (loi_sum <- sum(loi_r_mask[[x]]@data@values, na.rm=T))
-      (loi_pixel_count <- sum(!is.na(loi_r_mask[[x]]@data@values)))
+    loi_stats <- data.frame(loi_distwtd_mean, loi_distwtd_sd,
+                            loi_median, loi_min, loi_max,
+                            loi_sum, loi_pixel_count)
 
-      loi_stats <- data.frame(loi_distwtd_mean, loi_distwtd_sd,
-                              loi_median, loi_min, loi_max,
-                              loi_sum, loi_pixel_count)
-      colnames(loi_stats) <- gsub("loi", attr_col, colnames(loi_stats))
-      return(loi_stats)
-    })
+    ## If single RasterLayer
+    if(raster::nlayers(loi_dist) == 1){
+      loi_stats <- as.data.frame(loi_stats)
+      colnames(loi_stats) <- gsub("loi_", "", colnames(loi_stats))
+      colnames(loi_stats) <- paste(loi_attr_col, colnames(loi_stats), sep = "_")
+    }
 
-    loi_stats <- do.call(dplyr::bind_cols, loi_dist_ret)
+    ## If RasterBrick
+    if(raster::nlayers(loi_dist) > 1){
+      loi_stats$cats <- rownames(loi_stats)
+      loi_stats_w <- tidyr::pivot_wider(loi_stats, values_from = c(loi_distwtd_mean, loi_distwtd_sd,
+                                                                   loi_median, loi_min, loi_max,
+                                                                   loi_sum, loi_pixel_count), names_from = cats)
+      colnames(loi_stats_w) <- gsub("loi_", "", colnames(loi_stats_w))
+
+      (vars_strings <- stringr::str_extract(colnames(loi_stats_w), loi_categories))
+      (stats_strings <- stringr::str_replace(colnames(loi_stats_w), paste0("_", loi_categories), ""))
+      (colnames_strings <- paste(vars_strings, stats_strings, sep = "_"))
+
+      loi_stats_w <- as.data.frame(loi_stats_w)
+      colnames(loi_stats_w) <- paste(loi_attr_col, colnames_strings, sep = "_")
+      loi_stats_w <- as.data.frame(loi_stats_w)
+
+      loi_stats <- loi_stats_w
+
+    }
 
   }
 
@@ -170,17 +192,19 @@ hydroweight_attributes <- function(roi = NULL,
     loi_dist <- loi_r_mask * distance_weight_mask
     names(loi_dist) <- names(loi_r_mask)
 
-    (loi_pct_distwtd <- cellStats(loi_dist, stat = "sum") /
-        cellStats(distance_weight_mask, stat = "sum"))
+    (loi_pct_distwtd <- cellStats(loi_dist, stat = "sum", na.rm = TRUE) /
+        cellStats(distance_weight_mask, stat = "sum", na.rm = TRUE))
     (names(loi_pct_distwtd) <- names(loi_r_mask))
 
     (loi_stats <- data.frame(t(loi_pct_distwtd)))
-    (colnames(loi_stats) <- gsub("X", paste0(attr_col, "_"), colnames(loi_stats)))
+    (colnames(loi_stats) <- gsub("X", "_", colnames(loi_stats)))
+    (colnames(loi_stats) <- paste(loi_attr_col, "prop", colnames(loi_stats), sep = "_"))
+    (colnames(loi_stats) <- gsub("__", "_", colnames(loi_stats)))
 
   }
 
-  loi_stats <- data.frame(data.frame(uid = uid), loi_stats)
-  colnames(loi_stats)[1] <- uid_col
+  loi_stats <- data.frame(data.frame(roi_uid = roi_uid), loi_stats)
+  colnames(loi_stats)[1] <- roi_uid_col
   colnames(loi_stats) <- gsub("inv_", "", colnames(loi_stats))
 
   if(return_products == TRUE){

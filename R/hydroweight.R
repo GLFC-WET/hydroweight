@@ -102,6 +102,8 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## write clip_region to .shp ----
 
+  if(!is.null(clip_region)){
+
   if (class(clip_region)[1] == "numeric" & class(target_O)[1] == "sf") {
     clip_region <- sf::st_buffer(target_O, clip_region)
     sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
@@ -136,6 +138,17 @@ hydroweight <- function(hydroweight_dir = NULL,
                    append = FALSE
       )
     }
+  }
+  }
+
+  if(is.null(clip_region)){
+
+    clip_region <- raster::raster(file.path(hydroweight_dir, dem))
+    clip_region[!is.na(clip_region)] <- 1
+    clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
+    clip_region <- sf::st_as_sf(clip_region)
+    sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
+                 append = FALSE)
   }
 
   ## clip dem and target_S by clip_region ----
@@ -479,7 +492,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   dist_list <- lapply(weighting_scheme_inv, function(x) {
     get(x)
   })
-  names(dist_list) <- weighting_scheme_inv
+  names(dist_list) <- weighting_scheme
 
   saveRDS(dist_list, file = file.path(
     hydroweight_dir,
