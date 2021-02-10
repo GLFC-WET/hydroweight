@@ -8,24 +8,26 @@ hydroweight(
   hydroweight_dir = NULL,
   target_O = NULL,
   target_S = NULL,
+  target_uid = NULL,
   OS_combine = NULL,
   clip_region = NULL,
   dem = NULL,
   dem_crs = NULL,
   flow_accum = NULL,
   weighting_scheme = NULL,
-  inv_function = NULL,
-  uid = NULL
+  inv_function = NULL
 )
 }
 \arguments{
 \item{hydroweight_dir}{character. File path for read/write.}
 
-\item{target_O}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for EucO or FLO.}
+\item{target_O}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.}
 
-\item{target_S}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for EucS or FLS.}
+\item{target_S}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.}
 
-\item{OS_combine}{logical. Should target_O and target_S be merged as targets for EucS, FLS, and/or HAFLS? Use \code{TRUE} or \code{FALSE}.}
+\item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., uid_hydrology.rds)}
+
+\item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}.}
 
 \item{clip_region}{numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.}
 
@@ -35,11 +37,9 @@ hydroweight(
 
 \item{flow_accum}{character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).}
 
-\item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "EucO", "EucS", "FLO", "FLS", "HAFLO", "HAFLS")}
+\item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")}
 
 \item{inv_function}{function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}}
-
-\item{uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., uid_hydrology.rds)}
 }
 \value{
 A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
@@ -49,13 +49,13 @@ A named list of distance-weighted rasters and accompanying \code{*.rds} in \code
 on a digital elevation model raster. Examples of targets include single points,
 areas such as lakes, or linear features such as streams. The function outputs
 a list of \code{length(weighting_scheme)} and an accompanying \code{*.rds} file
-of distance-weighted rasters for targets (\code{target_O} is a point target as
+of distance-weighted rasters for targets (\code{target_O} is a point/area target as
 in iFLO and \code{target_S} is a stream/waterbody target as in iFLS in
 Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
-IMPORTANTLY, this function produces one instance of the weighting (i.e., one target and multiple weights).
-Distance-weighted rasters, in turn, can be used in producing distance-weighted
-attributes using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
-cover weighted by flow distance to a point). See examples and vignette for simple workflow.
+IMPORTANTLY, this function acts on a single set of targets but can produce
+multiple weights. The distance-weighted rasters, can be used for generating
+distance-weighted using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
+cover weighted by flow distance to a point). See vignette for workflows.
 }
 \details{
 Spatial layers should align (i.e., identical coordinate reference systems - CRS).
@@ -67,15 +67,15 @@ For \code{weighting_scheme}:
 
 "lumped" indicates all weights = 1
 
-"EucO" indicates Euclidean distance to \code{target_O}
+"iEucO" indicates Euclidean distance to \code{target_O}
 
-"EucS" indicates Euclidean distance to \code{target_S}
+"iEucS" indicates Euclidean distance to \code{target_S}
 
-"FLO" indicates d8 flow-path distance to \code{target_O}
+"iFLO" indicates d8 flow-path distance to \code{target_O}
 
-"FLS" indicates d8 flow-path distance to \code{target_S}
+"iFLS" indicates d8 flow-path distance to \code{target_S}
 
-"HAFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_O}
+"HAiFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_O}
 
-"HAFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_S}
+"HAiFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_S}
 }

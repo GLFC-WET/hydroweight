@@ -1,5 +1,5 @@
 Package: hydroweight
-Title: Implements Euclidean/hydrological distance-weighted landscape attribute workflow
+Title: Implements Euclidean/flow-path distance-weighted landscape attribute workflow
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Brian",
@@ -10,8 +10,8 @@ Authors@R:
 Description: Implements workflow to compute spatially explicit landscape metrics 
     described in Peterson et al. (2011) <doi:10.1111/j.1365-2427.2010.02507.x>. 
     Uses previously generated terrain products (examples provided) and a user- 
-    defined weighting function to produce weighted rasters. Weighted rasters 
-    and landscape layers are then used to produced weighted landscape attributes.
+    defined weighting function to produce distance-weighted rasters. Weighted rasters 
+    and landscape layers are then used to produce distance-weighted landscape attributes.
 URL: TODO 
 BugReports: TODO
 License: MIT + file LICENSE
@@ -21,10 +21,16 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
     raster,
-    sf
+    sf,
+    dplyr,
+    fasterize,
+    stringr,
+    tidyr 
 Suggests: 
     whitebox,
-    fasterize,
-    knitr,
-    rmarkdown
+    knitr, 
+    rmarkdown,
+    foreach, 
+    viridis,
+    devtools
 VignetteBuilder: knitr

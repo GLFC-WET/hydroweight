@@ -5,52 +5,56 @@
 \title{Generate inverse distance-weighted attributes}
 \usage{
 hydroweight_attributes(
-  roi = NULL,
   loi = NULL,
-  loi_numeric = NULL,
+  loi_attr_col = NULL,
   loi_categories = NULL,
-  distance_weight = NULL,
-  remove_region = NULL,
-  resample = NULL,
-  return_products = TRUE,
+  loi_numeric = NULL,
+  loi_resample = NULL,
+  roi = NULL,
   roi_uid = NULL,
   roi_uid_col = NULL,
-  loi_attr_col = NULL
+  distance_weight = NULL,
+  remove_region = NULL,
+  return_products = TRUE
 )
 }
 \arguments{
-\item{roi}{\code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
-
 \item{loi}{\code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
+
+\item{loi_attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
+
+\item{loi_categories}{character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.}
 
 \item{loi_numeric}{logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.}
 
-\item{loi_categories}{character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.}
+\item{loi_resample}{character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?}
+
+\item{roi}{\code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
+
+\item{roi_uid}{character. Unique identifier value for the roi.}
+
+\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
 
 \item{distance_weight}{\code{RasterLayer}. The distance-weighted raster.}
 
 \item{remove_region}{\code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
 
-\item{resample}{character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?}
-
 \item{return_products}{logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weight} raster. If \code{FALSE}, attribute summary table only.}
-
-\item{roi_uid}{character. Unique identifier value for the roi}
-
-\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
-
-\item{loi_attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
 }
 \value{
 If \code{return_products = TRUE}, a list containing 1) attribute summary table, 2) the \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 3) the \code{roi-} and \code{remove_region}-masked \code{distance_weight} raster. If \code{return_products = FALSE}, attribute summary table only.
 }
 \description{
-\code{hydroweight::hydroweight_attributes()} calculates distance-weighted attributes using distance-weighted rasters generated in \code{hydroweight::hydroweight()}, a region of interest
-(\code{roi}, e.g., a catchment polygon), and an attribute layer (\code{loi}, e.g., land use polygon/raster). The function outputs the attribute
-summary table or a list including the summary table and layers used for calculation. Summary statistics are calculated as in Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
-IMPORTANTLY, this function only produces one instance of the layer x weight summary statistics (i.e., one \code{roi}, one \code{loi}, and one \code{distance_weight}).
-See example and vignette for simple workflow.
+\code{hydroweight::hydroweight_attributes()} calculates distance-weighted
+attributes using distance-weighted rasters generated in \code{hydroweight::hydroweight()},
+an attribute layer (\code{loi}, e.g., land use polygon/raster), and a region of interest
+(\code{roi}, e.g., a catchment polygon). The function outputs an attribute
+summary table or a list that includes the summary table and layers used for calculation.
+Summary statistics are calculated as in Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
+IMPORTANTLY, this function only produces one instance of the \code{loi} x \code{distance_weight}
+summary statistics (i.e., one \code{loi}, one \code{roi}, and one \code{distance_weight}).
+See vignette for workflows.
 }
 \details{
-Spatial layers should align (i.e., identical coordinate reference systems - CRS).
+Spatial layers are aligned to \code{distance_weight} (i.e., identical coordinate reference systems - CRS).
 }

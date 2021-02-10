@@ -1,17 +1,22 @@
 ---
-title: "hydroweight: Inverse distance-weighted rasters and attributes"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{hydroweight_vignette}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output: github_document
 ---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
 )
+```
+
+# hydroweight: Inverse distance-weighted rasters and attributes
+
+```{r pressure, echo=FALSE, out.width = '75%', fig.align='center'}
+knitr::include_graphics("man/figures/README-unnamed-chunk-5-1.png")
 ```
 
 ## 1.0 Introduction
