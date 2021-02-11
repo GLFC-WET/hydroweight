@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 
 # hydroweight: Inverse distance-weighted rasters and attributes
 
-```{r pressure, echo=FALSE, out.width = '75%', fig.align='center'}
+```{r pressure, echo=FALSE, out.width = '75%', fig.align = 'center'}
 knitr::include_graphics("man/figures/README-unnamed-chunk-5-1.png")
 ```
 
@@ -35,7 +35,7 @@ buffer from the target (Kielstra et al. 2019).
 
 Another approach is to calculate landscape statistics based on distances to the 
 target where areas nearby have more weight than those farther away (i.e., inverse 
-distance-weighting). A set of inverse distance weightings scenarios for stream 
+distance-weighting). A set of inverse distance weighting scenarios for stream 
 survey sites was described in Peterson *et al.* (2011) that included various 
 types of Euclidean and flow-path distances to targets. Tools are implemented 
 as *IDW-Plus* in *ArcGIS* (Peterson et al. 2017) as well as in *rdwplus* in R 
@@ -97,8 +97,6 @@ library(raster)
 library(sf)
 library(viridis)
 library(whitebox)
-
-devtools::load_all()
 
 ## Import toy_dem from whitebox package
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
@@ -360,7 +358,7 @@ plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col 
 
 ### 3.4 Running `hydroweight()` across a set of sites
 
-We wanted users to access intermediate products and also anticipated that  
+We wanted users to access intermediate products and also anticipated that 
 layers and/or errors may be very case-specific. For these reasons, we don't *yet* 
 provide an all-in-one solution for multiple sites and/or layers of interest but provide workflows. 
 

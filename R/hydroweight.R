@@ -85,7 +85,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
 
     if (class(clip_region)[1] == "character") {
-      if (!grepl(".shp", clip_region) | !grepl(".tif", clip_region)) {
+      if (!grepl(".shp", clip_region) & !grepl(".tif", clip_region)) {
         stop("If clip_region is character, target_O should be a .shp or .tif")
       }
 
@@ -141,7 +141,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## If character, check if .shp or .tif, stop if not, then notify.
   ## If character and .shp or .tif, load and write to .shp
   if (class(target_O)[1] == "character") {
-    if (!grepl(".shp", target_O) | !grepl(".tif", target_O)) {
+    if (!grepl(".shp", target_O) & !grepl(".tif", target_O)) {
       stop("If target_O is character, target_O should be a .shp or .tif")
     }
 
@@ -220,7 +220,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## If character, check if .shp or .tif, stop if not, then notify.
   ## If character and .shp or .tif, load and write to .shp
   if (class(target_S)[1] == "character") {
-    if (!grepl(".shp", target_S) | !grepl(".tif", target_S)) {
+    if (!grepl(".shp", target_S) & !grepl(".tif", target_S)) {
       stop("If target_S is character, target_S should be a .shp or .tif")
     }
 

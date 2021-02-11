@@ -93,8 +93,6 @@ library(sf)
 library(viridis)
 library(whitebox)
 
-devtools::load_all()
-
 ## Import toy_dem from whitebox package
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
 toy_dem <- raster(x = toy_file, values = TRUE)
@@ -355,8 +353,8 @@ plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col 
 
 ### 3.4 Running `hydroweight()` across a set of sites
 
-We wanted users to access intermediate products and also anticipated that  
-layers and/or errors may be very case-specific. For these reasons, we don't *yet* 
+We wanted users to access intermediate products and also anticipated that layers
+and/or errors may be very case-specific. For these reasons, we don't *yet* 
 provide an all-in-one solution for multiple sites and/or layers of interest but provide workflows. 
 
 We advocate using `foreach` since it is `lapply`-like but passes along errors to allow for 
