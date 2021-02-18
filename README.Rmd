@@ -1,9 +1,7 @@
 ---
 title: "hydroweight: Inverse distance-weighted rasters and attributes"
 output: 
-  github_document:
-    toc: true
-    toc_depth: 3
+  github_document
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -17,7 +15,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+## Contents 
+[1.0 Introduction](#10-introduction)
+
+[2.0 System setup and installation](#20-system-setup-and-installation)
+
+
+## 1.0 Introduction
 
 ```{r pressure, echo=FALSE, out.width = '75%', fig.align = 'center'}
 knitr::include_graphics("man/figures/README-unnamed-chunk-6-1.png")
@@ -71,7 +75,9 @@ produces one instance of the `loi` x `distance_weight` summary statistics (i.e.,
 
 Workflows are provided below to run these functions across multiple sites and layers. 
 
-## 2.0 Installation and system setup
+[Back to top](#-contents)
+
+## 2.0 System setup and installation
 
 WhiteboxTools must be installed for ***hydroweight*** to run. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation.
 

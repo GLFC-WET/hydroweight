@@ -1,16 +1,15 @@
 hydroweight: Inverse distance-weighted rasters and attributes
 ================
 
-  - [Introduction](#introduction)
-  - [2.0 Installation and system setup](#installation-and-system-setup)
-  - [3.0 Inverse distance-weighted rasters using
-    `hydroweight()`](#inverse-distance-weighted-rasters-using-hydroweight)
-      - [3.1 Generate toy terrain
-        dataset](#generate-toy-terrain-dataset)
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-## Introduction
+## Contents
+
+[1.0 Introduction](#10-introduction)
+
+[2.0 System setup and installation](#20-system-setup-and-installation)
+
+## 1.0 Introduction
 
 <img src="man/figures/README-unnamed-chunk-6-1.png" width="75%" style="display: block; margin: auto;" />
 
@@ -71,7 +70,9 @@ There are two functions:
 Workflows are provided below to run these functions across multiple
 sites and layers.
 
-## 2.0 Installation and system setup
+[Back to top](#-contents)
+
+## 2.0 System setup and installation
 
 WhiteboxTools must be installed for ***hydroweight*** to run. See
 [whiteboxR](https://github.com/giswqs/whiteboxR) or below for
@@ -139,7 +140,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.74s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.85s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
