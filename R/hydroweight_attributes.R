@@ -38,9 +38,7 @@ hydroweight_attributes <- function(loi = NULL,
                                    remove_region = NULL,
                                    return_products = TRUE) {
   if (class(loi)[1] == "RasterLayer") {
-    message("\n Reprojecting `loi` to `distance_weight` extent, resolution, and origin.
-      This could be very slow given our choice of algorithm.
-      Consider reprojecting loi before this step.\n")
+    message("\n Reprojecting `loi` to match `distance_weight` attributes using method `loi_resample`")
 
     loi_r <- raster::projectRaster(
       from = loi,
@@ -86,13 +84,19 @@ hydroweight_attributes <- function(loi = NULL,
   if (class(roi)[1] == "sf") {
     roi_r <- fasterize::fasterize(roi, raster = distance_weight)
   } else {
-    roi_r <- roi
+    message("\n Reprojecting `roi` to match `distance_weight` attributes using method `loi_resample`")
+
+    roi_r <- raster::projectRaster(
+      from = roi,
+      to = distance_weight,
+      method = loi_resample
+    )
   }
 
   loi_r_mask <- raster::mask(loi_r, roi_r)
   distance_weight_mask <- raster::mask(distance_weight, roi_r)
 
-  ## Mask out region
+  ## Mask out remove_region
   if (!is.null(remove_region)) {
     if (class(remove_region)[1] == "sf") {
       remove_region_r <- fasterize::fasterize(remove_region, raster = distance_weight)
