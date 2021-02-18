@@ -1,16 +1,20 @@
 hydroweight: Inverse distance-weighted rasters and attributes
 ================
 
-  - [Introduction](#introduction)
-  - [2.0 Installation and system setup](#installation-and-system-setup)
-  - [3.0 Inverse distance-weighted rasters using
-    `hydroweight()`](#inverse-distance-weighted-rasters-using-hydroweight)
-      - [3.1 Generate toy terrain
-        dataset](#generate-toy-terrain-dataset)
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-## Introduction
+## Contents
+
+  - [1.0 Introduction](#10-introduction)
+  - [2.0 System setup and
+    installation](#20-system-setup-and-installation)
+  - [3.0 Inverse distance-weighted rasters using
+    `hydroweight`](#30-inverse-distance-weighted-rasters-using-hydroweight)
+      - [3.1 Generate toy terrain
+        dataset](#31-generate-toy-terrain-dataset)
+      - [3.2 Generate targets](#32-generate-targets)
+
+## 1.0 Introduction
 
 <img src="man/figures/README-unnamed-chunk-6-1.png" width="75%" style="display: block; margin: auto;" />
 
@@ -71,7 +75,9 @@ There are two functions:
 Workflows are provided below to run these functions across multiple
 sites and layers.
 
-## 2.0 Installation and system setup
+[Back to top](#contents)
+
+## 2.0 System setup and installation
 
 WhiteboxTools must be installed for ***hydroweight*** to run. See
 [whiteboxR](https://github.com/giswqs/whiteboxR) or below for
@@ -87,6 +93,8 @@ whitebox::wbt_init()
 ## Install current version of hydroweight
 devtools::install_github("bkielstr/hydroweight")
 ```
+
+[Back to top](#contents)
 
 ## 3.0 Inverse distance-weighted rasters using `hydroweight()`
 
@@ -139,7 +147,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.74s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.73s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -150,129 +158,90 @@ wbt_extract_streams(
 #> [1] "extract_streams - Elapsed Time (excluding I/O): 0.1s"
 ```
 
-[Back to top](##-Introduction)
+[Back to top](#contents)
 
-Check this out
+### 3.2 Generate targets
 
-<!-- ### 3.2 Generate targets -->
+The first target is a low lying area we will call a lake (`tg_O`). All
+cells \<220 m elevation are `TRUE` or `1` and those \>220 m are assigned
+`NA`. We also generate its catchment (`tg_O_catchment`) using
+`whitebox::wbt_watershed()`. Target streams (`tg_S`) are loaded from the
+`whitebox::wbt_extract_streams()` output. Finally, we do some
+manipulation to the stream network raster to generate three points along
+the stream network (`tg_O_multi`) and their catchments
+(`tg_O_multi_catchment`).
 
-<!-- The first target is a low lying area we will call a lake (`tg_O`). All cells  -->
+``` r
+## For hydroweight, there are target_O and target_S
+## target_O is a target point/area for calculating distances
+## target_S is a stream/waterbody target for calculating distances
 
-<!-- <220 m elevation are `TRUE` or `1` and those >220 m are assigned `NA`. We also  -->
+## Generate target_O, tg_O, representing a lake, and its catchment
+tg_O <- toy_dem < 220
+tg_O[tg_O@data@values != 1] <- NA
+writeRaster(tg_O, file.path(hydroweight_dir, "tg_O.tif"), overwrite = TRUE)
+tg_O <- rasterToPolygons(tg_O, dissolve = TRUE)
+tg_O <- st_as_sf(tg_O)
 
-<!-- generate its catchment (`tg_O_catchment`) using `whitebox::wbt_watershed()`. Target streams (`tg_S`) are loaded from the `whitebox::wbt_extract_streams()` output. Finally, we do some manipulation to the stream network -->
+wbt_watershed(
+  d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"),
+  pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
+  output = file.path(hydroweight_dir, "tg_O_catchment.tif")
+)
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.8s"
 
-<!-- raster to generate three points along the stream network (`tg_O_multi`) and their catchments (`tg_O_multi_catchment`). -->
+tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
+tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
+tg_O_catchment <- st_as_sf(tg_O_catchment)
 
-<!-- ```{r, fig.width = 4, fig.height = 4, message = FALSE, error = FALSE, warning = FALSE} -->
+## Generate target_S, tg_S, representing the stream network
+tg_S <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif"))
 
-<!-- ## For hydroweight, there are target_O and target_S -->
+## Generate target_O, tg_O, representing several points along stream network, and their catchments
+tg_O_multi <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif"))
+tg_O_multi <- rasterToPoints(tg_O_multi, spatial = TRUE)
+tg_O_multi <- st_as_sf(tg_O_multi)
+tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[, 1] < 675000, ] # selects single network
+tg_O_multi <- tg_O_multi[c(10, 50, 100), ]
+tg_O_multi$Site <- c(1, 2, 3)
 
-<!-- ## target_O is a target point/area for calculating distances -->
+tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
-<!-- ## target_S is a stream/waterbody target for calculating distances -->
+  ## Take individual stream point and write to file
+  sel <- tg_O_multi[xx, ]
+  st_write(sel, file.path(hydroweight_dir, "tg_O_multi_single.shp"),
+    delete_layer = TRUE, quiet = TRUE
+  )
 
-<!-- ## Generate target_O, tg_O, representing a lake, and its catchment -->
+  ## Run watershed operation on stream point
+  wbt_watershed(
+    d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"),
+    pour_pts = file.path(hydroweight_dir, "tg_O_multi_single.shp"),
+    output = file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif")
+  )
 
-<!-- tg_O <- toy_dem < 220 -->
+  ## Load catchment and convert to polygon with Site code.
+  sel_catchment_r <- raster(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif"))
+  sel_catchment_r <- rasterToPolygons(sel_catchment_r, dissolve = TRUE)
+  sel_catchment_r$Site <- sel$Site
+  sel_catchment_r <- st_as_sf(sel_catchment_r)
 
-<!-- tg_O[tg_O@data@values != 1] <- NA -->
+  return(sel_catchment_r)
+}
+tg_O_multi_catchment <- do.call(bind_rows, tg_O_multi_catchment)
 
-<!-- writeRaster(tg_O, file.path(hydroweight_dir, "tg_O.tif"), overwrite = TRUE) -->
+## Plot locations
+plot(toy_dem, legend = TRUE, col = viridis(101), cex.axis = 0.75, cex.lab = 0.75)
+plot(tg_S, col = "grey", add = TRUE, legend = FALSE)
+plot(st_geometry(tg_O), col = "red", add = TRUE)
+plot(st_geometry(tg_O_multi), col = "red", pch = 25, add = TRUE)
+plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", add = TRUE)
+legend("bottom", legend = c("target_O sites", "target_S"), fill = c("red", "grey"), horiz = TRUE, bty = "n", cex = 0.75)
+```
 
-<!-- tg_O <- rasterToPolygons(tg_O, dissolve = TRUE) -->
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
-<!-- tg_O <- st_as_sf(tg_O) -->
-
-<!-- wbt_watershed( -->
-
-<!--   d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"), -->
-
-<!--   pour_pts = file.path(hydroweight_dir, "tg_O.tif"), -->
-
-<!--   output = file.path(hydroweight_dir, "tg_O_catchment.tif") -->
-
-<!-- ) -->
-
-<!-- tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif")) -->
-
-<!-- tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE) -->
-
-<!-- tg_O_catchment <- st_as_sf(tg_O_catchment) -->
-
-<!-- ## Generate target_S, tg_S, representing the stream network -->
-
-<!-- tg_S <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif")) -->
-
-<!-- ## Generate target_O, tg_O, representing several points along stream network, and their catchments -->
-
-<!-- tg_O_multi <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif")) -->
-
-<!-- tg_O_multi <- rasterToPoints(tg_O_multi, spatial = TRUE) -->
-
-<!-- tg_O_multi <- st_as_sf(tg_O_multi) -->
-
-<!-- tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[, 1] < 675000, ] # selects single network -->
-
-<!-- tg_O_multi <- tg_O_multi[c(10, 50, 100), ] -->
-
-<!-- tg_O_multi$Site <- c(1, 2, 3) -->
-
-<!-- tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% { -->
-
-<!--   ## Take individual stream point and write to file -->
-
-<!--   sel <- tg_O_multi[xx, ] -->
-
-<!--   st_write(sel, file.path(hydroweight_dir, "tg_O_multi_single.shp"), -->
-
-<!--     delete_layer = TRUE, quiet = TRUE -->
-
-<!--   ) -->
-
-<!--   ## Run watershed operation on stream point -->
-
-<!--   wbt_watershed( -->
-
-<!--     d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"), -->
-
-<!--     pour_pts = file.path(hydroweight_dir, "tg_O_multi_single.shp"), -->
-
-<!--     output = file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif") -->
-
-<!--   ) -->
-
-<!--   ## Load catchment and convert to polygon with Site code. -->
-
-<!--   sel_catchment_r <- raster(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif")) -->
-
-<!--   sel_catchment_r <- rasterToPolygons(sel_catchment_r, dissolve = TRUE) -->
-
-<!--   sel_catchment_r$Site <- sel$Site -->
-
-<!--   sel_catchment_r <- st_as_sf(sel_catchment_r) -->
-
-<!--   return(sel_catchment_r) -->
-
-<!-- } -->
-
-<!-- tg_O_multi_catchment <- do.call(bind_rows, tg_O_multi_catchment) -->
-
-<!-- ## Plot locations -->
-
-<!-- plot(toy_dem, legend = TRUE, col = viridis(101), cex.axis = 0.75, cex.lab = 0.75) -->
-
-<!-- plot(tg_S, col = "grey", add = TRUE, legend = FALSE) -->
-
-<!-- plot(st_geometry(tg_O), col = "red", add = TRUE) -->
-
-<!-- plot(st_geometry(tg_O_multi), col = "red", pch = 25, add = TRUE) -->
-
-<!-- plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", add = TRUE) -->
-
-<!-- legend("bottom", legend = c("target_O sites", "target_S"), fill = c("red", "grey"), horiz = TRUE, bty = "n", cex = 0.75) -->
-
-<!-- ``` -->
+[Back to top](#contents)
 
 <!-- ### 3.3 Run `hydroweight()` -->
 
