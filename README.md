@@ -139,7 +139,7 @@ wbt_d8_pointer(
   dem = file.path(hydroweight_dir, "toy_dem_breached.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached_d8.tif")
 )
-#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.1s"
+#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.0s"
 
 ## Generate d8 flow accumulation in units of cells (note: other flow directions are available)
 wbt_d8_flow_accumulation(
@@ -147,7 +147,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.73s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.72s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(

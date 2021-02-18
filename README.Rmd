@@ -161,7 +161,7 @@ The first target is a low lying area we will call a lake (`tg_O`). All cells
 generate its catchment (`tg_O_catchment`) using `whitebox::wbt_watershed()`. Target streams (`tg_S`) are loaded from the `whitebox::wbt_extract_streams()` output. Finally, we do some manipulation to the stream network
 raster to generate three points along the stream network (`tg_O_multi`) and their catchments (`tg_O_multi_catchment`).
 
-```{r, fig.width = 4, fig.height = 4, message = FALSE, error = FALSE, warning = FALSE}
+```{r, fig.width = 6, fig.height = 6, message = FALSE, error = FALSE, warning = FALSE}
 ## For hydroweight, there are target_O and target_S
 ## target_O is a target point/area for calculating distances
 ## target_S is a stream/waterbody target for calculating distances
