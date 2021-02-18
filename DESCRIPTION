@@ -1,24 +1,42 @@
 Package: hydroweight
-Title: Implements Euclidean/flow-path distance-weighted landscape attribute workflow
+Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",
            role = c("aut", "cre"),
-           email = "brian.kielstra@canada.ca",
-           comment = c(ORCID = "0000-0003-1105-4971"))
+           email = c("brian.kielstra@canada.ca", "b.kielstra@alumni.ubc.ca"),
+           comment = c(ORCID = "0000-0003-1105-4971")), 
+    person(given = "Erik",
+           family = "Emilson",
+           role = c("aut"),
+           email = c("erik.emilson@canada.ca"),
+           comment = c(ORCID = "TBD")), 
+    person(given = "Rob",
+           family = "Mackereth",
+           role = c("aut"),
+           comment = c(ORCID = "TBD")), 
+    person(given = "Stephanie",
+           family = "Melles",
+           role = c("aut"),
+           comment = c(ORCID = "TBD")),
+    person("Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
+            role = "cph")
+    )
 Description: Implements workflow to compute spatially explicit landscape metrics 
     described in Peterson et al. (2011) <doi:10.1111/j.1365-2427.2010.02507.x>. 
     Uses previously generated terrain products (examples provided) and a user- 
     defined weighting function to produce distance-weighted rasters. Weighted rasters 
     and landscape layers are then used to produce distance-weighted landscape attributes.
-URL: TODO 
-BugReports: TODO
+URL: https://github.com/bkielstr/hydroweight 
+BugReports: https://github.com/bkielstr/hydroweight/issues 
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
+Depends:
+    R (>= 4.0)
 Imports:
     raster,
     sf,

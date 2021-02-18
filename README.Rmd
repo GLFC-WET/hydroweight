@@ -18,7 +18,6 @@ knitr::opts_chunk$set(
 ```{r pressure, echo=FALSE, out.width = '75%', fig.align = 'center'}
 knitr::include_graphics("man/figures/README-unnamed-chunk-5-1.png")
 ```
-
 ## 1.0 Introduction
 
 Environmental scientists often want to calculate landscape statistics within 
@@ -80,7 +79,6 @@ devtools::install_github("bkielstr/hydroweight")
 ## Follow instructions for whitebox installation accordingly
 install.packages("whitebox", repos="http://R-Forge.R-project.org")
 whitebox::wbt_init()
-
 ```
 
 ## 3.0 Generate inverse distance-weighted rasters using `hydroweight()`
@@ -434,11 +432,11 @@ hw_test_5 <- lapply(inv_distance_collect, function(x) {
 
 ## Plot sites, their catchments, and their respective distance-weighted iFLO rasters
 par(mfrow = c(1, 3), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 1 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 1 - iFLO")
 plot(hw_test_5[[1]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 2 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 2 - iFLO")
 plot(hw_test_5[[2]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 3 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 3 - iFLO")
 plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
 ```
 
@@ -508,6 +506,15 @@ results_agg <- lapply(results, function(x) {
   x[[1]]
 })
 results_agg <- Reduce(merge, results_agg)
+names(results_agg)
+
+## Note that statistics without _distwd are identical across distance-weighted rasters 
+## So, you can take the lumped and distwd columns to reduce duplication 
+lumped_cols <- grep("lumped", names(results_agg))
+distwd_cols <- grep("distwtd", names(results_agg))
+unique_cols <- unique(c(1, lumped_cols, distwd_cols))
+
+results_agg <- results_agg[,unique_cols]
 names(results_agg)
 
 ## Plot
@@ -928,7 +935,8 @@ Wu Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. htt
 
 ## 6.0 Future Plans
 
-This package was implemented to mostly serve our purposes. There is probably lots of room for improvement that we don't see yet. 
+This package was implemented to mostly serve our purposes and is functional enough. 
+There is probably lots of room for improvement that we don't see yet. 
 
 The core functions should stay the same but we would like to:
 

@@ -4,8 +4,7 @@
 # hydroweight: Inverse distance-weighted rasters and attributes
 
 <img src="man/figures/README-unnamed-chunk-5-1.png" width="75%" style="display: block; margin: auto;" />
-
-## 1.0 Introduction
+\#\# 1.0 Introduction
 
 Environmental scientists often want to calculate landscape statistics
 within upstream contributing areas (i.e., catchments) to examine their
@@ -114,14 +113,14 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.12s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.6s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
   dem = file.path(hydroweight_dir, "toy_dem_breached.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached_d8.tif")
 )
-#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.3s"
+#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.0s"
 
 ## Generate d8 flow accumulation in units of cells (note: other flow directions are available)
 wbt_d8_flow_accumulation(
@@ -129,7 +128,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.100s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.83s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -168,7 +167,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.8s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -266,8 +265,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-02-11 16:01:57
-#> Running distance-weighting @ 2021-02-11 16:02:22
+#> Preparing hydroweight layers @ 2021-02-18 08:56:31
+#> Running distance-weighting @ 2021-02-18 08:56:50
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -431,15 +430,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-02-11 16:03:30
-#> Preparing hydroweight layers @ 2021-02-11 16:03:30
-#> Running distance-weighting @ 2021-02-11 16:03:54
-#> Running hydroweight for site 2 at 2021-02-11 16:03:58
-#> Preparing hydroweight layers @ 2021-02-11 16:03:58
-#> Running distance-weighting @ 2021-02-11 16:04:23
-#> Running hydroweight for site 3 at 2021-02-11 16:04:27
-#> Preparing hydroweight layers @ 2021-02-11 16:04:27
-#> Running distance-weighting @ 2021-02-11 16:04:53
+#> Running hydroweight for site 1 at 2021-02-18 08:57:41
+#> Preparing hydroweight layers @ 2021-02-18 08:57:41
+#> Running distance-weighting @ 2021-02-18 08:58:00
+#> Running hydroweight for site 2 at 2021-02-18 08:58:04
+#> Preparing hydroweight layers @ 2021-02-18 08:58:04
+#> Running distance-weighting @ 2021-02-18 08:58:23
+#> Running hydroweight for site 3 at 2021-02-18 08:58:27
+#> Preparing hydroweight layers @ 2021-02-18 08:58:27
+#> Running distance-weighting @ 2021-02-18 08:58:48
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -479,11 +478,11 @@ hw_test_5 <- lapply(inv_distance_collect, function(x) {
 
 ## Plot sites, their catchments, and their respective distance-weighted iFLO rasters
 par(mfrow = c(1, 3), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 1 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 1 - iFLO")
 plot(hw_test_5[[1]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 2 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 2 - iFLO")
 plot(hw_test_5[[2]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", main = "Site 3 - iFLO")
+plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 3 - iFLO")
 plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
 ```
 
@@ -584,6 +583,25 @@ names(results_agg)
 #> [45] "HAiFLS_ndvi_distwtd_sd"   "HAiFLS_ndvi_median"      
 #> [47] "HAiFLS_ndvi_min"          "HAiFLS_ndvi_max"         
 #> [49] "HAiFLS_ndvi_sum"          "HAiFLS_ndvi_pixel_count"
+
+## Note that statistics without _distwd are identical across distance-weighted rasters 
+## So, you can take the lumped and distwd columns to reduce duplication 
+lumped_cols <- grep("lumped", names(results_agg))
+distwd_cols <- grep("distwtd", names(results_agg))
+unique_cols <- unique(c(1, lumped_cols, distwd_cols))
+
+results_agg <- results_agg[,unique_cols]
+names(results_agg)
+#>  [1] "Lake"                     "lumped_ndvi_distwtd_mean"
+#>  [3] "lumped_ndvi_distwtd_sd"   "lumped_ndvi_median"      
+#>  [5] "lumped_ndvi_min"          "lumped_ndvi_max"         
+#>  [7] "lumped_ndvi_sum"          "lumped_ndvi_pixel_count" 
+#>  [9] "iEucO_ndvi_distwtd_mean"  "iEucO_ndvi_distwtd_sd"   
+#> [11] "iFLO_ndvi_distwtd_mean"   "iFLO_ndvi_distwtd_sd"    
+#> [13] "HAiFLO_ndvi_distwtd_mean" "HAiFLO_ndvi_distwtd_sd"  
+#> [15] "iEucS_ndvi_distwtd_mean"  "iEucS_ndvi_distwtd_sd"   
+#> [17] "iFLS_ndvi_distwtd_mean"   "iFLS_ndvi_distwtd_sd"    
+#> [19] "HAiFLS_ndvi_distwtd_mean" "HAiFLS_ndvi_distwtd_sd"
 
 ## Plot
 plot(ndvi, axes = F, legend = F, box = FALSE, col = viridis(101))
@@ -936,31 +954,31 @@ results_agg <- lapply(results, function(x) {
 })
 results_agg <- Reduce(merge, results_agg)
 names(results_agg)
-#>  [1] "Lake"                      "lumped_lulc_prop_var_1_6" 
-#>  [3] "lumped_lulc_prop_var_1_8"  "lumped_lulc_prop_var_1_2" 
-#>  [5] "lumped_lulc_prop_var_1_3"  "lumped_lulc_prop_var_2_25"
-#>  [7] "lumped_lulc_prop_var_2_24" "lumped_lulc_prop_var_2_27"
-#>  [9] "iEucO_lulc_prop_var_1_6"   "iEucO_lulc_prop_var_1_8"  
-#> [11] "iEucO_lulc_prop_var_1_2"   "iEucO_lulc_prop_var_1_3"  
-#> [13] "iEucO_lulc_prop_var_2_25"  "iEucO_lulc_prop_var_2_24" 
-#> [15] "iEucO_lulc_prop_var_2_27"  "iFLO_lulc_prop_var_1_6"   
-#> [17] "iFLO_lulc_prop_var_1_8"    "iFLO_lulc_prop_var_1_2"   
-#> [19] "iFLO_lulc_prop_var_1_3"    "iFLO_lulc_prop_var_2_25"  
-#> [21] "iFLO_lulc_prop_var_2_24"   "iFLO_lulc_prop_var_2_27"  
-#> [23] "HAiFLO_lulc_prop_var_1_6"  "HAiFLO_lulc_prop_var_1_8" 
-#> [25] "HAiFLO_lulc_prop_var_1_2"  "HAiFLO_lulc_prop_var_1_3" 
-#> [27] "HAiFLO_lulc_prop_var_2_25" "HAiFLO_lulc_prop_var_2_24"
-#> [29] "HAiFLO_lulc_prop_var_2_27" "iEucS_lulc_prop_var_1_6"  
-#> [31] "iEucS_lulc_prop_var_1_8"   "iEucS_lulc_prop_var_1_2"  
-#> [33] "iEucS_lulc_prop_var_1_3"   "iEucS_lulc_prop_var_2_25" 
-#> [35] "iEucS_lulc_prop_var_2_24"  "iEucS_lulc_prop_var_2_27" 
-#> [37] "iFLS_lulc_prop_var_1_6"    "iFLS_lulc_prop_var_1_8"   
-#> [39] "iFLS_lulc_prop_var_1_2"    "iFLS_lulc_prop_var_1_3"   
-#> [41] "iFLS_lulc_prop_var_2_25"   "iFLS_lulc_prop_var_2_24"  
-#> [43] "iFLS_lulc_prop_var_2_27"   "HAiFLS_lulc_prop_var_1_6" 
-#> [45] "HAiFLS_lulc_prop_var_1_8"  "HAiFLS_lulc_prop_var_1_2" 
-#> [47] "HAiFLS_lulc_prop_var_1_3"  "HAiFLS_lulc_prop_var_2_25"
-#> [49] "HAiFLS_lulc_prop_var_2_24" "HAiFLS_lulc_prop_var_2_27"
+#>  [1] "Lake"                      "lumped_lulc_prop_var_1_4" 
+#>  [3] "lumped_lulc_prop_var_1_7"  "lumped_lulc_prop_var_1_8" 
+#>  [5] "lumped_lulc_prop_var_2_25" "lumped_lulc_prop_var_2_24"
+#>  [7] "lumped_lulc_prop_var_2_27" "lumped_lulc_prop_var_2_29"
+#>  [9] "iEucO_lulc_prop_var_1_4"   "iEucO_lulc_prop_var_1_7"  
+#> [11] "iEucO_lulc_prop_var_1_8"   "iEucO_lulc_prop_var_2_25" 
+#> [13] "iEucO_lulc_prop_var_2_24"  "iEucO_lulc_prop_var_2_27" 
+#> [15] "iEucO_lulc_prop_var_2_29"  "iFLO_lulc_prop_var_1_4"   
+#> [17] "iFLO_lulc_prop_var_1_7"    "iFLO_lulc_prop_var_1_8"   
+#> [19] "iFLO_lulc_prop_var_2_25"   "iFLO_lulc_prop_var_2_24"  
+#> [21] "iFLO_lulc_prop_var_2_27"   "iFLO_lulc_prop_var_2_29"  
+#> [23] "HAiFLO_lulc_prop_var_1_4"  "HAiFLO_lulc_prop_var_1_7" 
+#> [25] "HAiFLO_lulc_prop_var_1_8"  "HAiFLO_lulc_prop_var_2_25"
+#> [27] "HAiFLO_lulc_prop_var_2_24" "HAiFLO_lulc_prop_var_2_27"
+#> [29] "HAiFLO_lulc_prop_var_2_29" "iEucS_lulc_prop_var_1_4"  
+#> [31] "iEucS_lulc_prop_var_1_7"   "iEucS_lulc_prop_var_1_8"  
+#> [33] "iEucS_lulc_prop_var_2_25"  "iEucS_lulc_prop_var_2_24" 
+#> [35] "iEucS_lulc_prop_var_2_27"  "iEucS_lulc_prop_var_2_29" 
+#> [37] "iFLS_lulc_prop_var_1_4"    "iFLS_lulc_prop_var_1_7"   
+#> [39] "iFLS_lulc_prop_var_1_8"    "iFLS_lulc_prop_var_2_25"  
+#> [41] "iFLS_lulc_prop_var_2_24"   "iFLS_lulc_prop_var_2_27"  
+#> [43] "iFLS_lulc_prop_var_2_29"   "HAiFLS_lulc_prop_var_1_4" 
+#> [45] "HAiFLS_lulc_prop_var_1_7"  "HAiFLS_lulc_prop_var_1_8" 
+#> [47] "HAiFLS_lulc_prop_var_2_25" "HAiFLS_lulc_prop_var_2_24"
+#> [49] "HAiFLS_lulc_prop_var_2_27" "HAiFLS_lulc_prop_var_2_29"
 ```
 
 ### 4.5 Bringing it all together: Running `hydroweight()` and `hydroweight_attributes()` across sites and layers
@@ -1095,10 +1113,10 @@ names(site_statistics)
 #>  [21] "lumped_lulc_var_1_max"          "lumped_lulc_var_2_max"         
 #>  [23] "lumped_lulc_var_1_sum"          "lumped_lulc_var_2_sum"         
 #>  [25] "lumped_lulc_var_1_pixel_count"  "lumped_lulc_var_2_pixel_count" 
-#>  [27] "lumped_lulc_prop_var_1_6"       "lumped_lulc_prop_var_1_8"      
-#>  [29] "lumped_lulc_prop_var_1_2"       "lumped_lulc_prop_var_1_3"      
-#>  [31] "lumped_lulc_prop_var_2_25"      "lumped_lulc_prop_var_2_24"     
-#>  [33] "lumped_lulc_prop_var_2_27"      "iEucO_ndvi_distwtd_mean"       
+#>  [27] "lumped_lulc_prop_var_1_4"       "lumped_lulc_prop_var_1_7"      
+#>  [29] "lumped_lulc_prop_var_1_8"       "lumped_lulc_prop_var_2_25"     
+#>  [31] "lumped_lulc_prop_var_2_24"      "lumped_lulc_prop_var_2_27"     
+#>  [33] "lumped_lulc_prop_var_2_29"      "iEucO_ndvi_distwtd_mean"       
 #>  [35] "iEucO_ndvi_distwtd_sd"          "iEucO_ndvi_median"             
 #>  [37] "iEucO_ndvi_min"                 "iEucO_ndvi_max"                
 #>  [39] "iEucO_ndvi_sum"                 "iEucO_ndvi_pixel_count"        
@@ -1111,10 +1129,10 @@ names(site_statistics)
 #>  [53] "iEucO_lulc_var_1_max"           "iEucO_lulc_var_2_max"          
 #>  [55] "iEucO_lulc_var_1_sum"           "iEucO_lulc_var_2_sum"          
 #>  [57] "iEucO_lulc_var_1_pixel_count"   "iEucO_lulc_var_2_pixel_count"  
-#>  [59] "iEucO_lulc_prop_var_1_6"        "iEucO_lulc_prop_var_1_8"       
-#>  [61] "iEucO_lulc_prop_var_1_2"        "iEucO_lulc_prop_var_1_3"       
-#>  [63] "iEucO_lulc_prop_var_2_25"       "iEucO_lulc_prop_var_2_24"      
-#>  [65] "iEucO_lulc_prop_var_2_27"       "iFLO_ndvi_distwtd_mean"        
+#>  [59] "iEucO_lulc_prop_var_1_4"        "iEucO_lulc_prop_var_1_7"       
+#>  [61] "iEucO_lulc_prop_var_1_8"        "iEucO_lulc_prop_var_2_25"      
+#>  [63] "iEucO_lulc_prop_var_2_24"       "iEucO_lulc_prop_var_2_27"      
+#>  [65] "iEucO_lulc_prop_var_2_29"       "iFLO_ndvi_distwtd_mean"        
 #>  [67] "iFLO_ndvi_distwtd_sd"           "iFLO_ndvi_median"              
 #>  [69] "iFLO_ndvi_min"                  "iFLO_ndvi_max"                 
 #>  [71] "iFLO_ndvi_sum"                  "iFLO_ndvi_pixel_count"         
@@ -1127,10 +1145,10 @@ names(site_statistics)
 #>  [85] "iFLO_lulc_var_1_max"            "iFLO_lulc_var_2_max"           
 #>  [87] "iFLO_lulc_var_1_sum"            "iFLO_lulc_var_2_sum"           
 #>  [89] "iFLO_lulc_var_1_pixel_count"    "iFLO_lulc_var_2_pixel_count"   
-#>  [91] "iFLO_lulc_prop_var_1_6"         "iFLO_lulc_prop_var_1_8"        
-#>  [93] "iFLO_lulc_prop_var_1_2"         "iFLO_lulc_prop_var_1_3"        
-#>  [95] "iFLO_lulc_prop_var_2_25"        "iFLO_lulc_prop_var_2_24"       
-#>  [97] "iFLO_lulc_prop_var_2_27"        "HAiFLO_ndvi_distwtd_mean"      
+#>  [91] "iFLO_lulc_prop_var_1_4"         "iFLO_lulc_prop_var_1_7"        
+#>  [93] "iFLO_lulc_prop_var_1_8"         "iFLO_lulc_prop_var_2_25"       
+#>  [95] "iFLO_lulc_prop_var_2_24"        "iFLO_lulc_prop_var_2_27"       
+#>  [97] "iFLO_lulc_prop_var_2_29"        "HAiFLO_ndvi_distwtd_mean"      
 #>  [99] "HAiFLO_ndvi_distwtd_sd"         "HAiFLO_ndvi_median"            
 #> [101] "HAiFLO_ndvi_min"                "HAiFLO_ndvi_max"               
 #> [103] "HAiFLO_ndvi_sum"                "HAiFLO_ndvi_pixel_count"       
@@ -1143,10 +1161,10 @@ names(site_statistics)
 #> [117] "HAiFLO_lulc_var_1_max"          "HAiFLO_lulc_var_2_max"         
 #> [119] "HAiFLO_lulc_var_1_sum"          "HAiFLO_lulc_var_2_sum"         
 #> [121] "HAiFLO_lulc_var_1_pixel_count"  "HAiFLO_lulc_var_2_pixel_count" 
-#> [123] "HAiFLO_lulc_prop_var_1_6"       "HAiFLO_lulc_prop_var_1_8"      
-#> [125] "HAiFLO_lulc_prop_var_1_2"       "HAiFLO_lulc_prop_var_1_3"      
-#> [127] "HAiFLO_lulc_prop_var_2_25"      "HAiFLO_lulc_prop_var_2_24"     
-#> [129] "HAiFLO_lulc_prop_var_2_27"      "iEucS_ndvi_distwtd_mean"       
+#> [123] "HAiFLO_lulc_prop_var_1_4"       "HAiFLO_lulc_prop_var_1_7"      
+#> [125] "HAiFLO_lulc_prop_var_1_8"       "HAiFLO_lulc_prop_var_2_25"     
+#> [127] "HAiFLO_lulc_prop_var_2_24"      "HAiFLO_lulc_prop_var_2_27"     
+#> [129] "HAiFLO_lulc_prop_var_2_29"      "iEucS_ndvi_distwtd_mean"       
 #> [131] "iEucS_ndvi_distwtd_sd"          "iEucS_ndvi_median"             
 #> [133] "iEucS_ndvi_min"                 "iEucS_ndvi_max"                
 #> [135] "iEucS_ndvi_sum"                 "iEucS_ndvi_pixel_count"        
@@ -1159,10 +1177,10 @@ names(site_statistics)
 #> [149] "iEucS_lulc_var_1_max"           "iEucS_lulc_var_2_max"          
 #> [151] "iEucS_lulc_var_1_sum"           "iEucS_lulc_var_2_sum"          
 #> [153] "iEucS_lulc_var_1_pixel_count"   "iEucS_lulc_var_2_pixel_count"  
-#> [155] "iEucS_lulc_prop_var_1_6"        "iEucS_lulc_prop_var_1_8"       
-#> [157] "iEucS_lulc_prop_var_1_2"        "iEucS_lulc_prop_var_1_3"       
-#> [159] "iEucS_lulc_prop_var_2_25"       "iEucS_lulc_prop_var_2_24"      
-#> [161] "iEucS_lulc_prop_var_2_27"       "iFLS_ndvi_distwtd_mean"        
+#> [155] "iEucS_lulc_prop_var_1_4"        "iEucS_lulc_prop_var_1_7"       
+#> [157] "iEucS_lulc_prop_var_1_8"        "iEucS_lulc_prop_var_2_25"      
+#> [159] "iEucS_lulc_prop_var_2_24"       "iEucS_lulc_prop_var_2_27"      
+#> [161] "iEucS_lulc_prop_var_2_29"       "iFLS_ndvi_distwtd_mean"        
 #> [163] "iFLS_ndvi_distwtd_sd"           "iFLS_ndvi_median"              
 #> [165] "iFLS_ndvi_min"                  "iFLS_ndvi_max"                 
 #> [167] "iFLS_ndvi_sum"                  "iFLS_ndvi_pixel_count"         
@@ -1175,10 +1193,10 @@ names(site_statistics)
 #> [181] "iFLS_lulc_var_1_max"            "iFLS_lulc_var_2_max"           
 #> [183] "iFLS_lulc_var_1_sum"            "iFLS_lulc_var_2_sum"           
 #> [185] "iFLS_lulc_var_1_pixel_count"    "iFLS_lulc_var_2_pixel_count"   
-#> [187] "iFLS_lulc_prop_var_1_6"         "iFLS_lulc_prop_var_1_8"        
-#> [189] "iFLS_lulc_prop_var_1_2"         "iFLS_lulc_prop_var_1_3"        
-#> [191] "iFLS_lulc_prop_var_2_25"        "iFLS_lulc_prop_var_2_24"       
-#> [193] "iFLS_lulc_prop_var_2_27"        "HAiFLS_ndvi_distwtd_mean"      
+#> [187] "iFLS_lulc_prop_var_1_4"         "iFLS_lulc_prop_var_1_7"        
+#> [189] "iFLS_lulc_prop_var_1_8"         "iFLS_lulc_prop_var_2_25"       
+#> [191] "iFLS_lulc_prop_var_2_24"        "iFLS_lulc_prop_var_2_27"       
+#> [193] "iFLS_lulc_prop_var_2_29"        "HAiFLS_ndvi_distwtd_mean"      
 #> [195] "HAiFLS_ndvi_distwtd_sd"         "HAiFLS_ndvi_median"            
 #> [197] "HAiFLS_ndvi_min"                "HAiFLS_ndvi_max"               
 #> [199] "HAiFLS_ndvi_sum"                "HAiFLS_ndvi_pixel_count"       
@@ -1191,10 +1209,10 @@ names(site_statistics)
 #> [213] "HAiFLS_lulc_var_1_max"          "HAiFLS_lulc_var_2_max"         
 #> [215] "HAiFLS_lulc_var_1_sum"          "HAiFLS_lulc_var_2_sum"         
 #> [217] "HAiFLS_lulc_var_1_pixel_count"  "HAiFLS_lulc_var_2_pixel_count" 
-#> [219] "HAiFLS_lulc_prop_var_1_6"       "HAiFLS_lulc_prop_var_1_8"      
-#> [221] "HAiFLS_lulc_prop_var_1_2"       "HAiFLS_lulc_prop_var_1_3"      
-#> [223] "HAiFLS_lulc_prop_var_2_25"      "HAiFLS_lulc_prop_var_2_24"     
-#> [225] "HAiFLS_lulc_prop_var_2_27"
+#> [219] "HAiFLS_lulc_prop_var_1_4"       "HAiFLS_lulc_prop_var_1_7"      
+#> [221] "HAiFLS_lulc_prop_var_1_8"       "HAiFLS_lulc_prop_var_2_25"     
+#> [223] "HAiFLS_lulc_prop_var_2_24"      "HAiFLS_lulc_prop_var_2_27"     
+#> [225] "HAiFLS_lulc_prop_var_2_29"
 ```
 
 Now - like any good environmental scientist - you have more variables
@@ -1229,8 +1247,9 @@ Wu Q. (2020). whitebox: ‘WhiteboxTools’ R Frontend. R package version
 
 ## 6.0 Future Plans
 
-This package was implemented to mostly serve our purposes. There is
-probably lots of room for improvement that we don’t see yet.
+This package was implemented to mostly serve our purposes and is
+functional enough. There is probably lots of room for improvement that
+we don’t see yet.
 
 The core functions should stay the same but we would like to:
 

@@ -75,7 +75,6 @@ devtools::install_github("bkielstr/hydroweight")
 ## Follow instructions for whitebox installation accordingly
 install.packages("whitebox", repos="http://R-Forge.R-project.org")
 whitebox::wbt_init()
-
 ```
 
 ## 3.0 Generate inverse distance-weighted rasters using `hydroweight()`

@@ -36,7 +36,7 @@
 #' @param hydroweight_dir character. File path for read/write.
 #' @param target_O \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.
 #' @param target_S \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.
-#' @param target_uid character. Unique identifier to precede exported list \code{*.rds} (i.e., uid_hydrology.rds)
+#' @param target_uid character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)
 #' @param OS_combine logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}.
 #' @param clip_region numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
@@ -128,7 +128,6 @@ hydroweight <- function(hydroweight_dir = NULL,
   dem_clip <- raster::raster(file.path(hydroweight_dir, "TEMP-dem_clip.tif"))
   raster::crs(dem_clip) <- dem_crs
 
-
   ## Prepare target_O ----
 
   ## If sf, write to .shp
@@ -190,7 +189,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## write target_O and adjust to clip_region if RasterLayer
   if (class(target_O)[1] == "RasterLayer") {
     target_O_r <- target_O
-    raster::crs(target_O_r) <- dem_crs
+    target_O_r <- raster::projectRaster(target_O_r, crs = dem_crs)
     raster::writeRaster(target_O_r, file.path(hydroweight_dir, "TEMP-target_O.tif"),
       overwrite = TRUE
     )
@@ -204,8 +203,6 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     target_O_r <- raster::raster(file.path(hydroweight_dir, "TEMP-target_O_clip.tif"))
   }
-
-
 
   ## Prepare target_S ----
 
@@ -269,7 +266,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## write target_S and adjust to clip_region if RasterLayer
   if (class(target_S)[1] == "RasterLayer") {
     target_S_r <- target_S
-    raster::crs(target_S_r) <- dem_crs
+    target_S_r <- raster::projectRaster(target_S_r, crs = dem_crs)
     raster::writeRaster(target_S_r, file.path(hydroweight_dir, "TEMP-target_S.tif"),
       overwrite = TRUE
     )
@@ -283,7 +280,6 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     target_S_r <- raster::raster(file.path(hydroweight_dir, "TEMP-target_S_clip.tif"))
   }
-
 
   ## Prepare OS_combine ----
   if (is.null(OS_combine)) {

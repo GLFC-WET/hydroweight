@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright (c) 2021 TODO
+Copyright (c) Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada, (2021).
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
