@@ -40,7 +40,6 @@
 #' @param OS_combine logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}.
 #' @param clip_region numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
-#' @param dem_crs \code{CRS-class}. Digital elevation model coordinate reference system.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
 #' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}
@@ -54,7 +53,6 @@ hydroweight <- function(hydroweight_dir = NULL,
                         OS_combine = NULL,
                         clip_region = NULL,
                         dem = NULL,
-                        dem_crs = NULL,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
                         inv_function = NULL) {
@@ -62,12 +60,8 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## PREPARE HYDROWEIGHT LAYERS ----
 
-  ## Get dem crs if not specified
-  if (is.null(dem_crs)) {
-    dem_crs <- raster::crs(
-      raster::raster(file.path(hydroweight_dir, dem))
-    )
-  }
+  (dem_r <- raster::raster(file.path(hydroweight_dir, dem)))
+  dem_crs <- raster::crs(dem_r)
 
   ## Prepare clip_region ----
   if (!is.null(clip_region)) {
@@ -189,19 +183,10 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## write target_O and adjust to clip_region if RasterLayer
   if (class(target_O)[1] == "RasterLayer") {
     target_O_r <- target_O
-    target_O_r <- raster::projectRaster(target_O_r, crs = dem_crs)
-    raster::writeRaster(target_O_r, file.path(hydroweight_dir, "TEMP-target_O.tif"),
+    target_O_r <- raster::projectRaster(target_O_r, dem_clip, method = "ngb")
+    raster::writeRaster(target_O_r, file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
       overwrite = TRUE
     )
-
-    whitebox::wbt_clip_raster_to_polygon(
-      input = file.path(hydroweight_dir, "TEMP-target_O.tif"),
-      polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-      output = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
-      verbose = TRUE
-    )
-
-    target_O_r <- raster::raster(file.path(hydroweight_dir, "TEMP-target_O_clip.tif"))
   }
 
   ## Prepare target_S ----
@@ -266,19 +251,10 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## write target_S and adjust to clip_region if RasterLayer
   if (class(target_S)[1] == "RasterLayer") {
     target_S_r <- target_S
-    target_S_r <- raster::projectRaster(target_S_r, crs = dem_crs)
-    raster::writeRaster(target_S_r, file.path(hydroweight_dir, "TEMP-target_S.tif"),
+    target_S_r <- raster::projectRaster(target_S_r, dem_clip, method = "ngb")
+    raster::writeRaster(target_S_r, file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
       overwrite = TRUE
     )
-
-    whitebox::wbt_clip_raster_to_polygon(
-      input = file.path(hydroweight_dir, "TEMP-target_S.tif"),
-      polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-      output = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
-      verbose = TRUE
-    )
-
-    target_S_r <- raster::raster(file.path(hydroweight_dir, "TEMP-target_S_clip.tif"))
   }
 
   ## Prepare OS_combine ----
@@ -288,8 +264,8 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   if (OS_combine == TRUE){
 
-  target_S_OS <- target_S_r
-  target_O_OS <- target_O_r
+  (target_S_OS <- target_S_r)
+  (target_O_OS <- target_O_r)
 
   target_S_OS[target_S_OS > 0] <- 1
   target_O_OS[target_O_OS > 0] <- 1

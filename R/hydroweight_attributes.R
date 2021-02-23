@@ -16,6 +16,7 @@
 #' @param loi_attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
 #' @param loi_categories character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.
+#' @param loi_numeric_stats charater. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "sum", "pixel_count"). Those without distwtd_ are simple "lumped" statistics.
 #' @param loi_resample character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?
 #' @param roi \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
@@ -30,6 +31,7 @@ hydroweight_attributes <- function(loi = NULL,
                                    loi_attr_col = NULL,
                                    loi_categories = NULL,
                                    loi_numeric = NULL,
+                                   loi_numeric_stats= NULL,
                                    loi_resample = NULL,
                                    roi = NULL,
                                    roi_uid = NULL,
@@ -129,6 +131,8 @@ hydroweight_attributes <- function(loi = NULL,
     (loi_distwtd_sd <- sqrt(term1 / term2))
 
     ## Non-weighted statistics
+    (loi_mean <- raster::cellStats(loi_r_mask, stat = "mean", na.rm = T))
+    (loi_sd <- raster::cellStats(loi_r_mask, stat = "sd", na.rm = T))
     (loi_median <- stats::median(loi_r_mask@data@values, na.rm = T))
     (loi_min <- raster::cellStats(loi_r_mask, stat = "min", na.rm = T))
     (loi_max <- raster::cellStats(loi_r_mask, stat = "max", na.rm = T))
@@ -137,7 +141,7 @@ hydroweight_attributes <- function(loi = NULL,
     (loi_pixel_count <- raster::cellStats(loi_pixel_is_na, "sum", na.rm = T))
 
     loi_stats <- data.frame(
-      loi_distwtd_mean, loi_distwtd_sd,
+      loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
       loi_median, loi_min, loi_max,
       loi_sum, loi_pixel_count
     )
@@ -153,7 +157,7 @@ hydroweight_attributes <- function(loi = NULL,
     if (raster::nlayers(loi_dist) > 1) {
       loi_stats$cats <- rownames(loi_stats)
       loi_stats_w <- tidyr::pivot_wider(loi_stats, values_from = c(
-        loi_distwtd_mean, loi_distwtd_sd,
+        loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
         loi_median, loi_min, loi_max,
         loi_sum, loi_pixel_count
       ), names_from = "cats")
@@ -208,6 +212,16 @@ hydroweight_attributes <- function(loi = NULL,
   loi_stats <- data.frame(data.frame(roi_uid = roi_uid), loi_stats)
   colnames(loi_stats)[1] <- roi_uid_col
   colnames(loi_stats) <- gsub("inv_", "", colnames(loi_stats))
+
+  ## Reduce loi_stats frame according to loi_numeric_stats
+  if(!is.null(loi_numeric_stats)){
+
+    col_return <- sapply(loi_numeric_stats, function(x){grep(x, names(loi_stats))})
+    col_return <- do.call("c", col_return)
+    col_return <- unique(col_return)
+
+    loi_stats <- loi_stats[,c(1, col_return)]
+  }
 
   if (return_products == TRUE) {
     ret_list <- list(loi_stats, loi_r_mask, distance_weight_mask)

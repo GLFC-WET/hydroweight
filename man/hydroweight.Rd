@@ -12,7 +12,6 @@ hydroweight(
   OS_combine = NULL,
   clip_region = NULL,
   dem = NULL,
-  dem_crs = NULL,
   flow_accum = NULL,
   weighting_scheme = NULL,
   inv_function = NULL
@@ -25,15 +24,13 @@ hydroweight(
 
 \item{target_S}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.}
 
-\item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., uid_hydrology.rds)}
+\item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)}
 
 \item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}.}
 
 \item{clip_region}{numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.}
 
 \item{dem}{character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.}
-
-\item{dem_crs}{\code{CRS-class}. Digital elevation model coordinate reference system.}
 
 \item{flow_accum}{character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).}
 

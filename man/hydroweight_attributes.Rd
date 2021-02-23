@@ -9,6 +9,7 @@ hydroweight_attributes(
   loi_attr_col = NULL,
   loi_categories = NULL,
   loi_numeric = NULL,
+  loi_numeric_stats = NULL,
   loi_resample = NULL,
   roi = NULL,
   roi_uid = NULL,
@@ -26,6 +27,8 @@ hydroweight_attributes(
 \item{loi_categories}{character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.}
 
 \item{loi_numeric}{logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.}
+
+\item{loi_numeric_stats}{charater. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "sum", "pixel_count"). Those without distwtd_ are simple "lumped" statistics.}
 
 \item{loi_resample}{character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?}
 
