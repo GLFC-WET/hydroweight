@@ -16,8 +16,7 @@
 #' @param loi_attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
 #' @param loi_categories character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.
-#' @param loi_numeric_stats charater. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "sum", "pixel_count"). Those without distwtd_ are simple "lumped" statistics.
-#' @param loi_resample character; \code{ngb} or \code{bilinear}. If re-projection needed to distance_weight projection, should nearest neighbour (categorical: "ngb") or bilinear (numeric: "bilinear") resampling be used?
+#' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "pixel_count"). Those without distwtd_ are simple "lumped" statistics.
 #' @param roi \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
 #' @param roi_uid_col character. Column name that will be assigned to the roi_uid.
@@ -32,15 +31,28 @@ hydroweight_attributes <- function(loi = NULL,
                                    loi_categories = NULL,
                                    loi_numeric = NULL,
                                    loi_numeric_stats= NULL,
-                                   loi_resample = NULL,
                                    roi = NULL,
                                    roi_uid = NULL,
                                    roi_uid_col = NULL,
                                    distance_weight = NULL,
                                    remove_region = NULL,
                                    return_products = TRUE) {
+
+  ## Set resampling based on loi_numeric
+  if (loi_numeric == TRUE){
+
+    loi_resample <- "bilinear"
+
+  }
+
+  if (loi_numeric == FALSE){
+
+    loi_resample <- "ngb"
+
+  }
+
   if (class(loi)[1] == "RasterLayer") {
-    message("\n Reprojecting `loi` to match `distance_weight` attributes using method `loi_resample`")
+    message("\n Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`")
 
     loi_r <- raster::projectRaster(
       from = loi,

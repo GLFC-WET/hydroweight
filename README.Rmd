@@ -28,7 +28,7 @@ knitr::opts_chunk$set(
   + [4.2 Using a categorical raster layer of interest](#42-using-a-categorical-raster-layer-of-interest)
   + [4.3 Using a polygon layer of interest with numeric data in the column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
   + [4.4 Using a polygon layer of interest with categorical data in the column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
-* [5.0-Inverse-distance-weighted-rasters-and-attributes-across-multiple-layers-and-sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers) 
+* [5.0 Inverse distance-weighted rasters and attributes across multiple layers and sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers) 
 * [6.0 References](#60-references)
 * [7.0 Future plans](#70-future-plans)
   
@@ -506,7 +506,6 @@ hwa_test_numeric <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass") %
     loi_attr_col = "ndvi",
     loi_numeric = TRUE,
     loi_numeric_stats = c("distwtd_mean", "distwd_sd", "mean", "sd", "median", "min", "max", "pixel_count"),
-    loi_resample = "bilinear",
     roi = tg_O_catchment,
     roi_uid = "1",
     roi_uid_col = "Lake",
@@ -613,7 +612,6 @@ hwa_test_categorical <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass
     loi = lulc,
     loi_attr_col = "lulc",
     loi_numeric = FALSE,
-    loi_resample = "ngb",
     roi = tg_O_catchment,
     roi_uid = "1",
     roi_uid_col = "Lake",
@@ -706,7 +704,7 @@ plot(results[[3]][[2]][[3]] * results[[3]]$distance_weight_bounded, axes = F, le
 
 ### 4.3 Using a polygon layer of interest with numeric data in the column
 
-Here, we `lulc` and polygonize the raster to `lulc_p`. We then generate some numeric data in the polygon
+Here, we use `lulc` and polygonize the raster to `lulc_p`. We then generate some numeric data in the polygon
 layer called `var_1` and `var_2`. We then spatially summarize the numeric data in those
 two columns using `hydroweight_attributes()`.
 
@@ -733,7 +731,6 @@ hwa_test_numeric_polygon <- foreach(xx = 1:length(hw_test_1), .errorhandling = "
     loi_categories = c("var_1", "var_2"),
     loi_numeric = TRUE,
     loi_numeric_stats = c("distwtd_mean", "distwd_sd", "mean", "sd", "min", "max", "pixel_count"),
-    loi_resample = "ngb",
     roi = tg_O_catchment,
     roi_uid = "1",
     roi_uid_col = "Lake",
@@ -803,7 +800,6 @@ hwa_test_categorical_polygon <- foreach(xx = 1:length(hw_test_1), .errorhandling
     loi_attr_col = "lulc",
     loi_categories = c("var_1", "var_2"),
     loi_numeric = FALSE,
-    loi_resample = "ngb",
     roi = tg_O_catchment,
     roi_uid = "1",
     roi_uid_col = "Lake",
@@ -876,15 +872,15 @@ The basic chain looks like this this:
 
 loi_ndvi <- list(loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE, loi_resample = "bilinear",
                   loi_numeric_stats = c("distwtd_mean", "distwd_sd", "mean", "sd", "min", "max","pixel_count"))
-loi_lulc <- list(loi = lulc, loi_attr_col = "lulc", loi_numeric = FALSE, loi_resample = "ngb")
+loi_lulc <- list(loi = lulc, loi_attr_col = "lulc", loi_numeric = FALSE)
 loi_lulc_p_n <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
-  loi_categories = c("var_1", "var_2"), loi_resample = "ngb",
+  loi_categories = c("var_1", "var_2"), 
   loi_numeric_stats = c("distwtd_mean", "distwd_sd", "mean", "sd", "min", "max", "pixel_count")
 )
 loi_lulc_p_c <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
-  loi_categories = c("var_1", "var_2"), loi_resample = "ngb"
+  loi_categories = c("var_1", "var_2")
 )
 
 ## These are combined into a list of lists
