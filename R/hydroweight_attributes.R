@@ -228,7 +228,7 @@ hydroweight_attributes <- function(loi = NULL,
   ## Reduce loi_stats frame according to loi_numeric_stats
   if(!is.null(loi_numeric_stats)){
 
-    col_return <- sapply(loi_numeric_stats, function(x){grep(x, names(loi_stats))})
+    col_return <- lapply(loi_numeric_stats, function(x){grep(x, names(loi_stats))})
     col_return <- do.call("c", col_return)
     col_return <- unique(col_return)
 
