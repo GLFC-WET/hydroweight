@@ -12,6 +12,7 @@ hydroweight(
   OS_combine = NULL,
   clip_region = NULL,
   dem = NULL,
+  dem_crs = NULL,
   flow_accum = NULL,
   weighting_scheme = NULL,
   inv_function = NULL
