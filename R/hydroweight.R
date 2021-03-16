@@ -53,6 +53,7 @@ hydroweight <- function(hydroweight_dir = NULL,
                         OS_combine = NULL,
                         clip_region = NULL,
                         dem = NULL,
+                        dem_crs = NULL,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
                         inv_function = NULL) {
@@ -61,7 +62,12 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## PREPARE HYDROWEIGHT LAYERS ----
 
   (dem_r <- raster::raster(file.path(hydroweight_dir, dem)))
-  dem_crs <- raster::crs(dem_r)
+
+  if(is.na(crs(dem_r)) | is.null(crs(dem_r))){
+    stop("dem crs() is NULL or NA. Apply projection before continuing")
+  }
+
+  (dem_crs <- raster::crs(dem_r))
 
   ## Prepare clip_region ----
   if (!is.null(clip_region)) {
@@ -92,24 +98,57 @@ hydroweight <- function(hydroweight_dir = NULL,
 
       if (grepl(".tif", clip_region)) {
         clip_region <- raster::raster(file.path(hydroweight_dir, clip_region))
-        clip_region[!is.na(clip_region)] <- 1
-        clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
-        clip_region <- sf::st_as_sf(clip_region)
-        sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-          append = FALSE, quiet = TRUE
+
+        if(is.na(crs(clip_region)) | is.null(crs(clip_region))){
+          stop("clip_region crs() is NULL or NA. Apply projection before continuing")
+        }
+
+        whitebox::wbt_reclass(
+          input = file.path(hydroweight_dir, clip_region),
+          output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
+          reclass_vals = "1;0.0,max")
+
+        whitebox::wbt_raster_to_vector_polygons(
+          input = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
+          output = file.path(hydroweight_dir, "TEMP-clip_region.shp")
         )
+
+        #clip_region[!is.na(clip_region)] <- 1
+        #clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
+        #clip_region <- sf::st_as_sf(clip_region)
+        #sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
+        #  append = FALSE, quiet = TRUE
+        #)
       }
     }
   }
 
   if (is.null(clip_region)) {
-    clip_region <- raster::raster(file.path(hydroweight_dir, dem))
-    clip_region[!is.na(clip_region)] <- 1
-    clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
-    clip_region <- sf::st_as_sf(clip_region)
-    sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-      append = FALSE, quiet = TRUE
+
+    whitebox::wbt_reclass(
+      input = file.path(hydroweight_dir, dem),
+      output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
+      reclass_vals = "1;0.0;30000", # because max sometimes misses max values?
+      #verbose_mode = TRUE
+      )
+
+    whitebox::wbt_raster_to_vector_polygons(
+      input = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
+      output = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
+      #verbose_mode = TRUE
     )
+
+    clip_region <- st_read(file.path(hydroweight_dir, "TEMP-clip_region.shp"), quiet = TRUE)
+    st_crs(clip_region) <- st_crs(dem_crs)
+    st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"), append = FALSE, quiet = TRUE)
+
+    #clip_region <- raster::raster(file.path(hydroweight_dir, dem))
+    #clip_region[!is.na(clip_region)] <- 1
+    #clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
+    #clip_region <- sf::st_as_sf(clip_region)
+    #sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
+    #  append = FALSE, quiet = TRUE
+    #)
   }
 
   whitebox::wbt_clip_raster_to_polygon(
@@ -291,18 +330,33 @@ hydroweight <- function(hydroweight_dir = NULL,
   message("Running distance-weighting @ ", Sys.time())
 
   if ("lumped" %in% weighting_scheme) {
-    lumped_inv <- dem_clip
-    lumped_inv[!is.na(lumped_inv)] <- 1
+
+    whitebox::wbt_reclass(
+      input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
+      output = file.path(hydroweight_dir, "TEMP-lumped.tif"),
+      reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
+
+    lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
+    raster::crs(lumped_inv) <- dem_crs
+    lumped_inv <- setValues(raster(lumped_inv), lumped_inv[])
+    #lumped_inv <- dem_clip
+    #lumped_inv[!is.na(lumped_inv)] <- 1
   }
 
   ## iEucO, Euclidean distance to target_O ----
   if ("iEucO" %in% weighting_scheme) {
-    cost <- dem_clip
-    cost[cost > 0] <- 1
-    raster::writeRaster(cost,
-      file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-      overwrite = TRUE, options = c("COMPRESS=NONE")
-    )
+
+    whitebox::wbt_reclass(
+      input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
+      output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
+      reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
+
+    #cost <- dem_clip
+    #cost[cost > 0] <- 1
+    #raster::writeRaster(cost,
+    #  file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
+    #  overwrite = TRUE, options = c("COMPRESS=NONE")
+    #)
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
@@ -314,6 +368,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     iEucO <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
     iEucO_inv <- raster::calc(iEucO, fun = inv_function)
+    raster::crs(iEucO_inv) <- dem_crs
 
     raster::writeRaster(iEucO_inv,
       file.path(hydroweight_dir, "TEMP-iEucO.tif"),
@@ -324,7 +379,9 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## iEucS, Euclidean distance to streams ----
   if ("iEucS" %in% weighting_scheme) {
+
     if (OS_combine == FALSE) {
+
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
@@ -335,6 +392,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
       iEucS_inv <- raster::calc(iEucS, fun = inv_function)
+      raster::crs(iEucS_inv) <- dem_crs
 
       raster::writeRaster(iEucS_inv,
         file.path(hydroweight_dir, "TEMP-iEucS.tif"),
@@ -344,6 +402,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
 
     if (OS_combine == TRUE) {
+
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, "TEMP-OS_combine.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
@@ -354,6 +413,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
       iEucS_inv <- raster::calc(iEucS, fun = inv_function)
+      raster::crs(iEucS_inv) <- dem_crs
 
       raster::writeRaster(iEucS_inv,
         file.path(hydroweight_dir, "TEMP-iEucS.tif"),
@@ -363,9 +423,9 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
   }
 
-
   ## iFLO, flow line distance to target_O ----
   if ("iFLO" %in% weighting_scheme) {
+
     whitebox::wbt_downslope_distance_to_stream(
       dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       streams = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
@@ -387,6 +447,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## iFLS, flow line distance to target_S ----
   if ("iFLS" %in% weighting_scheme) {
     if (OS_combine == FALSE) {
+
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
@@ -406,6 +467,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
 
     if (OS_combine == TRUE) {
+
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-OS_combine.tif"),
@@ -427,6 +489,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## HA-iFLO and HA-iFLS, hydrologically active ----
   if (("HAiFLO" %in% weighting_scheme) | ("HAiFLS" %in% weighting_scheme)) {
+
     whitebox::wbt_clip_raster_to_polygon(
       input = file.path(hydroweight_dir, flow_accum),
       polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
@@ -436,9 +499,11 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     accum_clip <- raster::raster(file.path(hydroweight_dir, "TEMP-flow_accum_clip.tif"))
     accum_clip <- accum_clip + 1
+    raster::crs(accum_clip) <- dem_crs
 
     if (OS_combine == TRUE) {
       if ("HAiFLO" %in% weighting_scheme) {
+
         HAiFLO_inv <- iFLO_inv * accum_clip
         HAiFLO_inv <- raster::mask(HAiFLO_inv, OS_combine_r, maskvalue = 1)
 
@@ -450,6 +515,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       if ("HAiFLS" %in% weighting_scheme) {
+
         HAiFLS_inv <- iFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, OS_combine_r, maskvalue = 1)
 
@@ -463,6 +529,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     if (OS_combine == FALSE) {
       if ("HAiFLO" %in% weighting_scheme) {
+
         HAiFLO_inv <- iFLO_inv * accum_clip
         HAiFLO_inv <- raster::mask(HAiFLO_inv, target_O_r, maskvalue = 1)
 
@@ -474,6 +541,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       if ("HAiFLS" %in% weighting_scheme) {
+
         HAiFLS_inv <- iFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, target_S_r, maskvalue = 1)
 
