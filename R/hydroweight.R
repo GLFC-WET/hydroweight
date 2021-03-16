@@ -340,10 +340,6 @@ hydroweight <- function(hydroweight_dir = NULL,
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
     raster::crs(lumped_inv) <- dem_crs
     lumped_inv <- setValues(raster(lumped_inv), lumped_inv[])
-
-    lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"))
-    raster::crs(lumped_inv) <- dem_crs
-
     #lumped_inv <- dem_clip
     #lumped_inv[!is.na(lumped_inv)] <- 1
   }
