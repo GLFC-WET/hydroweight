@@ -335,19 +335,15 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP-lumped.tif"),
-<<<<<<< HEAD
       reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
 
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
     raster::crs(lumped_inv) <- dem_crs
     lumped_inv <- setValues(raster(lumped_inv), lumped_inv[])
-=======
-      reclass_vals = "1;0.0;max")
 
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"))
     raster::crs(lumped_inv) <- dem_crs
 
->>>>>>> 911612189952d5d2b74019afb6b2922319d311d2
     #lumped_inv <- dem_clip
     #lumped_inv[!is.na(lumped_inv)] <- 1
   }
@@ -358,11 +354,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-<<<<<<< HEAD
       reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
-=======
-      reclass_vals = "1;0.0;max")
->>>>>>> 911612189952d5d2b74019afb6b2922319d311d2
 
     #cost <- dem_clip
     #cost[cost > 0] <- 1
