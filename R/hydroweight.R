@@ -259,6 +259,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## write target_S and adjust to clip_region if sf
   if (class(target_S)[1] == "sf") {
+
     if (any(sf::st_is(target_S, c("POLYGON", "MULTIPOLYGON")))) {
       target_S_r <- raster::rasterize(sf::as_Spatial(target_S),
         y = dem_clip,
