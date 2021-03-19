@@ -313,9 +313,6 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
   }
 
-  plot(target_S_r)
-  plot(target_O_r)
-
   ## Prepare OS_combine ----
   if (is.null(OS_combine)) {
     OS_combine <- FALSE
@@ -335,7 +332,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   OS_combine_r <- do.call(raster::mosaic, mosaic_list)
   OS_combine_r[OS_combine_r > 0] <- 1
-  OS_combine_r[OS_combine_r == 0] <- -9999
+  OS_combine_r[OS_combine_r == 0] <- NA
 
   raster::crs(OS_combine_r) <- dem_crs
   raster::writeRaster(OS_combine_r,
@@ -573,7 +570,6 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
     }
   }
-
 
   ## PREPARE OUTPUT ----
 
