@@ -42,7 +42,7 @@
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
-#' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}
+#' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} which converts from m to km.
 #' @return A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
 #' @export
 #'
@@ -201,12 +201,20 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
 
     if (any(sf::st_is(target_O, c("LINESTRING", "MULTILINESTRING")))) {
-      target_O_r <- raster::rasterize(sf::as_Spatial(target_O),
-        y = dem_clip,
-        filename = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
-        field = 1,
-        overwrite = TRUE
+
+      dem_clip_extent <- st_as_sfc(st_bbox(extent(dem_clip)))
+      st_crs(dem_clip_extent) <- crs(dem_clip)
+
+      target_O_int <- st_intersects(target_O, dem_clip_extent)
+      target_O_int <- target_O[lengths(target_O_int)>0,]
+
+      target_O_r <- raster::rasterize(sf::as_Spatial(target_O_int),
+                                      y = dem_clip,
+                                      filename = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
+                                      field = 1,
+                                      overwrite = TRUE
       )
+
     }
 
     if (sf::st_is(target_O, "POINT")) {
@@ -270,12 +278,20 @@ hydroweight <- function(hydroweight_dir = NULL,
     }
 
     if (any(sf::st_is(target_S, c("LINESTRING", "MULTILINESTRING")))) {
-      target_S_r <- raster::rasterize(sf::as_Spatial(target_S),
+
+      dem_clip_extent <- st_as_sfc(st_bbox(extent(dem_clip)))
+      st_crs(dem_clip_extent) <- crs(dem_crs)
+
+      target_S_int <- st_intersects(target_S, dem_clip_extent)
+      target_S_int <- target_S[lengths(target_S_int)>0,]
+
+      target_S_r <- raster::rasterize(sf::as_Spatial(target_S_int),
         y = dem_clip,
         filename = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
         field = 1,
         overwrite = TRUE
       )
+
     }
 
     if (sf::st_is(target_S, "POINT")) {
