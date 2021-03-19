@@ -106,7 +106,7 @@ hydroweight <- function(hydroweight_dir = NULL,
         whitebox::wbt_reclass(
           input = file.path(hydroweight_dir, clip_region),
           output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
-          reclass_vals = "1;0.0,max")
+          reclass_vals = "1;min,max")
 
         whitebox::wbt_raster_to_vector_polygons(
           input = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
@@ -128,7 +128,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, dem),
       output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
-      reclass_vals = "1;0.0;30000", # because max sometimes misses max values?
+      reclass_vals = "1;min;30000", # because max sometimes misses max values?
       #verbose_mode = TRUE
       )
 
@@ -202,10 +202,10 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     if (any(sf::st_is(target_O, c("LINESTRING", "MULTILINESTRING")))) {
 
-      dem_clip_extent <- st_as_sfc(st_bbox(extent(dem_clip)))
-      st_crs(dem_clip_extent) <- crs(dem_clip)
+      dem_clip_extent <- sf::st_as_sfc(sr::st_bbox(raster::extent(dem_clip)))
+      sf::st_crs(dem_clip_extent) <- raster::crs(dem_clip)
 
-      target_O_int <- st_intersects(target_O, dem_clip_extent)
+      target_O_int <- sf::st_intersects(target_O, dem_clip_extent)
       target_O_int <- target_O[lengths(target_O_int)>0,]
 
       target_O_r <- raster::rasterize(sf::as_Spatial(target_O_int),
@@ -313,6 +313,9 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
   }
 
+  plot(target_S_r)
+  plot(target_O_r)
+
   ## Prepare OS_combine ----
   if (is.null(OS_combine)) {
     OS_combine <- FALSE
@@ -351,7 +354,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP-lumped.tif"),
-      reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
+      reclass_vals = "1;min;30000")  # because max sometimes misses max values?
 
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
     raster::crs(lumped_inv) <- dem_crs
@@ -366,7 +369,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-      reclass_vals = "1;0.0;30000")  # because max sometimes misses max values?
+      reclass_vals = "1;min;30000")  # because max sometimes misses max values?
 
     #cost <- dem_clip
     #cost[cost > 0] <- 1
