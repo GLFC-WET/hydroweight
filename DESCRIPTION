@@ -1,6 +1,6 @@
 Package: hydroweight
 Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
-Version: 0.0.0.9003
+Version: 0.0.0.9005
 Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",
@@ -11,15 +11,14 @@ Authors@R: c(
            family = "Emilson",
            role = c("aut"),
            email = c("erik.emilson@canada.ca"),
-           comment = c(ORCID = "TBD")), 
+           comment = c(ORCID = "0000-0002-1516-9728")), 
     person(given = "Rob",
            family = "Mackereth",
-           role = c("aut"),
-           comment = c(ORCID = "TBD")), 
+           role = c("aut")), 
     person(given = "Stephanie",
            family = "Melles",
            role = c("aut"),
-           comment = c(ORCID = "TBD")),
+           comment = c(ORCID = "0000-0002-2983-8136")),
     person("Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
             role = "cph")
     )
