@@ -42,7 +42,7 @@
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
-#' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} which converts from m to km.
+#' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
 #' @return A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
 #' @export
 #'
@@ -56,7 +56,8 @@ hydroweight <- function(hydroweight_dir = NULL,
                         dem_crs = NULL,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
-                        inv_function = NULL) {
+                        inv_function = function(x){(x * 0.001 + 1)^-1
+                        }) {
   message("Preparing hydroweight layers @ ", Sys.time())
 
   ## PREPARE HYDROWEIGHT LAYERS ----
