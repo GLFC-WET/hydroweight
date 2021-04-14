@@ -1,6 +1,6 @@
 Package: hydroweight
 Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
-Version: 0.0.0.9005
+Version: 0.0.0.9006
 Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",
@@ -37,19 +37,19 @@ RoxygenNote: 7.1.1
 Depends:
     R (>= 4.0)
 Imports:
-    raster,
-    sf,
+    devtools,
     dplyr,
     fasterize,
+    foreach,
+    raster,
+    rgdal,
+    rgeos,
+    sf,
     stringr,
     tidyr,
-    rgdal,
-    rgeos
+    viridis
 Suggests: 
     whitebox,
     knitr, 
-    rmarkdown,
-    foreach, 
-    viridis,
-    devtools
+    rmarkdown
 VignetteBuilder: knitr

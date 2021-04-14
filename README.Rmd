@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
   + [3.2 Generate targets](#32-generate-targets)
   + [3.3 Run `hydroweight()`](#33-run-hydroweight)
   + [3.4 Run `hydroweight()` across a set of sites](#34-run-hydroweight-across-a-set-of-sites)
-  + [3.5 Using `hydroweight()` iFLO output as subsequent catchment boundaries](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries)
+  + [3.5 Using `hydroweight()` iFLO output as subsequent catchment boundaries for `hydroweight_attributes()`](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries-for-hydroweight_attributes)
 Using `hydroweight()` iFLS outputs subsequent catchment boundaries
 * [4.0 Inverse distance-weighted rasters using `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
   + [4.1 Using a numeric raster layer of interest](#41-using-a-numeric-raster-layer-of-interest)
@@ -32,7 +32,8 @@ Using `hydroweight()` iFLS outputs subsequent catchment boundaries
   + [4.4 Using a polygon layer of interest with categorical data in the column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
 * [5.0 Inverse distance-weighted rasters and attributes across multiple layers and sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers) 
 * [6.0 References](#60-references)
-* [7.0 Future plans](#70-future-plans)
+* [7.0 Future plans](#70-future-plans) 
+* [8.0 Acknowledgements](#80-acknowledgements)
   
 ## 1.0 Introduction
 
@@ -44,7 +45,7 @@ Environmental scientists often want to calculate landscape statistics within
 upstream topographic contributing areas (i.e., catchments) to examine their potential 
 effects on a target (e.g., stream network point or waterbody). When calculating 
 landscape statistics like the proportion of upstream urban cover, practitioners 
-typically use a "lumped" approach - this gives equal weighting to areas nearby 
+typically use a "lumped" approach; this approach gives equal weighting to areas nearby 
 and far away from the target (Peterson et al. 2011). 
 
 A more spatially explicit approach could be to generate buffers of successive 
@@ -92,7 +93,11 @@ Workflows are provided below to run these functions across multiple sites and la
 
 ## 2.0 System setup and installation
 
-WhiteboxTools must be installed for ***hydroweight*** to run. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation.
+WhiteboxTools must be installed for ***hydroweight*** to run. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation. 
+`Whitebox` runs `whitebox_tools.exe` which is installed to `your-libary-path/whitebox/WBT`. 
+This may cause problems depending on your specific computer setup. One possible 
+solution is to ensure there are no spaces in the R library path (check using `.libPaths()`)
+
 
 ```{r, eval = FALSE}
 ## Follow instructions for whitebox installation accordingly
@@ -277,7 +282,7 @@ myinv <- function(x) {
 ## Plot inverse distance-weighting function
 x = seq(from = 0, to = 10000, by = 100)
 y = myinv(x)
-plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75 )
+plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
 text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
 
 ```
@@ -309,6 +314,9 @@ hw_test_1 <- hydroweight::hydroweight(
 # hw_test_1[[5]] ## iEucS
 # hw_test_1[[6]] ## iFLS
 # hw_test_1[[7]] ## HAiFLS
+# or 
+# hw_test_1[["lumped"]] 
+# hw_test_1[["iEucO"]] etc.
 
 ## Plot different weighting schemes; where purple --> yellow == low --> high weight
 par(mfrow = c(2, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
@@ -489,20 +497,20 @@ plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101),
 
 [Back to top](#contents)
 
-### 3.5 Using `hydroweight()` iFLO outputs subsequent catchment boundaries 
+### 3.5 Using `hydroweight()` iFLO outputs as subsequent catchment boundaries for `hydroweight_attributes()` 
 
 An advantage of using `hydroweight()` is that an iFLO-derived product can be used as a catchment 
 boundary in subsequent operations. iFLO uses `whitebox::wbt_downslope_distance_to_stream` 
 that uses a D8 flow-routing algorithm to trace the flow path. 
 Converting all non-`NA` iFLO distances will yield a catchment boundary analogous to 
-`whitebox::wbt_watershed()`. However, we have noticed inconsistencies when comparing 
+`whitebox::wbt_watershed()`. However, we have noticed minor inconsistencies when comparing 
 catchments derived from the two procedures when catchment boundaries fall along DEM edges.
-The procedure for deriving the catchent boundary for Site 3 is below. 
+The procedure for deriving the catchment boundary for Site 3 is below. 
 
 ```{r, message = TRUE, error = FALSE, warning = FALSE, fig.height = 3.5, fig.width = 7}
 ## Pull out iFLO from Site 3, convert non-NA values to 1, then to polygons, then to sf
 site3_catchment <- hw_test_5[[3]][["iFLO"]]
-site3_catchment[!is.na(catchment)] <- 1
+site3_catchment[!is.na(site3_catchment)] <- 1
 site3_catchment <- rasterToPolygons(site3_catchment, dissolve = T)
 site3_catchment <- st_as_sf(site3_catchment)
 
@@ -579,7 +587,7 @@ results <- foreach(xx = 1:length(hwa_test_numeric), .errorhandling = "pass") %do
   return(hwa_test_numeric[[xx]])
 }
 
-## Extract only the summary table and bind results, see names of dataframe
+## Extract only the summary table and bind results, see names of data frame
 results_agg <- lapply(results, function(x) {
   x[[1]]
 })
@@ -686,7 +694,7 @@ results <- foreach(xx = 1:length(hwa_test_categorical), .errorhandling = "pass")
   return(hwa_test_categorical[[xx]])
 }
 
-## Extract only the summary table and bind results, see names of dataframe
+## Extract only the summary table and bind results, see names of data frame
 results_agg <- lapply(results, function(x) {
   x[[1]]
 })
@@ -805,7 +813,7 @@ results <- foreach(x = 1:length(hwa_test_numeric_polygon), .errorhandling = "pas
   return(hwa_test_numeric_polygon[[x]])
 }
 
-## Extract only the summary table and bind results, see names of dataframe
+## Extract only the summary table and bind results, see names of data frame
 results_agg <- lapply(results, function(x) {
   x[[1]]
 })
@@ -874,7 +882,7 @@ results <- foreach(x = 1:length(hwa_test_categorical_polygon), .errorhandling = 
   return(hwa_test_categorical_polygon[[x]])
 }
 
-## Extract only the summary table and bind results, see names of dataframe
+## Extract only the summary table and bind results, see names of data frame
 results_agg <- lapply(results, function(x) {
   x[[1]]
 })
@@ -888,43 +896,25 @@ names(results_agg)
 
 Now that we are familiar with the results structure of `hydroweight()` and
 `hydroweight_attributes()`, we use our stream points to demonstrate how to chain
-an analysis together across sites, distances weights, and layers of interest.
+an analysis together across sites, distances weights, and layers of interest. 
 
 The basic chain looks like this this:
 
 * For each site: Run `hydroweight()`
   + For each distance-weighted raster,
-    - For each layer of interest: Run `hydroweight_attributes()`
+    - For each layer of interest: Run `hydroweight_attributes()` 
+    
+Here, we try to make the code easier to troubleshoot rather than make it look pretty: 
+
+### Step 1: Generate distance-weighted rasters for sites
 
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
 ## Sites and catchments
 # tg_O_multi
 # tg_O_multi_catchment
 
-## Set up a series of the layers to iterate over sites (indexed `xx` below) and layers (indexed 'yy' below)
-
-# ndvi # numeric raster
-# lulc # categorical raster
-# lulc_p # polygon with variables var_1 and var_2
-
-loi_ndvi <- list(loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE, loi_resample = "bilinear",
-                  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max","pixel_count"))
-loi_lulc <- list(loi = lulc, loi_attr_col = "lulc", loi_numeric = FALSE)
-loi_lulc_p_n <- list(
-  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
-  loi_categories = c("var_1", "var_2"), 
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count")
-)
-loi_lulc_p_c <- list(
-  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
-  loi_categories = c("var_1", "var_2")
-)
-
-## These are combined into a list of lists
-loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
-
-site_statistics <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
-
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+  
   ## Distance-weighted raster component
   message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
 
@@ -932,6 +922,7 @@ site_statistics <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do
   sel <- tg_O_multi[xx, ]
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
   
+  ## Run hydroweight
   site_weights <- hydroweight::hydroweight(
     hydroweight_dir = hydroweight_dir,
     target_O = sel, ## Important to change
@@ -947,63 +938,156 @@ site_statistics <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do
     ),
     inv_function = myinv
   )
+}
+names(sites_weights) <- tg_O_multi$Site
+
+## Resultant structure:
+## length(sites_weights) # 3 sites
+## length(sites_weights[[1]]) # 7 distance-weighted rasters for each site
+## sites_weights[[1]][[1]] # site 1, lumped
+## sites_weights[[1]][[2]] # site 1, iEucO
+## sites_weights[[1]][[3]] # site 1, iFLO
+## sites_weights[[1]][[4]] # site 1, HAiFLO
+## sites_weights[[1]][[5]] # site 1, iEucS
+## sites_weights[[1]][[6]] # site 1, iFLS
+## sites_weights[[1]][[7]] # site 1, HAiFLS
+## ...
+## ...
+## ...
+## sites_weights[[3]][[7]] # site 3, HAiFLS
+```
+
+### Step 2: Generate a set of loi-specific lists populated with `hydroweight::hydroweight_attributes()` parameters
+
+```{r}
+# ndvi ## numeric raster
+# lulc ## categorical raster
+# lulc_p_n ## polygon with variables var_1 and var_2 as numeric
+# lulc_p_n ## polygon with variables var_1 and var_2 as categorical
+
+
+loi_ndvi <- list(
+  loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count")
+)
+
+loi_lulc <- list(
+  loi = lulc, loi_attr_col = "lulc", loi_numeric = FALSE
+)
+
+loi_lulc_p_n <- list(
+  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
+  loi_categories = c("var_1", "var_2"),
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count")
+)
+
+loi_lulc_p_c <- list(
+  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
+  loi_categories = c("var_1", "var_2")
+)
+
+## These are combined into a list of lists
+loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
+```
+
+### Step 3: Run `hydroweight::hydroweight_attributes()`
+
+```{r, warning = FALSE, error = FALSE, message = FALSE}
+sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+
+  ## Distance-weighted raster component
+  message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
+
+  ## Select individual sites, catchments, and weights
+  sel <- tg_O_multi[xx, ]
+  sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
+  sel_weights <- sites_weights[[sel$Site]]
   
-  ## Layer component
-  message("\n******Running hydroweight_attributes() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
-
   ## For each distance-weighted raster,
-  site_layers_statistics <- foreach(yy = 1:length(site_weights), .errorhandling = "pass") %do% {
+  site_layers_statistics <- foreach(yy = 1:length(sel_weights), .errorhandling = "pass") %do% {
 
-    ## Consistent arguments to hydroweight_attributes, not loi-specific
+    ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
     loi_consist <- list(
       roi = sel_roi,
-      distance_weight = site_weights[[yy]],
+      distance_weight = sel_weights[[yy]],
       remove_region = NULL,
       return_products = TRUE,
       roi_uid = sel$Site,
       roi_uid_col = "Site"
     )
 
-    ## For each loi,
-    layers_statistics <- foreach(zz = 1:length(loi_variable), .errorhandling = "pass") %do% {
+  ## For each loi,
+  layers_statistics <- foreach(zz = 1:length(loi_variable), .errorhandling = "pass") %do% {
 
-      ## Combine loi_variable[[y]] with loi_consist
-      loi_combined <- c(loi_variable[[zz]], loi_consist)
+  ## Combine loi_variable[[y]] with loi_consist
+  loi_combined <- c(loi_variable[[zz]], loi_consist)
 
-      ## Run hydroweight_attributes using arguments in loi_combined
-      loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
-
-      ## Append the weighting scheme to output, output structure depends on whether return_products = TRUE
-      if (is.list(loi_output)) {
-        l_o <- paste(names(site_weights)[yy], colnames(loi_output$loi_statistics), sep = "_")
-        l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
-
-        colnames(loi_output$loi_statistics) <- l_o
-      } else {
-        l_o <- paste(names(site_weights)[xx], colnames(loi_output), sep = "_")
-        l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
-
-        colnames(loi_output) <- l_o
-      }
-
-      return(loi_output)
-    }
-
-    layers_statistics_frames <- lapply(layers_statistics, function(x) {
-      x[[1]]
-    })
-    layers_statistics_frames <- Reduce(merge, layers_statistics_frames)
-
-    return(layers_statistics_frames)
+  ## Run hydroweight_attributes using arguments in loi_combined
+  loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
+  
+  ## Append names 
+  l_o <- paste(names(sel_weights)[yy], colnames(loi_output$loi_statistics), sep = "_")
+  l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
+  colnames(loi_output$loi_statistics) <- l_o
+  
+  return(loi_output)
   }
-
-  site_layers_statistics <- Reduce(merge, site_layers_statistics)
-
+  return(layers_statistics)
+  }
   return(site_layers_statistics)
 }
+  
+length(sites_attributes_products) ## List of results; one list per site
+length(sites_attributes_products[[1]]) ## List of results for one site; one list of results per distance-weighted raster 
+length(sites_attributes_products[[1]][[1]]) ## List of results for one site and one distance-weighted raster; one list of results per loi   
+length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site, one distance-weighted raster, and one loi; one data frame, one loi, and one distance-weighted raster
+(sites_attributes_products[[1]][[1]][[1]][[1]]) # statistics table 
+(sites_attributes_products[[1]][[1]][[1]][[2]]) # loi clipped by roi
+(sites_attributes_products[[1]][[1]][[1]][[3]]) # distance-weighted raster clipped by roi
+```
 
-site_statistics <- do.call(bind_rows, site_statistics)
-names(site_statistics)
+### Step 4: Extract and manipulate results data frames
+
+```{r, warning = FALSE, error = FALSE, message = FALSE} 
+sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do%{ 
+  
+  ## Selects an individual site
+  sel_site <- sites_attributes_products[[xx]]
+  
+  ## Selects distance-weighted raster results set
+  site_stats <- foreach(yy = 1:length(sel_site), .errorhandling = "pass") %do% {
+    
+    sel_dwr <- sel_site[[yy]]
+    
+    ## Extracts data frame of statistics per loi
+    dwr_stats <- foreach(zz = 1:length(sel_dwr), .errorhandling = "pass") %do% {
+    
+    return(sel_dwr[[zz]]$loi_statistics)
+    }
+    
+    ## Merges the loi-specific datasets
+    dwr_stats <- Reduce(merge, dwr_stats)
+    
+    return(dwr_stats)
+  }
+  
+  ## Merges the distance-weighted raster-specific datasets
+  site_stats <- Reduce(merge, site_stats)
+  
+  return(site_stats)
+  
+} 
+
+## Bind rows 
+sites_attributes_df <- bind_rows(sites_attributes_list)
+
+## If a raster category was missing in a site's catchment but was present in another site's, 
+## that record would be filled with NA according to bind_rows. Need to fix this.
+## This is only true for columns containing "prop".
+sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[,grep("prop", colnames(sites_attributes_df))])] <- 0
+
+## Final data frame 
+colnames(sites_attributes_df)
 ```
 
 Now - like any good environmental scientist - you have more variables and/or metrics than sites.
@@ -1041,3 +1125,9 @@ The core functions should stay the same but we would like to:
 5. ... as things come up.
 
 [Back to top](#contents)
+
+## 8.0 Acknowledgements 
+
+Thank you to for early review/testing (alphabetical order): 
+
+Darren McCormick, Courtney Mondoux, Emily Smenderovac

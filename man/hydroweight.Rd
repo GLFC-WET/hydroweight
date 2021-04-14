@@ -15,7 +15,7 @@ hydroweight(
   dem_crs = NULL,
   flow_accum = NULL,
   weighting_scheme = NULL,
-  inv_function = NULL
+  inv_function = function(x) {     (x * 0.001 + 1)^-1 }
 )
 }
 \arguments{
@@ -37,7 +37,7 @@ hydroweight(
 
 \item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")}
 
-\item{inv_function}{function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1}}
+\item{inv_function}{function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.}
 }
 \value{
 A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
