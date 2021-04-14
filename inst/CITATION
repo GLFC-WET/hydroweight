@@ -1,0 +1,15 @@
+citHeader("To cite hydroweight in publications use:")
+
+citEntry(entry = "Manual",
+  title        = "{hydroweight}: Inverse distance-weighted rasters and landscape attributes",
+  author       = personList(as.person("Brian Kielstra"),
+                   as.person("Erik Emilson"), 
+		   as.person("Rob Mackereth"),
+		   as.person("Stephanie Melles")),
+  url          = "https://github.com/bkielstr/hydroweight",
+
+  textVersion  =
+  paste("Brian Kielstra, Erik Emilson, Rob Mackereth, and Stephanie Melles (2021).",
+        "hydroweight: Inverse distance-weighted rasters and landscape attributes.",
+        "URL https://github.com/bkielstr/hydroweight.")
+)

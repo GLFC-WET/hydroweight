@@ -1,4 +1,4 @@
-hydroweight: Inverse distance-weighted rasters and attributes
+hydroweight: Inverse distance-weighted rasters and landscape attributes
 ================
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -17,9 +17,8 @@ hydroweight: Inverse distance-weighted rasters and attributes
       - [3.4 Run `hydroweight()` across a set of
         sites](#34-run-hydroweight-across-a-set-of-sites)
       - [3.5 Using `hydroweight()` iFLO output as subsequent catchment
-        boundaries](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries)
-        Using `hydroweight()` iFLS outputs subsequent catchment
-        boundaries
+        boundaries for
+        `hydroweight_attributes()`](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries-for-hydroweight_attributes)
   - [4.0 Inverse distance-weighted rasters using
     `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
       - [4.1 Using a numeric raster layer of
@@ -34,6 +33,15 @@ hydroweight: Inverse distance-weighted rasters and attributes
   - [5.0 Inverse distance-weighted rasters and attributes across
     multiple layers and
     sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers)
+      - [5.1 Run hydroweight across
+        sites](#51-Run-hydroweight-across-sites)
+      - [5.2 Generate `loi` lists populated with
+        `hydroweight_attributes()`
+        parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
+      - [5.3 Run `hydroweight_attributes()` across sites and
+        layers](#53-run-hydroweight_attributes-across-sites-and-layers)
+      - [5.4 Extract and adjust results data
+        frames](#54-extract-and-adjust-results-data-frames)
   - [6.0 References](#60-references)
   - [7.0 Future plans](#70-future-plans)
   - [8.0 Acknowledgements](#80-acknowledgements)
@@ -107,7 +115,8 @@ WhiteboxTools must be installed for ***hydroweight*** to run. See
 [whiteboxR](https://github.com/giswqs/whiteboxR) or below for
 installation. `Whitebox` runs `whitebox_tools.exe` which is installed to
 `your-libary-path/whitebox/WBT`. This may cause problems depending on
-your specific computer setup.
+your specific computer setup. One possible solution is to ensure there
+are no spaces in the R library path (check using `.libPaths()`)
 
 ``` r
 ## Follow instructions for whitebox installation accordingly
@@ -158,7 +167,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.6s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.9s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -173,7 +182,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.69s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.65s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -220,7 +229,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.8s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -308,7 +317,7 @@ myinv <- function(x) {
 ## Plot inverse distance-weighting function
 x = seq(from = 0, to = 10000, by = 100)
 y = myinv(x)
-plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75 )
+plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
 text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
 ```
 
@@ -331,8 +340,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-14 13:56:58
-#> Running distance-weighting @ 2021-04-14 13:57:01
+#> Preparing hydroweight layers @ 2021-04-14 16:14:09
+#> Running distance-weighting @ 2021-04-14 16:14:12
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -503,15 +512,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-14 13:57:21
-#> Preparing hydroweight layers @ 2021-04-14 13:57:21
-#> Running distance-weighting @ 2021-04-14 13:57:24
-#> Running hydroweight for site 2 at 2021-04-14 13:57:28
-#> Preparing hydroweight layers @ 2021-04-14 13:57:28
-#> Running distance-weighting @ 2021-04-14 13:57:30
-#> Running hydroweight for site 3 at 2021-04-14 13:57:34
-#> Preparing hydroweight layers @ 2021-04-14 13:57:34
-#> Running distance-weighting @ 2021-04-14 13:57:36
+#> Running hydroweight for site 1 at 2021-04-14 16:14:30
+#> Preparing hydroweight layers @ 2021-04-14 16:14:30
+#> Running distance-weighting @ 2021-04-14 16:14:32
+#> Running hydroweight for site 2 at 2021-04-14 16:14:36
+#> Preparing hydroweight layers @ 2021-04-14 16:14:36
+#> Running distance-weighting @ 2021-04-14 16:14:39
+#> Running hydroweight for site 3 at 2021-04-14 16:14:43
+#> Preparing hydroweight layers @ 2021-04-14 16:14:43
+#> Running distance-weighting @ 2021-04-14 16:14:45
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -563,17 +572,17 @@ plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101),
 
 [Back to top](#contents)
 
-### 3.5 Using `hydroweight()` iFLO outputs subsequent catchment boundaries
+### 3.5 Using `hydroweight()` iFLO outputs as subsequent catchment boundaries for `hydroweight_attributes()`
 
 An advantage of using `hydroweight()` is that an iFLO-derived product
 can be used as a catchment boundary in subsequent operations. iFLO uses
 `whitebox::wbt_downslope_distance_to_stream` that uses a D8 flow-routing
 algorithm to trace the flow path. Converting all non-`NA` iFLO distances
 will yield a catchment boundary analogous to
-`whitebox::wbt_watershed()`. However, we have noticed inconsistencies
-when comparing catchments derived from the two procedures when catchment
-boundaries fall along DEM edges. The procedure for deriving the catchent
-boundary for Site 3 is below.
+`whitebox::wbt_watershed()`. However, we have noticed minor
+inconsistencies when comparing catchments derived from the two
+procedures when catchment boundaries fall along DEM edges. The procedure
+for deriving the catchment boundary for Site 3 is below.
 
 ``` r
 ## Pull out iFLO from Site 3, convert non-NA values to 1, then to polygons, then to sf
@@ -1074,34 +1083,30 @@ results_agg <- lapply(results, function(x) {
 results_agg <- Reduce(merge, results_agg)
 names(results_agg)
 #>  [1] "Lake"                      "lumped_lulc_prop_var_1_6" 
-#>  [3] "lumped_lulc_prop_var_1_2"  "lumped_lulc_prop_var_1_3" 
-#>  [5] "lumped_lulc_prop_var_1_10" "lumped_lulc_prop_var_2_21"
+#>  [3] "lumped_lulc_prop_var_1_8"  "lumped_lulc_prop_var_1_5" 
+#>  [5] "lumped_lulc_prop_var_1_10" "lumped_lulc_prop_var_2_20"
 #>  [7] "lumped_lulc_prop_var_2_24" "lumped_lulc_prop_var_2_27"
-#>  [9] "lumped_lulc_prop_var_2_25" "iEucO_lulc_prop_var_1_6"  
-#> [11] "iEucO_lulc_prop_var_1_2"   "iEucO_lulc_prop_var_1_3"  
-#> [13] "iEucO_lulc_prop_var_1_10"  "iEucO_lulc_prop_var_2_21" 
-#> [15] "iEucO_lulc_prop_var_2_24"  "iEucO_lulc_prop_var_2_27" 
-#> [17] "iEucO_lulc_prop_var_2_25"  "iFLO_lulc_prop_var_1_6"   
-#> [19] "iFLO_lulc_prop_var_1_2"    "iFLO_lulc_prop_var_1_3"   
-#> [21] "iFLO_lulc_prop_var_1_10"   "iFLO_lulc_prop_var_2_21"  
-#> [23] "iFLO_lulc_prop_var_2_24"   "iFLO_lulc_prop_var_2_27"  
-#> [25] "iFLO_lulc_prop_var_2_25"   "HAiFLO_lulc_prop_var_1_6" 
-#> [27] "HAiFLO_lulc_prop_var_1_2"  "HAiFLO_lulc_prop_var_1_3" 
-#> [29] "HAiFLO_lulc_prop_var_1_10" "HAiFLO_lulc_prop_var_2_21"
-#> [31] "HAiFLO_lulc_prop_var_2_24" "HAiFLO_lulc_prop_var_2_27"
-#> [33] "HAiFLO_lulc_prop_var_2_25" "iEucS_lulc_prop_var_1_6"  
-#> [35] "iEucS_lulc_prop_var_1_2"   "iEucS_lulc_prop_var_1_3"  
-#> [37] "iEucS_lulc_prop_var_1_10"  "iEucS_lulc_prop_var_2_21" 
-#> [39] "iEucS_lulc_prop_var_2_24"  "iEucS_lulc_prop_var_2_27" 
-#> [41] "iEucS_lulc_prop_var_2_25"  "iFLS_lulc_prop_var_1_6"   
-#> [43] "iFLS_lulc_prop_var_1_2"    "iFLS_lulc_prop_var_1_3"   
-#> [45] "iFLS_lulc_prop_var_1_10"   "iFLS_lulc_prop_var_2_21"  
-#> [47] "iFLS_lulc_prop_var_2_24"   "iFLS_lulc_prop_var_2_27"  
-#> [49] "iFLS_lulc_prop_var_2_25"   "HAiFLS_lulc_prop_var_1_6" 
-#> [51] "HAiFLS_lulc_prop_var_1_2"  "HAiFLS_lulc_prop_var_1_3" 
-#> [53] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_2_21"
-#> [55] "HAiFLS_lulc_prop_var_2_24" "HAiFLS_lulc_prop_var_2_27"
-#> [57] "HAiFLS_lulc_prop_var_2_25"
+#>  [9] "iEucO_lulc_prop_var_1_6"   "iEucO_lulc_prop_var_1_8"  
+#> [11] "iEucO_lulc_prop_var_1_5"   "iEucO_lulc_prop_var_1_10" 
+#> [13] "iEucO_lulc_prop_var_2_20"  "iEucO_lulc_prop_var_2_24" 
+#> [15] "iEucO_lulc_prop_var_2_27"  "iFLO_lulc_prop_var_1_6"   
+#> [17] "iFLO_lulc_prop_var_1_8"    "iFLO_lulc_prop_var_1_5"   
+#> [19] "iFLO_lulc_prop_var_1_10"   "iFLO_lulc_prop_var_2_20"  
+#> [21] "iFLO_lulc_prop_var_2_24"   "iFLO_lulc_prop_var_2_27"  
+#> [23] "HAiFLO_lulc_prop_var_1_6"  "HAiFLO_lulc_prop_var_1_8" 
+#> [25] "HAiFLO_lulc_prop_var_1_5"  "HAiFLO_lulc_prop_var_1_10"
+#> [27] "HAiFLO_lulc_prop_var_2_20" "HAiFLO_lulc_prop_var_2_24"
+#> [29] "HAiFLO_lulc_prop_var_2_27" "iEucS_lulc_prop_var_1_6"  
+#> [31] "iEucS_lulc_prop_var_1_8"   "iEucS_lulc_prop_var_1_5"  
+#> [33] "iEucS_lulc_prop_var_1_10"  "iEucS_lulc_prop_var_2_20" 
+#> [35] "iEucS_lulc_prop_var_2_24"  "iEucS_lulc_prop_var_2_27" 
+#> [37] "iFLS_lulc_prop_var_1_6"    "iFLS_lulc_prop_var_1_8"   
+#> [39] "iFLS_lulc_prop_var_1_5"    "iFLS_lulc_prop_var_1_10"  
+#> [41] "iFLS_lulc_prop_var_2_20"   "iFLS_lulc_prop_var_2_24"  
+#> [43] "iFLS_lulc_prop_var_2_27"   "HAiFLS_lulc_prop_var_1_6" 
+#> [45] "HAiFLS_lulc_prop_var_1_8"  "HAiFLS_lulc_prop_var_1_5" 
+#> [47] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_2_20"
+#> [49] "HAiFLS_lulc_prop_var_2_24" "HAiFLS_lulc_prop_var_2_27"
 ```
 
 [Back to top](#contents)
@@ -1122,22 +1127,22 @@ The basic chain looks like this this:
 Here, we try to make the code easier to troubleshoot rather than make it
 look pretty:
 
-### Step 1: Generate distance-weighted rasters for sites
+### 5.1 Run `hydroweight()` across sites
 
 ``` r
 ## Sites and catchments
-# tg_O_multi
-# tg_O_multi_catchment
+# tg_O_multi ## sites
+# tg_O_multi_catchment ## catchments
 
 sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
-  
+
   ## Distance-weighted raster component
   message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
 
   ## Select individual sites and catchments
   sel <- tg_O_multi[xx, ]
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
-  
+
   ## Run hydroweight
   site_weights <- hydroweight::hydroweight(
     hydroweight_dir = hydroweight_dir,
@@ -1173,12 +1178,14 @@ names(sites_weights) <- tg_O_multi$Site
 ## sites_weights[[3]][[7]] # site 3, HAiFLS
 ```
 
-### Step 2: Generate a set of loi-specific lists populated with `hydroweight::hydroweight_attributes()` parameters
+### 5.2 Generate `loi` lists populated with `hydroweight_attributes()` parameters
 
 ``` r
-# ndvi # numeric raster
-# lulc # categorical raster
-# lulc_p # polygon with variables var_1 and var_2
+## Layers of interest
+# ndvi ## numeric raster
+# lulc ## categorical raster
+# lulc_p_n ## polygon with variables var_1 and var_2 as numeric
+# lulc_p_n ## polygon with variables var_1 and var_2 as categorical
 
 loi_ndvi <- list(
   loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE,
@@ -1204,7 +1211,7 @@ loi_lulc_p_c <- list(
 loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
 ```
 
-### Step 3: Run `hydroweight::hydroweight_attributes()`
+### 5.3 Run `hydroweight_attributes()` across sites and layers
 
 ``` r
 sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
@@ -1216,7 +1223,7 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
   sel <- tg_O_multi[xx, ]
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
   sel_weights <- sites_weights[[sel$Site]]
-  
+
   ## For each distance-weighted raster,
   site_layers_statistics <- foreach(yy = 1:length(sel_weights), .errorhandling = "pass") %do% {
 
@@ -1230,130 +1237,40 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
       roi_uid_col = "Site"
     )
 
-  ## For each loi,
-  layers_statistics <- foreach(zz = 1:length(loi_variable), .errorhandling = "pass") %do% {
+    ## For each loi,
+    layers_statistics <- foreach(zz = 1:length(loi_variable), .errorhandling = "pass") %do% {
 
-  ## Combine loi_variable[[y]] with loi_consist
-  loi_combined <- c(loi_variable[[zz]], loi_consist)
+      ## Combine loi_variable[[y]] with loi_consist
+      loi_combined <- c(loi_variable[[zz]], loi_consist)
 
-  ## Run hydroweight_attributes using arguments in loi_combined
-  loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
-  
-  ## Append names 
-  l_o <- paste(names(sel_weights)[yy], colnames(loi_output$loi_statistics), sep = "_")
-  l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
-  colnames(loi_output$loi_statistics) <- l_o
-  
-  return(loi_output)
-  }
-  return(layers_statistics)
+      ## Run hydroweight_attributes using arguments in loi_combined
+      loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
+
+      ## Append names
+      l_o <- paste(names(sel_weights)[yy], colnames(loi_output$loi_statistics), sep = "_")
+      l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
+      colnames(loi_output$loi_statistics) <- l_o
+
+      return(loi_output)
+    }
+    return(layers_statistics)
   }
   return(site_layers_statistics)
 }
-#> 
-#> ******Running hydroweight() on Site 1 of 3 2021-04-14 13:58:44******
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#> ******Running hydroweight() on Site 2 of 3 2021-04-14 13:58:46******
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#> ******Running hydroweight() on Site 3 of 3 2021-04-14 13:58:49******
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-#> 
-#>  Reprojecting `loi` to match `distance_weight` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`
-  
+
 length(sites_attributes_products) ## List of results; one list per site
 #> [1] 3
-length(sites_attributes_products[[1]]) ## List of results for one site; one list of results per distance-weighted raster 
+length(sites_attributes_products[[1]]) ## List of results for one site; one list of results per distance-weighted raster
 #> [1] 7
-length(sites_attributes_products[[1]][[1]]) ## List of results for one site and one distance-weighted raster; one list of results per loi   
+length(sites_attributes_products[[1]][[1]]) ## List of results for one site and one distance-weighted raster; one list of results per loi
 #> [1] 4
 length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site, one distance-weighted raster, and one loi; one data frame, one loi, and one distance-weighted raster
 #> [1] 3
-(sites_attributes_products[[1]][[1]][[1]][[1]]) # statistics table 
+(sites_attributes_products[[1]][[1]][[1]][[1]]) # statistics table
 #>   Site lumped_ndvi_distwtd_mean lumped_ndvi_distwtd_sd lumped_ndvi_mean
-#> 1    1                0.4994622              0.2890379        0.4994622
+#> 1    1                0.5015506              0.2877392        0.5015506
 #>   lumped_ndvi_sd lumped_ndvi_min lumped_ndvi_max lumped_ndvi_pixel_count
-#> 1      0.2890379    3.734347e-05       0.9999252                   21669
+#> 1      0.2877392    0.0001850426       0.9999741                   21669
 (sites_attributes_products[[1]][[1]][[1]][[2]]) # loi clipped by roi
 #> class      : RasterLayer 
 #> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
@@ -1362,7 +1279,7 @@ length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site,
 #> crs        : +proj=lcc +lat_0=0 +lon_0=-85 +lat_1=44.5 +lat_2=53.5 +x_0=930000 +y_0=6430000 +datum=NAD83 +units=m +no_defs 
 #> source     : memory
 #> names      : ndvi 
-#> values     : 3.734347e-05, 0.9999252  (min, max)
+#> values     : 0.0001850426, 0.9999741  (min, max)
 (sites_attributes_products[[1]][[1]][[1]][[3]]) # distance-weighted raster clipped by roi
 #> class      : RasterLayer 
 #> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
@@ -1374,352 +1291,93 @@ length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site,
 #> values     : 1, 1  (min, max)
 ```
 
-### Step 4: Extract and manipulate results data frames
+### 5.4 Extract and adjust results data frames
 
 ``` r
-sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do%{ 
-  
+sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do% {
+
   ## Selects an individual site
   sel_site <- sites_attributes_products[[xx]]
-  
+
   ## Selects distance-weighted raster results set
   site_stats <- foreach(yy = 1:length(sel_site), .errorhandling = "pass") %do% {
-    
     sel_dwr <- sel_site[[yy]]
-    
+
     ## Extracts data frame of statistics per loi
     dwr_stats <- foreach(zz = 1:length(sel_dwr), .errorhandling = "pass") %do% {
-    
-    return(sel_dwr[[zz]]$loi_statistics)
+      
+      return(sel_dwr[[zz]]$loi_statistics)
     }
-    
+
     ## Merges the loi-specific datasets
     dwr_stats <- Reduce(merge, dwr_stats)
-    
+
     return(dwr_stats)
   }
-  
+
   ## Merges the distance-weighted raster-specific datasets
   site_stats <- Reduce(merge, site_stats)
-  
-  return(site_stats)
-  
-} 
 
-## Bind rows 
+  return(site_stats)
+}
+
+## Bind rows
 sites_attributes_df <- bind_rows(sites_attributes_list)
 
-## If a raster category was missing in a site's catchment but was present in another site's, 
+## If a raster category was missing in a site's catchment but was present in another site's,
 ## that record would be filled with NA according to bind_rows. Need to fix this.
 ## This is only true for columns containing "prop".
-sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[,grep("prop", colnames(sites_attributes_df))])] <- 0
+sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[, grep("prop", colnames(sites_attributes_df))])] <- 0
 
-## Final data frame 
-sites_attributes_df
-#>   Site lumped_ndvi_distwtd_mean lumped_ndvi_distwtd_sd lumped_ndvi_mean
-#> 1    1                0.4994622              0.2890379        0.4994622
-#> 2    2                0.5014680              0.2894971        0.5014680
-#> 3    3                0.4893092              0.2884037        0.4893092
-#>   lumped_ndvi_sd lumped_ndvi_min lumped_ndvi_max lumped_ndvi_pixel_count
-#> 1      0.2890379    3.734347e-05       0.9999252                   21669
-#> 2      0.2894971    2.137790e-04       0.9990879                    3608
-#> 3      0.2884037    7.636482e-04       0.9999252                    2202
-#>   lumped_lulc_prop_4 lumped_lulc_prop_3 lumped_lulc_prop_2 lumped_lulc_prop_1
-#> 1          0.7858231          0.1602750        0.053624994       0.0002768933
-#> 2          0.7289357          0.2375277        0.033536585       0.0000000000
-#> 3          0.7524977          0.2443233        0.003178928       0.0000000000
-#>   lumped_lulc_var_1_distwtd_mean lumped_lulc_var_2_distwtd_mean
-#> 1                       8.447967                       25.26582
-#> 2                       8.069013                       25.44152
-#> 3                       8.264305                       25.48547
-#>   lumped_lulc_var_1_distwtd_sd lumped_lulc_var_2_distwtd_sd
-#> 1                     2.980186                    0.7927960
-#> 2                     3.171636                    0.8882157
-#> 3                     3.027676                    0.8632101
-#>   lumped_lulc_var_1_mean lumped_lulc_var_2_mean lumped_lulc_var_1_sd
-#> 1               8.447967               25.26582             2.980186
-#> 2               8.069013               25.44152             3.171636
-#> 3               8.264305               25.48547             3.027676
-#>   lumped_lulc_var_2_sd lumped_lulc_var_1_min lumped_lulc_var_2_min
-#> 1            0.7927960                     2                    21
-#> 2            0.8882157                     2                    24
-#> 3            0.8632101                     2                    24
-#>   lumped_lulc_var_1_max lumped_lulc_var_2_max lumped_lulc_var_1_pixel_count
-#> 1                    10                    27                         21669
-#> 2                    10                    27                          3608
-#> 3                    10                    27                          2202
-#>   lumped_lulc_var_2_pixel_count lumped_lulc_prop_var_1_6
-#> 1                         21669             0.0002768933
-#> 2                          3608             0.0000000000
-#> 3                          2202             0.0000000000
-#>   lumped_lulc_prop_var_1_2 lumped_lulc_prop_var_1_3 lumped_lulc_prop_var_1_10
-#> 1              0.053624994                0.1602750                 0.7858231
-#> 2              0.033536585                0.2375277                 0.7289357
-#> 3              0.003178928                0.2443233                 0.7524977
-#>   lumped_lulc_prop_var_2_21 lumped_lulc_prop_var_2_24 lumped_lulc_prop_var_2_27
-#> 1              0.0002768933               0.053624994                 0.1602750
-#> 2              0.0000000000               0.033536585                 0.2375277
-#> 3              0.0000000000               0.003178928                 0.2443233
-#>   lumped_lulc_prop_var_2_25 iEucO_ndvi_distwtd_mean iEucO_ndvi_distwtd_sd
-#> 1                 0.7858231               0.4999705             0.2888121
-#> 2                 0.7289357               0.4978805             0.2874791
-#> 3                 0.7524977               0.4914624             0.2889783
-#>   iEucO_ndvi_mean iEucO_ndvi_sd iEucO_ndvi_min iEucO_ndvi_max
-#> 1       0.4994622     0.2890379   3.734347e-05      0.9999252
-#> 2       0.5014680     0.2894971   2.137790e-04      0.9990879
-#> 3       0.4893092     0.2884037   7.636482e-04      0.9999252
-#>   iEucO_ndvi_pixel_count iEucO_lulc_prop_4 iEucO_lulc_prop_3 iEucO_lulc_prop_2
-#> 1                  21669         0.6449808         0.2290182        0.12390110
-#> 2                   3608         0.5882984         0.3315486        0.08015300
-#> 3                   2202         0.6151648         0.3745977        0.01023756
-#>   iEucO_lulc_prop_1 iEucO_lulc_var_1_distwtd_mean iEucO_lulc_var_2_distwtd_mean
-#> 1       0.002099985                      7.397264                      25.32574
-#> 2       0.000000000                      7.037936                      25.58294
-#> 3       0.000000000                      7.295916                      25.73896
-#>   iEucO_lulc_var_1_distwtd_sd iEucO_lulc_var_2_distwtd_sd iEucO_lulc_var_1_mean
-#> 1                    3.522996                   0.9836232              8.447967
-#> 2                    3.550400                   1.0328694              8.069013
-#> 3                    3.421072                   0.9813292              8.264305
-#>   iEucO_lulc_var_2_mean iEucO_lulc_var_1_sd iEucO_lulc_var_2_sd
-#> 1              25.26582            2.980186           0.7927960
-#> 2              25.44152            3.171636           0.8882157
-#> 3              25.48547            3.027676           0.8632101
-#>   iEucO_lulc_var_1_min iEucO_lulc_var_2_min iEucO_lulc_var_1_max
-#> 1                    2                   21                   10
-#> 2                    2                   24                   10
-#> 3                    2                   24                   10
-#>   iEucO_lulc_var_2_max iEucO_lulc_var_1_pixel_count
-#> 1                   27                        21669
-#> 2                   27                         3608
-#> 3                   27                         2202
-#>   iEucO_lulc_var_2_pixel_count iEucO_lulc_prop_var_1_6 iEucO_lulc_prop_var_1_2
-#> 1                        21669             0.002099985              0.12390110
-#> 2                         3608             0.000000000              0.08015300
-#> 3                         2202             0.000000000              0.01023756
-#>   iEucO_lulc_prop_var_1_3 iEucO_lulc_prop_var_1_10 iEucO_lulc_prop_var_2_21
-#> 1               0.2290182                0.6449808              0.002099985
-#> 2               0.3315486                0.5882984              0.000000000
-#> 3               0.3745977                0.6151648              0.000000000
-#>   iEucO_lulc_prop_var_2_24 iEucO_lulc_prop_var_2_27 iEucO_lulc_prop_var_2_25
-#> 1               0.12390110                0.2290182                0.6449808
-#> 2               0.08015300                0.3315486                0.5882984
-#> 3               0.01023756                0.3745977                0.6151648
-#>   iFLO_ndvi_distwtd_mean iFLO_ndvi_distwtd_sd iFLO_ndvi_mean iFLO_ndvi_sd
-#> 1              0.5001072            0.2887103      0.4994622    0.2890379
-#> 2              0.4978290            0.2878410      0.5014680    0.2894971
-#> 3              0.4911609            0.2893367      0.4893092    0.2884037
-#>   iFLO_ndvi_min iFLO_ndvi_max iFLO_ndvi_pixel_count iFLO_lulc_prop_4
-#> 1  3.734347e-05     0.9999252                 21669        0.6250878
-#> 2  2.137790e-04     0.9990879                  3608        0.5715029
-#> 3  7.636482e-04     0.9999252                  2202        0.6044472
-#>   iFLO_lulc_prop_3 iFLO_lulc_prop_2 iFLO_lulc_prop_1
-#> 1        0.2340212       0.13833994      0.002551113
-#> 2        0.3393153       0.08918176      0.000000000
-#> 3        0.3835394       0.01201347      0.000000000
-#>   iFLO_lulc_var_1_distwtd_mean iFLO_lulc_var_2_distwtd_mean
-#> 1                     7.244928                     25.31950
-#> 2                     6.911339                     25.58945
-#> 3                     7.219117                     25.75507
-#>   iFLO_lulc_var_1_distwtd_sd iFLO_lulc_var_2_distwtd_sd iFLO_lulc_var_1_mean
-#> 1                   3.573762                  1.0065834             8.447967
-#> 2                   3.577402                  1.0484740             8.069013
-#> 3                   3.440109                  0.9881755             8.264305
-#>   iFLO_lulc_var_2_mean iFLO_lulc_var_1_sd iFLO_lulc_var_2_sd
-#> 1             25.26582           2.980186          0.7927960
-#> 2             25.44152           3.171636          0.8882157
-#> 3             25.48547           3.027676          0.8632101
-#>   iFLO_lulc_var_1_min iFLO_lulc_var_2_min iFLO_lulc_var_1_max
-#> 1                   2                  21                  10
-#> 2                   2                  24                  10
-#> 3                   2                  24                  10
-#>   iFLO_lulc_var_2_max iFLO_lulc_var_1_pixel_count iFLO_lulc_var_2_pixel_count
-#> 1                  27                       21669                       21669
-#> 2                  27                        3608                        3608
-#> 3                  27                        2202                        2202
-#>   iFLO_lulc_prop_var_1_6 iFLO_lulc_prop_var_1_2 iFLO_lulc_prop_var_1_3
-#> 1            0.002551113             0.13833994              0.2340212
-#> 2            0.000000000             0.08918176              0.3393153
-#> 3            0.000000000             0.01201347              0.3835394
-#>   iFLO_lulc_prop_var_1_10 iFLO_lulc_prop_var_2_21 iFLO_lulc_prop_var_2_24
-#> 1               0.6250878             0.002551113              0.13833994
-#> 2               0.5715029             0.000000000              0.08918176
-#> 3               0.6044472             0.000000000              0.01201347
-#>   iFLO_lulc_prop_var_2_27 iFLO_lulc_prop_var_2_25 HAiFLO_ndvi_distwtd_mean
-#> 1               0.2340212               0.6250878                0.4933884
-#> 2               0.3393153               0.5715029                0.4868857
-#> 3               0.3835394               0.6044472                0.4962097
-#>   HAiFLO_ndvi_distwtd_sd HAiFLO_ndvi_mean HAiFLO_ndvi_sd HAiFLO_ndvi_min
-#> 1              0.2824609        0.4994622      0.2890379    3.734347e-05
-#> 2              0.2813109        0.5014680      0.2894971    2.137790e-04
-#> 3              0.2962692        0.4893092      0.2884037    7.636482e-04
-#>   HAiFLO_ndvi_max HAiFLO_ndvi_pixel_count HAiFLO_lulc_prop_4 HAiFLO_lulc_prop_3
-#> 1       0.9999252                   21669          0.4353394          0.4613240
-#> 2       0.9990879                    3608          0.3482491          0.6102274
-#> 3       0.9999252                    2202          0.2255803          0.7737462
-#>   HAiFLO_lulc_prop_2 HAiFLO_lulc_prop_1 HAiFLO_lulc_var_1_distwtd_mean
-#> 1       0.1022619331        0.001074637                       5.948338
-#> 2       0.0415234892        0.000000000                       5.396220
-#> 3       0.0006734899        0.000000000                       4.578388
-#>   HAiFLO_lulc_var_2_distwtd_mean HAiFLO_lulc_var_1_distwtd_sd
-#> 1                       25.81609                     3.570919
-#> 2                       26.17893                     3.371504
-#> 3                       26.54682                     2.926893
-#>   HAiFLO_lulc_var_2_distwtd_sd HAiFLO_lulc_var_1_mean HAiFLO_lulc_var_2_mean
-#> 1                    1.1396552               8.447967               25.26582
-#> 2                    1.0453992               8.069013               25.44152
-#> 3                    0.8386478               8.264305               25.48547
-#>   HAiFLO_lulc_var_1_sd HAiFLO_lulc_var_2_sd HAiFLO_lulc_var_1_min
-#> 1             2.980186            0.7927960                     2
-#> 2             3.171636            0.8882157                     2
-#> 3             3.027676            0.8632101                     2
-#>   HAiFLO_lulc_var_2_min HAiFLO_lulc_var_1_max HAiFLO_lulc_var_2_max
-#> 1                    21                    10                    27
-#> 2                    24                    10                    27
-#> 3                    24                    10                    27
-#>   HAiFLO_lulc_var_1_pixel_count HAiFLO_lulc_var_2_pixel_count
-#> 1                         21669                         21669
-#> 2                          3608                          3608
-#> 3                          2202                          2202
-#>   HAiFLO_lulc_prop_var_1_6 HAiFLO_lulc_prop_var_1_2 HAiFLO_lulc_prop_var_1_3
-#> 1              0.001074637             0.1022619331                0.4613240
-#> 2              0.000000000             0.0415234892                0.6102274
-#> 3              0.000000000             0.0006734899                0.7737462
-#>   HAiFLO_lulc_prop_var_1_10 HAiFLO_lulc_prop_var_2_21 HAiFLO_lulc_prop_var_2_24
-#> 1                 0.4353394               0.001074637              0.1022619331
-#> 2                 0.3482491               0.000000000              0.0415234892
-#> 3                 0.2255803               0.000000000              0.0006734899
-#>   HAiFLO_lulc_prop_var_2_27 HAiFLO_lulc_prop_var_2_25 iEucS_ndvi_distwtd_mean
-#> 1                 0.4613240                 0.4353394               0.4989444
-#> 2                 0.6102274                 0.3482491               0.4995177
-#> 3                 0.7737462                 0.2255803               0.4926005
-#>   iEucS_ndvi_distwtd_sd iEucS_ndvi_mean iEucS_ndvi_sd iEucS_ndvi_min
-#> 1             0.2882950       0.4994622     0.2890379   3.734347e-05
-#> 2             0.2871112       0.5014680     0.2894971   2.137790e-04
-#> 3             0.2895572       0.4893092     0.2884037   7.636482e-04
-#>   iEucS_ndvi_max iEucS_ndvi_pixel_count iEucS_lulc_prop_4 iEucS_lulc_prop_3
-#> 1      0.9999252                  21669         0.6274534         0.2566805
-#> 2      0.9990879                   3608         0.5332689         0.3831749
-#> 3      0.9999252                   2202         0.5941285         0.3967988
-#>   iEucS_lulc_prop_2 iEucS_lulc_prop_1 iEucS_lulc_var_1_distwtd_mean
-#> 1       0.115198114       0.000667984                      7.278980
-#> 2       0.083556177       0.000000000                      6.649326
-#> 3       0.009072678       0.000000000                      7.149827
-#>   iEucS_lulc_var_2_distwtd_mean iEucS_lulc_var_1_distwtd_sd
-#> 1                      25.39549                    3.543634
-#> 2                      25.68279                    3.591619
-#> 3                      25.78452                    3.450466
-#>   iEucS_lulc_var_2_distwtd_sd iEucS_lulc_var_1_mean iEucS_lulc_var_2_mean
-#> 1                   0.9981186              8.447967              25.26582
-#> 2                   1.0725519              8.069013              25.44152
-#> 3                   0.9905726              8.264305              25.48547
-#>   iEucS_lulc_var_1_sd iEucS_lulc_var_2_sd iEucS_lulc_var_1_min
-#> 1            2.980186           0.7927960                    2
-#> 2            3.171636           0.8882157                    2
-#> 3            3.027676           0.8632101                    2
-#>   iEucS_lulc_var_2_min iEucS_lulc_var_1_max iEucS_lulc_var_2_max
-#> 1                   21                   10                   27
-#> 2                   24                   10                   27
-#> 3                   24                   10                   27
-#>   iEucS_lulc_var_1_pixel_count iEucS_lulc_var_2_pixel_count
-#> 1                        21669                        21669
-#> 2                         3608                         3608
-#> 3                         2202                         2202
-#>   iEucS_lulc_prop_var_1_6 iEucS_lulc_prop_var_1_2 iEucS_lulc_prop_var_1_3
-#> 1             0.000667984             0.115198114               0.2566805
-#> 2             0.000000000             0.083556177               0.3831749
-#> 3             0.000000000             0.009072678               0.3967988
-#>   iEucS_lulc_prop_var_1_10 iEucS_lulc_prop_var_2_21 iEucS_lulc_prop_var_2_24
-#> 1                0.6274534              0.000667984              0.115198114
-#> 2                0.5332689              0.000000000              0.083556177
-#> 3                0.5941285              0.000000000              0.009072678
-#>   iEucS_lulc_prop_var_2_27 iEucS_lulc_prop_var_2_25 iFLS_ndvi_distwtd_mean
-#> 1                0.2566805                0.6274534              0.4990513
-#> 2                0.3831749                0.5332689              0.4992578
-#> 3                0.3967988                0.5941285              0.4929444
-#>   iFLS_ndvi_distwtd_sd iFLS_ndvi_mean iFLS_ndvi_sd iFLS_ndvi_min iFLS_ndvi_max
-#> 1            0.2882307      0.4994622    0.2890379  3.734347e-05     0.9999252
-#> 2            0.2869637      0.5014680    0.2894971  2.137790e-04     0.9990879
-#> 3            0.2901482      0.4893092    0.2884037  7.636482e-04     0.9999252
-#>   iFLS_ndvi_pixel_count iFLS_lulc_prop_4 iFLS_lulc_prop_3 iFLS_lulc_prop_2
-#> 1                 21669        0.6062204        0.2677855       0.12525457
-#> 2                  3608        0.5203204        0.3912811       0.08839848
-#> 3                  2202        0.5719798        0.4175309       0.01048923
-#>   iFLS_lulc_prop_1 iFLS_lulc_var_1_distwtd_mean iFLS_lulc_var_2_distwtd_mean
-#> 1     0.0007395464                     7.120507                     25.40736
-#> 2     0.0000000000                     6.553844                     25.69416
-#> 3     0.0000000000                     6.993370                     25.82457
-#>   iFLS_lulc_var_1_distwtd_sd iFLS_lulc_var_2_distwtd_sd iFLS_lulc_var_1_mean
-#> 1                   3.585907                   1.020949             8.447967
-#> 2                   3.599706                   1.082582             8.069013
-#> 3                   3.477929                   1.000574             8.264305
-#>   iFLS_lulc_var_2_mean iFLS_lulc_var_1_sd iFLS_lulc_var_2_sd
-#> 1             25.26582           2.980186          0.7927960
-#> 2             25.44152           3.171636          0.8882157
-#> 3             25.48547           3.027676          0.8632101
-#>   iFLS_lulc_var_1_min iFLS_lulc_var_2_min iFLS_lulc_var_1_max
-#> 1                   2                  21                  10
-#> 2                   2                  24                  10
-#> 3                   2                  24                  10
-#>   iFLS_lulc_var_2_max iFLS_lulc_var_1_pixel_count iFLS_lulc_var_2_pixel_count
-#> 1                  27                       21669                       21669
-#> 2                  27                        3608                        3608
-#> 3                  27                        2202                        2202
-#>   iFLS_lulc_prop_var_1_6 iFLS_lulc_prop_var_1_2 iFLS_lulc_prop_var_1_3
-#> 1           0.0007395464             0.12525457              0.2677855
-#> 2           0.0000000000             0.08839848              0.3912811
-#> 3           0.0000000000             0.01048923              0.4175309
-#>   iFLS_lulc_prop_var_1_10 iFLS_lulc_prop_var_2_21 iFLS_lulc_prop_var_2_24
-#> 1               0.6062204            0.0007395464              0.12525457
-#> 2               0.5203204            0.0000000000              0.08839848
-#> 3               0.5719798            0.0000000000              0.01048923
-#>   iFLS_lulc_prop_var_2_27 iFLS_lulc_prop_var_2_25 HAiFLS_ndvi_distwtd_mean
-#> 1               0.2677855               0.6062204                0.4954553
-#> 2               0.3912811               0.5203204                0.4873973
-#> 3               0.4175309               0.5719798                0.5006438
-#>   HAiFLS_ndvi_distwtd_sd HAiFLS_ndvi_mean HAiFLS_ndvi_sd HAiFLS_ndvi_min
-#> 1              0.2839500        0.4994622      0.2890379    3.734347e-05
-#> 2              0.2786038        0.5014680      0.2894971    2.137790e-04
-#> 3              0.2973406        0.4893092      0.2884037    7.636482e-04
-#>   HAiFLS_ndvi_max HAiFLS_ndvi_pixel_count HAiFLS_lulc_prop_4 HAiFLS_lulc_prop_3
-#> 1       0.9999252                   21669          0.3941260          0.5057761
-#> 2       0.9990879                    3608          0.2704468          0.6909641
-#> 3       0.9999252                    2202          0.1928352          0.8066595
-#>   HAiFLS_lulc_prop_2 HAiFLS_lulc_prop_1 HAiFLS_lulc_var_1_distwtd_mean
-#> 1       0.0998553659        0.000242537                       5.659754
-#> 2       0.0385891210        0.000000000                       4.854538
-#> 3       0.0005052854        0.000000000                       4.349341
-#>   HAiFLS_lulc_var_2_distwtd_mean HAiFLS_lulc_var_1_distwtd_sd
-#> 1                       25.91073                     3.512904
-#> 2                       26.34334                     3.139096
-#> 3                       26.61281                     2.762642
-#>   HAiFLS_lulc_var_2_distwtd_sd HAiFLS_lulc_var_1_mean HAiFLS_lulc_var_2_mean
-#> 1                    1.1390688               8.447967               25.26582
-#> 2                    0.9990819               8.069013               25.44152
-#> 3                    0.7913663               8.264305               25.48547
-#>   HAiFLS_lulc_var_1_sd HAiFLS_lulc_var_2_sd HAiFLS_lulc_var_1_min
-#> 1             2.980186            0.7927960                     2
-#> 2             3.171636            0.8882157                     2
-#> 3             3.027676            0.8632101                     2
-#>   HAiFLS_lulc_var_2_min HAiFLS_lulc_var_1_max HAiFLS_lulc_var_2_max
-#> 1                    21                    10                    27
-#> 2                    24                    10                    27
-#> 3                    24                    10                    27
-#>   HAiFLS_lulc_var_1_pixel_count HAiFLS_lulc_var_2_pixel_count
-#> 1                         21669                         21669
-#> 2                          3608                          3608
-#> 3                          2202                          2202
-#>   HAiFLS_lulc_prop_var_1_6 HAiFLS_lulc_prop_var_1_2 HAiFLS_lulc_prop_var_1_3
-#> 1              0.000242537             0.0998553659                0.5057761
-#> 2              0.000000000             0.0385891210                0.6909641
-#> 3              0.000000000             0.0005052854                0.8066595
-#>   HAiFLS_lulc_prop_var_1_10 HAiFLS_lulc_prop_var_2_21 HAiFLS_lulc_prop_var_2_24
-#> 1                 0.3941260               0.000242537              0.0998553659
-#> 2                 0.2704468               0.000000000              0.0385891210
-#> 3                 0.1928352               0.000000000              0.0005052854
-#>   HAiFLS_lulc_prop_var_2_27 HAiFLS_lulc_prop_var_2_25
-#> 1                 0.5057761                 0.3941260
-#> 2                 0.6909641                 0.2704468
-#> 3                 0.8066595                 0.1928352
+## Remove duplicated data
+lumped_cols <- grep("lumped", names(sites_attributes_df))
+distwtd_cols <- grep("distwtd", names(sites_attributes_df))
+unique_cols <- unique(c(1, lumped_cols, distwtd_cols))
+unique_cols
+#>  [1]   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
+#> [20]  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  45  46  47
+#> [39]  48  66  67  77  78  79  80  98  99 109 110 111 112 130 131 141 142 143 144
+#> [58] 162 163 173 174 175 176 194 195 205 206 207 208
+
+sites_attributes_df <- sites_attributes_df[, unique_cols]
+
+## Final data frame
+colnames(sites_attributes_df)
+#>  [1] "Site"                           "lumped_ndvi_distwtd_mean"      
+#>  [3] "lumped_ndvi_distwtd_sd"         "lumped_ndvi_mean"              
+#>  [5] "lumped_ndvi_sd"                 "lumped_ndvi_min"               
+#>  [7] "lumped_ndvi_max"                "lumped_ndvi_pixel_count"       
+#>  [9] "lumped_lulc_prop_4"             "lumped_lulc_prop_3"            
+#> [11] "lumped_lulc_prop_2"             "lumped_lulc_prop_1"            
+#> [13] "lumped_lulc_var_1_distwtd_mean" "lumped_lulc_var_2_distwtd_mean"
+#> [15] "lumped_lulc_var_1_distwtd_sd"   "lumped_lulc_var_2_distwtd_sd"  
+#> [17] "lumped_lulc_var_1_mean"         "lumped_lulc_var_2_mean"        
+#> [19] "lumped_lulc_var_1_sd"           "lumped_lulc_var_2_sd"          
+#> [21] "lumped_lulc_var_1_min"          "lumped_lulc_var_2_min"         
+#> [23] "lumped_lulc_var_1_max"          "lumped_lulc_var_2_max"         
+#> [25] "lumped_lulc_var_1_pixel_count"  "lumped_lulc_var_2_pixel_count" 
+#> [27] "lumped_lulc_prop_var_1_6"       "lumped_lulc_prop_var_1_8"      
+#> [29] "lumped_lulc_prop_var_1_5"       "lumped_lulc_prop_var_1_10"     
+#> [31] "lumped_lulc_prop_var_2_20"      "lumped_lulc_prop_var_2_24"     
+#> [33] "lumped_lulc_prop_var_2_27"      "iEucO_ndvi_distwtd_mean"       
+#> [35] "iEucO_ndvi_distwtd_sd"          "iEucO_lulc_var_1_distwtd_mean" 
+#> [37] "iEucO_lulc_var_2_distwtd_mean"  "iEucO_lulc_var_1_distwtd_sd"   
+#> [39] "iEucO_lulc_var_2_distwtd_sd"    "iFLO_ndvi_distwtd_mean"        
+#> [41] "iFLO_ndvi_distwtd_sd"           "iFLO_lulc_var_1_distwtd_mean"  
+#> [43] "iFLO_lulc_var_2_distwtd_mean"   "iFLO_lulc_var_1_distwtd_sd"    
+#> [45] "iFLO_lulc_var_2_distwtd_sd"     "HAiFLO_ndvi_distwtd_mean"      
+#> [47] "HAiFLO_ndvi_distwtd_sd"         "HAiFLO_lulc_var_1_distwtd_mean"
+#> [49] "HAiFLO_lulc_var_2_distwtd_mean" "HAiFLO_lulc_var_1_distwtd_sd"  
+#> [51] "HAiFLO_lulc_var_2_distwtd_sd"   "iEucS_ndvi_distwtd_mean"       
+#> [53] "iEucS_ndvi_distwtd_sd"          "iEucS_lulc_var_1_distwtd_mean" 
+#> [55] "iEucS_lulc_var_2_distwtd_mean"  "iEucS_lulc_var_1_distwtd_sd"   
+#> [57] "iEucS_lulc_var_2_distwtd_sd"    "iFLS_ndvi_distwtd_mean"        
+#> [59] "iFLS_ndvi_distwtd_sd"           "iFLS_lulc_var_1_distwtd_mean"  
+#> [61] "iFLS_lulc_var_2_distwtd_mean"   "iFLS_lulc_var_1_distwtd_sd"    
+#> [63] "iFLS_lulc_var_2_distwtd_sd"     "HAiFLS_ndvi_distwtd_mean"      
+#> [65] "HAiFLS_ndvi_distwtd_sd"         "HAiFLS_lulc_var_1_distwtd_mean"
+#> [67] "HAiFLS_lulc_var_2_distwtd_mean" "HAiFLS_lulc_var_1_distwtd_sd"  
+#> [69] "HAiFLS_lulc_var_2_distwtd_sd"
 ```
 
 Now - like any good environmental scientist - you have more variables
@@ -1776,6 +1434,6 @@ The core functions should stay the same but we would like to:
 
 ## 8.0 Acknowledgements
 
-Thank you to (alphabetical order) for early review/testing:
+Thank you to for early review/testing (alphabetical order):
 
 Darren McCormick, Courtney Mondoux, Emily Smenderovac
