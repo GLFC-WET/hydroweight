@@ -1103,7 +1103,30 @@ Now - like any good environmental scientist - you have more variables and/or met
 
 [Back to top](#contents)
 
-## 6.0 References
+## 6.0 Future Plans
+
+This package was implemented to mostly serve our purposes and is functional enough.
+There is probably lots of room for improvement that we don't see yet.
+
+The core functions should stay the same but we would like to:
+
+1. Optimize for speed based on user/my own feedback.
+2. Potentially use less in-memory `raster` functions in favour of `WhiteboxTools` functions.
+3. Work on moving multi-site/multi-layer capability into their own functions based on feedback.
+4. Implement tidier data handling and results structures.
+5. ... as things come up.
+
+[Back to top](#contents)
+
+## 7.0 Acknowledgements 
+
+Thank you to for early review/testing (alphabetical order): 
+
+Darren McCormick, Courtney Mondoux, Emily Smenderovac
+
+[Back to top](#contents)
+
+## 8.0 References
 
 Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring function and structure of urban headwater streams with citizen scientists. Ecosphere, 10(4):e02720. https://doi.org/10.1002/ecs2.2720
 
@@ -1119,24 +1142,3 @@ Pearse A., Heron G., & Peterson E. (2019). rdwplus: An Implementation of IDW-PLU
 Wu Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
 
 [Back to top](#contents)
-
-## 7.0 Future Plans
-
-This package was implemented to mostly serve our purposes and is functional enough.
-There is probably lots of room for improvement that we don't see yet.
-
-The core functions should stay the same but we would like to:
-
-1. Optimize for speed based on user/my own feedback.
-2. Potentially use less in-memory `raster` functions in favour of `WhiteboxTools` functions.
-3. Work on moving multi-site/multi-layer capability into their own functions based on feedback.
-4. Implement tidier data handling and results structures.
-5. ... as things come up.
-
-[Back to top](#contents)
-
-## 8.0 Acknowledgements 
-
-Thank you to for early review/testing (alphabetical order): 
-
-Darren McCormick, Courtney Mondoux, Emily Smenderovac

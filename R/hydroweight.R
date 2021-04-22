@@ -9,7 +9,7 @@
 #' Peterson et al. 2011 <https://doi:10.1111/j.1365-2427.2010.02507.x>).
 #' IMPORTANTLY, this function acts on a single set of targets but can produce
 #' multiple weights. The distance-weighted rasters, can be used for generating
-#' distance-weighted using \code{hydroweight::hydroweight_attributes()} (e.g., % urban
+#' distance-weighted landscape statistics using \code{hydroweight::hydroweight_attributes()} (e.g., % urban
 #' cover weighted by flow distance to a point). See vignette for workflows.
 #'
 #' Spatial layers should align (i.e., identical coordinate reference systems - CRS).
@@ -53,7 +53,6 @@ hydroweight <- function(hydroweight_dir = NULL,
                         OS_combine = NULL,
                         clip_region = NULL,
                         dem = NULL,
-                        dem_crs = NULL,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
                         inv_function = function(x){(x * 0.001 + 1)^-1
@@ -64,7 +63,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   (dem_r <- raster::raster(file.path(hydroweight_dir, dem)))
 
-  if(is.na(crs(dem_r)) | is.null(crs(dem_r))){
+  if(is.na(raster::crs(dem_r)) | is.null(raster::crs(dem_r))){
     stop("dem crs() is NULL or NA. Apply projection before continuing")
   }
 
@@ -100,7 +99,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       if (grepl(".tif", clip_region)) {
         clip_region <- raster::raster(file.path(hydroweight_dir, clip_region))
 
-        if(is.na(crs(clip_region)) | is.null(crs(clip_region))){
+        if(is.na(raster::crs(clip_region)) | is.null(raster::crs(clip_region))){
           stop("clip_region crs() is NULL or NA. Apply projection before continuing")
         }
 
@@ -139,9 +138,9 @@ hydroweight <- function(hydroweight_dir = NULL,
       #verbose_mode = TRUE
     )
 
-    clip_region <- st_read(file.path(hydroweight_dir, "TEMP-clip_region.shp"), quiet = TRUE)
-    st_crs(clip_region) <- st_crs(dem_crs)
-    st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"), append = FALSE, quiet = TRUE)
+    clip_region <- sf::st_read(file.path(hydroweight_dir, "TEMP-clip_region.shp"), quiet = TRUE)
+    sf::st_crs(clip_region) <- sf::st_crs(dem_crs)
+    sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"), append = FALSE, quiet = TRUE)
 
     #clip_region <- raster::raster(file.path(hydroweight_dir, dem))
     #clip_region[!is.na(clip_region)] <- 1
@@ -204,7 +203,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (any(sf::st_is(target_O, c("LINESTRING", "MULTILINESTRING")))) {
 
       dem_clip_extent <- sf::st_as_sfc(sr::st_bbox(raster::extent(dem_clip)))
-      sf::st_crs(dem_clip_extent) <- raster::crs(dem_clip)
+      sf::st_crs(dem_clip_extent) <- sf::st_crs(dem_clip)
 
       target_O_int <- sf::st_intersects(target_O, dem_clip_extent)
       target_O_int <- target_O[lengths(target_O_int)>0,]
@@ -281,7 +280,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (any(sf::st_is(target_S, c("LINESTRING", "MULTILINESTRING")))) {
 
       dem_clip_extent <- st_as_sfc(st_bbox(extent(dem_clip)))
-      st_crs(dem_clip_extent) <- crs(dem_crs)
+      sf::st_crs(dem_clip_extent) <- sf::st_crs(dem_crs)
 
       target_S_int <- st_intersects(target_S, dem_clip_extent)
       target_S_int <- target_S[lengths(target_S_int)>0,]
@@ -519,20 +518,18 @@ hydroweight <- function(hydroweight_dir = NULL,
     accum_clip <- accum_clip + 1
     raster::crs(accum_clip) <- dem_crs
 
+    if ("HAiFLO" %in% weighting_scheme) {
+
+    HAiFLO_inv <- iFLO_inv * accum_clip
+
+    raster::writeRaster(HAiFLO_inv,
+                        file.path(hydroweight_dir, "TEMP-HAiFLO.tif"),
+                        overwrite = TRUE, options = c("COMPRESS=NONE"),
+                        Naflag = -9999
+    )
+    }
+
     if (OS_combine == TRUE) {
-      if ("HAiFLO" %in% weighting_scheme) {
-
-        HAiFLO_inv <- iFLO_inv * accum_clip
-        HAiFLO_inv <- raster::mask(HAiFLO_inv, OS_combine_r, maskvalue = 1)
-
-        raster::writeRaster(HAiFLO_inv,
-          file.path(hydroweight_dir, "TEMP-HAiFLO.tif"),
-          overwrite = TRUE, options = c("COMPRESS=NONE"),
-          Naflag = -9999
-        )
-      }
-
-      if ("HAiFLS" %in% weighting_scheme) {
 
         HAiFLS_inv <- iFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, OS_combine_r, maskvalue = 1)
@@ -542,23 +539,9 @@ hydroweight <- function(hydroweight_dir = NULL,
           overwrite = TRUE, options = c("COMPRESS=NONE"),
           Naflag = -9999
         )
-      }
     }
 
     if (OS_combine == FALSE) {
-      if ("HAiFLO" %in% weighting_scheme) {
-
-        HAiFLO_inv <- iFLO_inv * accum_clip
-        HAiFLO_inv <- raster::mask(HAiFLO_inv, target_O_r, maskvalue = 1)
-
-        raster::writeRaster(HAiFLO_inv,
-          file.path(hydroweight_dir, "TEMP-HAiFLO.tif"),
-          overwrite = TRUE, options = c("COMPRESS=NONE"),
-          Naflag = -9999
-        )
-      }
-
-      if ("HAiFLS" %in% weighting_scheme) {
 
         HAiFLS_inv <- iFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, target_S_r, maskvalue = 1)
@@ -570,7 +553,7 @@ hydroweight <- function(hydroweight_dir = NULL,
         )
       }
     }
-  }
+
 
   ## PREPARE OUTPUT ----
 
