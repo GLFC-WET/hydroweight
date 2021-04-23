@@ -16,9 +16,8 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
       - [3.3 Run `hydroweight()`](#33-run-hydroweight)
       - [3.4 Run `hydroweight()` across a set of
         sites](#34-run-hydroweight-across-a-set-of-sites)
-      - [3.5 Using `hydroweight()` iFLO output as subsequent catchment
-        boundaries for
-        `hydroweight_attributes()`](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries-for-hydroweight_attributes)
+      - [3.5 Using `iFLO` output as catchment boundaries for
+        `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
   - [4.0 Inverse distance-weighted rasters using
     `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
       - [4.1 Using a numeric raster layer of
@@ -167,7 +166,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.9s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -182,7 +181,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.65s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.66s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -229,7 +228,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.8s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -340,8 +339,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-14 16:14:09
-#> Running distance-weighting @ 2021-04-14 16:14:12
+#> Preparing hydroweight layers @ 2021-04-23 10:34:28
+#> Running distance-weighting @ 2021-04-23 10:34:30
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -512,15 +511,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-14 16:14:30
-#> Preparing hydroweight layers @ 2021-04-14 16:14:30
-#> Running distance-weighting @ 2021-04-14 16:14:32
-#> Running hydroweight for site 2 at 2021-04-14 16:14:36
-#> Preparing hydroweight layers @ 2021-04-14 16:14:36
-#> Running distance-weighting @ 2021-04-14 16:14:39
-#> Running hydroweight for site 3 at 2021-04-14 16:14:43
-#> Preparing hydroweight layers @ 2021-04-14 16:14:43
-#> Running distance-weighting @ 2021-04-14 16:14:45
+#> Running hydroweight for site 1 at 2021-04-23 10:34:49
+#> Preparing hydroweight layers @ 2021-04-23 10:34:49
+#> Running distance-weighting @ 2021-04-23 10:34:51
+#> Running hydroweight for site 2 at 2021-04-23 10:34:55
+#> Preparing hydroweight layers @ 2021-04-23 10:34:55
+#> Running distance-weighting @ 2021-04-23 10:34:57
+#> Running hydroweight for site 3 at 2021-04-23 10:35:01
+#> Preparing hydroweight layers @ 2021-04-23 10:35:01
+#> Running distance-weighting @ 2021-04-23 10:35:03
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -572,7 +571,7 @@ plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101),
 
 [Back to top](#contents)
 
-### 3.5 Using `hydroweight()` iFLO outputs as subsequent catchment boundaries for `hydroweight_attributes()`
+### 3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`
 
 An advantage of using `hydroweight()` is that an iFLO-derived product
 can be used as a catchment boundary in subsequent operations. iFLO uses
@@ -1082,31 +1081,35 @@ results_agg <- lapply(results, function(x) {
 })
 results_agg <- Reduce(merge, results_agg)
 names(results_agg)
-#>  [1] "Lake"                      "lumped_lulc_prop_var_1_6" 
-#>  [3] "lumped_lulc_prop_var_1_8"  "lumped_lulc_prop_var_1_5" 
-#>  [5] "lumped_lulc_prop_var_1_10" "lumped_lulc_prop_var_2_20"
-#>  [7] "lumped_lulc_prop_var_2_24" "lumped_lulc_prop_var_2_27"
-#>  [9] "iEucO_lulc_prop_var_1_6"   "iEucO_lulc_prop_var_1_8"  
-#> [11] "iEucO_lulc_prop_var_1_5"   "iEucO_lulc_prop_var_1_10" 
-#> [13] "iEucO_lulc_prop_var_2_20"  "iEucO_lulc_prop_var_2_24" 
-#> [15] "iEucO_lulc_prop_var_2_27"  "iFLO_lulc_prop_var_1_6"   
-#> [17] "iFLO_lulc_prop_var_1_8"    "iFLO_lulc_prop_var_1_5"   
-#> [19] "iFLO_lulc_prop_var_1_10"   "iFLO_lulc_prop_var_2_20"  
-#> [21] "iFLO_lulc_prop_var_2_24"   "iFLO_lulc_prop_var_2_27"  
-#> [23] "HAiFLO_lulc_prop_var_1_6"  "HAiFLO_lulc_prop_var_1_8" 
-#> [25] "HAiFLO_lulc_prop_var_1_5"  "HAiFLO_lulc_prop_var_1_10"
-#> [27] "HAiFLO_lulc_prop_var_2_20" "HAiFLO_lulc_prop_var_2_24"
-#> [29] "HAiFLO_lulc_prop_var_2_27" "iEucS_lulc_prop_var_1_6"  
-#> [31] "iEucS_lulc_prop_var_1_8"   "iEucS_lulc_prop_var_1_5"  
-#> [33] "iEucS_lulc_prop_var_1_10"  "iEucS_lulc_prop_var_2_20" 
-#> [35] "iEucS_lulc_prop_var_2_24"  "iEucS_lulc_prop_var_2_27" 
-#> [37] "iFLS_lulc_prop_var_1_6"    "iFLS_lulc_prop_var_1_8"   
-#> [39] "iFLS_lulc_prop_var_1_5"    "iFLS_lulc_prop_var_1_10"  
-#> [41] "iFLS_lulc_prop_var_2_20"   "iFLS_lulc_prop_var_2_24"  
-#> [43] "iFLS_lulc_prop_var_2_27"   "HAiFLS_lulc_prop_var_1_6" 
-#> [45] "HAiFLS_lulc_prop_var_1_8"  "HAiFLS_lulc_prop_var_1_5" 
-#> [47] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_2_20"
-#> [49] "HAiFLS_lulc_prop_var_2_24" "HAiFLS_lulc_prop_var_2_27"
+#>  [1] "Lake"                      "lumped_lulc_prop_var_1_10"
+#>  [3] "lumped_lulc_prop_var_1_8"  "lumped_lulc_prop_var_1_9" 
+#>  [5] "lumped_lulc_prop_var_1_7"  "lumped_lulc_prop_var_2_28"
+#>  [7] "lumped_lulc_prop_var_2_30" "lumped_lulc_prop_var_2_24"
+#>  [9] "lumped_lulc_prop_var_2_21" "iEucO_lulc_prop_var_1_10" 
+#> [11] "iEucO_lulc_prop_var_1_8"   "iEucO_lulc_prop_var_1_9"  
+#> [13] "iEucO_lulc_prop_var_1_7"   "iEucO_lulc_prop_var_2_28" 
+#> [15] "iEucO_lulc_prop_var_2_30"  "iEucO_lulc_prop_var_2_24" 
+#> [17] "iEucO_lulc_prop_var_2_21"  "iFLO_lulc_prop_var_1_10"  
+#> [19] "iFLO_lulc_prop_var_1_8"    "iFLO_lulc_prop_var_1_9"   
+#> [21] "iFLO_lulc_prop_var_1_7"    "iFLO_lulc_prop_var_2_28"  
+#> [23] "iFLO_lulc_prop_var_2_30"   "iFLO_lulc_prop_var_2_24"  
+#> [25] "iFLO_lulc_prop_var_2_21"   "HAiFLO_lulc_prop_var_1_10"
+#> [27] "HAiFLO_lulc_prop_var_1_8"  "HAiFLO_lulc_prop_var_1_9" 
+#> [29] "HAiFLO_lulc_prop_var_1_7"  "HAiFLO_lulc_prop_var_2_28"
+#> [31] "HAiFLO_lulc_prop_var_2_30" "HAiFLO_lulc_prop_var_2_24"
+#> [33] "HAiFLO_lulc_prop_var_2_21" "iEucS_lulc_prop_var_1_10" 
+#> [35] "iEucS_lulc_prop_var_1_8"   "iEucS_lulc_prop_var_1_9"  
+#> [37] "iEucS_lulc_prop_var_1_7"   "iEucS_lulc_prop_var_2_28" 
+#> [39] "iEucS_lulc_prop_var_2_30"  "iEucS_lulc_prop_var_2_24" 
+#> [41] "iEucS_lulc_prop_var_2_21"  "iFLS_lulc_prop_var_1_10"  
+#> [43] "iFLS_lulc_prop_var_1_8"    "iFLS_lulc_prop_var_1_9"   
+#> [45] "iFLS_lulc_prop_var_1_7"    "iFLS_lulc_prop_var_2_28"  
+#> [47] "iFLS_lulc_prop_var_2_30"   "iFLS_lulc_prop_var_2_24"  
+#> [49] "iFLS_lulc_prop_var_2_21"   "HAiFLS_lulc_prop_var_1_10"
+#> [51] "HAiFLS_lulc_prop_var_1_8"  "HAiFLS_lulc_prop_var_1_9" 
+#> [53] "HAiFLS_lulc_prop_var_1_7"  "HAiFLS_lulc_prop_var_2_28"
+#> [55] "HAiFLS_lulc_prop_var_2_30" "HAiFLS_lulc_prop_var_2_24"
+#> [57] "HAiFLS_lulc_prop_var_2_21"
 ```
 
 [Back to top](#contents)
@@ -1268,9 +1271,9 @@ length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site,
 #> [1] 3
 (sites_attributes_products[[1]][[1]][[1]][[1]]) # statistics table
 #>   Site lumped_ndvi_distwtd_mean lumped_ndvi_distwtd_sd lumped_ndvi_mean
-#> 1    1                0.5015506              0.2877392        0.5015506
+#> 1    1                0.4972042                0.28867        0.4972042
 #>   lumped_ndvi_sd lumped_ndvi_min lumped_ndvi_max lumped_ndvi_pixel_count
-#> 1      0.2877392    0.0001850426       0.9999741                   21669
+#> 1        0.28867    9.326497e-06       0.9999281                   21669
 (sites_attributes_products[[1]][[1]][[1]][[2]]) # loi clipped by roi
 #> class      : RasterLayer 
 #> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
@@ -1279,7 +1282,7 @@ length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site,
 #> crs        : +proj=lcc +lat_0=0 +lon_0=-85 +lat_1=44.5 +lat_2=53.5 +x_0=930000 +y_0=6430000 +datum=NAD83 +units=m +no_defs 
 #> source     : memory
 #> names      : ndvi 
-#> values     : 0.0001850426, 0.9999741  (min, max)
+#> values     : 9.326497e-06, 0.9999281  (min, max)
 (sites_attributes_products[[1]][[1]][[1]][[3]]) # distance-weighted raster clipped by roi
 #> class      : RasterLayer 
 #> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
@@ -1335,9 +1338,9 @@ distwtd_cols <- grep("distwtd", names(sites_attributes_df))
 unique_cols <- unique(c(1, lumped_cols, distwtd_cols))
 unique_cols
 #>  [1]   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
-#> [20]  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  45  46  47
-#> [39]  48  66  67  77  78  79  80  98  99 109 110 111 112 130 131 141 142 143 144
-#> [58] 162 163 173 174 175 176 194 195 205 206 207 208
+#> [20]  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  46  47
+#> [39]  48  49  68  69  79  80  81  82 101 102 112 113 114 115 134 135 145 146 147
+#> [58] 148 167 168 178 179 180 181 200 201 211 212 213 214
 
 sites_attributes_df <- sites_attributes_df[, unique_cols]
 
@@ -1356,28 +1359,28 @@ colnames(sites_attributes_df)
 #> [21] "lumped_lulc_var_1_min"          "lumped_lulc_var_2_min"         
 #> [23] "lumped_lulc_var_1_max"          "lumped_lulc_var_2_max"         
 #> [25] "lumped_lulc_var_1_pixel_count"  "lumped_lulc_var_2_pixel_count" 
-#> [27] "lumped_lulc_prop_var_1_6"       "lumped_lulc_prop_var_1_8"      
-#> [29] "lumped_lulc_prop_var_1_5"       "lumped_lulc_prop_var_1_10"     
-#> [31] "lumped_lulc_prop_var_2_20"      "lumped_lulc_prop_var_2_24"     
-#> [33] "lumped_lulc_prop_var_2_27"      "iEucO_ndvi_distwtd_mean"       
-#> [35] "iEucO_ndvi_distwtd_sd"          "iEucO_lulc_var_1_distwtd_mean" 
-#> [37] "iEucO_lulc_var_2_distwtd_mean"  "iEucO_lulc_var_1_distwtd_sd"   
-#> [39] "iEucO_lulc_var_2_distwtd_sd"    "iFLO_ndvi_distwtd_mean"        
-#> [41] "iFLO_ndvi_distwtd_sd"           "iFLO_lulc_var_1_distwtd_mean"  
-#> [43] "iFLO_lulc_var_2_distwtd_mean"   "iFLO_lulc_var_1_distwtd_sd"    
-#> [45] "iFLO_lulc_var_2_distwtd_sd"     "HAiFLO_ndvi_distwtd_mean"      
-#> [47] "HAiFLO_ndvi_distwtd_sd"         "HAiFLO_lulc_var_1_distwtd_mean"
-#> [49] "HAiFLO_lulc_var_2_distwtd_mean" "HAiFLO_lulc_var_1_distwtd_sd"  
-#> [51] "HAiFLO_lulc_var_2_distwtd_sd"   "iEucS_ndvi_distwtd_mean"       
-#> [53] "iEucS_ndvi_distwtd_sd"          "iEucS_lulc_var_1_distwtd_mean" 
-#> [55] "iEucS_lulc_var_2_distwtd_mean"  "iEucS_lulc_var_1_distwtd_sd"   
-#> [57] "iEucS_lulc_var_2_distwtd_sd"    "iFLS_ndvi_distwtd_mean"        
-#> [59] "iFLS_ndvi_distwtd_sd"           "iFLS_lulc_var_1_distwtd_mean"  
-#> [61] "iFLS_lulc_var_2_distwtd_mean"   "iFLS_lulc_var_1_distwtd_sd"    
-#> [63] "iFLS_lulc_var_2_distwtd_sd"     "HAiFLS_ndvi_distwtd_mean"      
-#> [65] "HAiFLS_ndvi_distwtd_sd"         "HAiFLS_lulc_var_1_distwtd_mean"
-#> [67] "HAiFLS_lulc_var_2_distwtd_mean" "HAiFLS_lulc_var_1_distwtd_sd"  
-#> [69] "HAiFLS_lulc_var_2_distwtd_sd"
+#> [27] "lumped_lulc_prop_var_1_10"      "lumped_lulc_prop_var_1_8"      
+#> [29] "lumped_lulc_prop_var_1_9"       "lumped_lulc_prop_var_1_7"      
+#> [31] "lumped_lulc_prop_var_2_28"      "lumped_lulc_prop_var_2_30"     
+#> [33] "lumped_lulc_prop_var_2_24"      "lumped_lulc_prop_var_2_21"     
+#> [35] "iEucO_ndvi_distwtd_mean"        "iEucO_ndvi_distwtd_sd"         
+#> [37] "iEucO_lulc_var_1_distwtd_mean"  "iEucO_lulc_var_2_distwtd_mean" 
+#> [39] "iEucO_lulc_var_1_distwtd_sd"    "iEucO_lulc_var_2_distwtd_sd"   
+#> [41] "iFLO_ndvi_distwtd_mean"         "iFLO_ndvi_distwtd_sd"          
+#> [43] "iFLO_lulc_var_1_distwtd_mean"   "iFLO_lulc_var_2_distwtd_mean"  
+#> [45] "iFLO_lulc_var_1_distwtd_sd"     "iFLO_lulc_var_2_distwtd_sd"    
+#> [47] "HAiFLO_ndvi_distwtd_mean"       "HAiFLO_ndvi_distwtd_sd"        
+#> [49] "HAiFLO_lulc_var_1_distwtd_mean" "HAiFLO_lulc_var_2_distwtd_mean"
+#> [51] "HAiFLO_lulc_var_1_distwtd_sd"   "HAiFLO_lulc_var_2_distwtd_sd"  
+#> [53] "iEucS_ndvi_distwtd_mean"        "iEucS_ndvi_distwtd_sd"         
+#> [55] "iEucS_lulc_var_1_distwtd_mean"  "iEucS_lulc_var_2_distwtd_mean" 
+#> [57] "iEucS_lulc_var_1_distwtd_sd"    "iEucS_lulc_var_2_distwtd_sd"   
+#> [59] "iFLS_ndvi_distwtd_mean"         "iFLS_ndvi_distwtd_sd"          
+#> [61] "iFLS_lulc_var_1_distwtd_mean"   "iFLS_lulc_var_2_distwtd_mean"  
+#> [63] "iFLS_lulc_var_1_distwtd_sd"     "iFLS_lulc_var_2_distwtd_sd"    
+#> [65] "HAiFLS_ndvi_distwtd_mean"       "HAiFLS_ndvi_distwtd_sd"        
+#> [67] "HAiFLS_lulc_var_1_distwtd_mean" "HAiFLS_lulc_var_2_distwtd_mean"
+#> [69] "HAiFLS_lulc_var_1_distwtd_sd"   "HAiFLS_lulc_var_2_distwtd_sd"
 ```
 
 Now - like any good environmental scientist - you have more variables
@@ -1385,7 +1388,33 @@ and/or metrics than sites.
 
 [Back to top](#contents)
 
-## 6.0 References
+## 6.0 Future Plans
+
+This package was implemented to mostly serve our purposes and is
+functional enough. There is probably lots of room for improvement that
+we don’t see yet.
+
+The core functions should stay the same but we would like to:
+
+1.  Optimize for speed based on user/my own feedback.
+2.  Potentially use less in-memory `raster` functions in favour of
+    `WhiteboxTools` functions.
+3.  Work on moving multi-site/multi-layer capability into their own
+    functions based on feedback.
+4.  Implement tidier data handling and results structures.
+5.  … as things come up.
+
+[Back to top](#contents)
+
+## 7.0 Acknowledgements
+
+Thank you to for early review/testing (alphabetical order):
+
+Darren McCormick, Courtney Mondoux, Emily Smenderovac
+
+[Back to top](#contents)
+
+## 8.0 References
 
 Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring
 function and structure of urban headwater streams with citizen
@@ -1413,27 +1442,3 @@ Wu Q. (2020). whitebox: ‘WhiteboxTools’ R Frontend. R package version
 1.4.0. <https://github.com/giswqs/whiteboxR>
 
 [Back to top](#contents)
-
-## 7.0 Future Plans
-
-This package was implemented to mostly serve our purposes and is
-functional enough. There is probably lots of room for improvement that
-we don’t see yet.
-
-The core functions should stay the same but we would like to:
-
-1.  Optimize for speed based on user/my own feedback.
-2.  Potentially use less in-memory `raster` functions in favour of
-    `WhiteboxTools` functions.
-3.  Work on moving multi-site/multi-layer capability into their own
-    functions based on feedback.
-4.  Implement tidier data handling and results structures.
-5.  … as things come up.
-
-[Back to top](#contents)
-
-## 8.0 Acknowledgements
-
-Thank you to for early review/testing (alphabetical order):
-
-Darren McCormick, Courtney Mondoux, Emily Smenderovac

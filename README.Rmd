@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
   + [3.2 Generate targets](#32-generate-targets)
   + [3.3 Run `hydroweight()`](#33-run-hydroweight)
   + [3.4 Run `hydroweight()` across a set of sites](#34-run-hydroweight-across-a-set-of-sites)
-  + [3.5 Using `hydroweight()` iFLO output as subsequent catchment boundaries for `hydroweight_attributes()`](#35-using-hydroweight-iFLO-output-as-subsequent-catchment-boundaries-for-hydroweight_attributes)
+  + [3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
 * [4.0 Inverse distance-weighted rasters using `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
   + [4.1 Using a numeric raster layer of interest](#41-using-a-numeric-raster-layer-of-interest)
   + [4.2 Using a categorical raster layer of interest](#42-using-a-categorical-raster-layer-of-interest)
@@ -500,7 +500,7 @@ plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101),
 
 [Back to top](#contents)
 
-### 3.5 Using `hydroweight()` iFLO outputs as subsequent catchment boundaries for `hydroweight_attributes()` 
+### 3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()` 
 
 An advantage of using `hydroweight()` is that an iFLO-derived product can be used as a catchment 
 boundary in subsequent operations. iFLO uses `whitebox::wbt_downslope_distance_to_stream` 
