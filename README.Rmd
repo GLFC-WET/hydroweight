@@ -1137,15 +1137,17 @@ Darren McCormick, Courtney Mondoux, Emily Smenderovac
 
 Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring function and structure of urban headwater streams with citizen scientists. Ecosphere, 10(4):e02720. https://doi.org/10.1002/ecs2.2720
 
-Lindsay J.B. (2016). Whitebox GAT: A case study in geomorphometric analysis. Computers & Geosciences, 95: 75-84. https://doi.org/10.1016/j.cageo.2016.07.003
+Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric analysis. Computers & Geosciences, 95: 75-84. https://doi.org/10.1016/j.cageo.2016.07.003
 
 Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D. (2011). A comparison of spatially explicit landscape representation methods and their relationship to stream condition. Freshwater Biology, 56(3), 590–610. https://doi.org/10.1111/j.1365-2427.2010.02507.x
 
 Peterson, E. E. & Pearse, A. R. (2017). IDW‐Plus: An ArcGIS Toolset for calculating spatially explicit watershed attributes for survey sites.
 Journal of the American Water Resources Association, 53(5): 1241–1249. https://doi.org/10.1111/1752-1688.12558
 
-Pearse A., Heron G., & Peterson E. (2019). rdwplus: An Implementation of IDW-PLUS. R package version 0.1.0. https://CRAN.R-project.org/package=rdwplus
+Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation of IDW-PLUS. R package version 0.1.0. https://CRAN.R-project.org/package=rdwplus
 
-Wu Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
+Wickham, H., Bryan, J. (2021). R Packages. 2nd edition. https://r-pkgs.org/.
+
+Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
 
 [Back to top](#contents)
