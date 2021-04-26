@@ -30,7 +30,7 @@ hydroweight_attributes <- function(loi = NULL,
                                    loi_attr_col = NULL,
                                    loi_categories = NULL,
                                    loi_numeric = NULL,
-                                   loi_numeric_stats= NULL,
+                                   loi_numeric_stats = NULL,
                                    roi = NULL,
                                    roi_uid = NULL,
                                    roi_uid_col = NULL,
@@ -39,16 +39,12 @@ hydroweight_attributes <- function(loi = NULL,
                                    return_products = TRUE) {
 
   ## Set resampling based on loi_numeric
-  if (loi_numeric == TRUE){
-
+  if (loi_numeric == TRUE) {
     loi_resample <- "bilinear"
-
   }
 
-  if (loi_numeric == FALSE){
-
+  if (loi_numeric == FALSE) {
     loi_resample <- "ngb"
-
   }
 
   if (class(loi)[1] == "RasterLayer") {
@@ -226,13 +222,14 @@ hydroweight_attributes <- function(loi = NULL,
   colnames(loi_stats) <- gsub("inv_", "", colnames(loi_stats))
 
   ## Reduce loi_stats frame according to loi_numeric_stats
-  if(!is.null(loi_numeric_stats)){
-
-    col_return <- lapply(loi_numeric_stats, function(x){grep(x, names(loi_stats))})
+  if (!is.null(loi_numeric_stats)) {
+    col_return <- lapply(loi_numeric_stats, function(x) {
+      grep(x, names(loi_stats))
+    })
     col_return <- do.call("c", col_return)
     col_return <- unique(col_return)
 
-    loi_stats <- loi_stats[,c(1, col_return)]
+    loi_stats <- loi_stats[, c(1, col_return)]
   }
 
   if (return_products == TRUE) {

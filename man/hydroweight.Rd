@@ -12,7 +12,6 @@ hydroweight(
   OS_combine = NULL,
   clip_region = NULL,
   dem = NULL,
-  dem_crs = NULL,
   flow_accum = NULL,
   weighting_scheme = NULL,
   inv_function = function(x) {     (x * 0.001 + 1)^-1 }
@@ -27,7 +26,7 @@ hydroweight(
 
 \item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)}
 
-\item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}.}
+\item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}. This allows cells surrounding \code{target_O} to flow directly into \code{target_O} rather than be forced through \code{target_S}.}
 
 \item{clip_region}{numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.}
 
@@ -52,7 +51,7 @@ in iFLO and \code{target_S} is a stream/waterbody target as in iFLS in
 Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
 IMPORTANTLY, this function acts on a single set of targets but can produce
 multiple weights. The distance-weighted rasters, can be used for generating
-distance-weighted using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
+distance-weighted landscape statistics using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
 cover weighted by flow distance to a point). See vignette for workflows.
 }
 \details{

@@ -244,9 +244,10 @@ tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass"
 
   return(sel_catchment_r)
 }
-tg_O_multi_catchment <- do.call(bind_rows, tg_O_multi_catchment)
+tg_O_multi_catchment <- bind_rows(tg_O_multi_catchment)
 
 ## Plot locations
+par(mfrow = c(1,1))
 plot(toy_dem, legend = TRUE, col = viridis(101), cex.axis = 0.75, axis.args = list(cex.axis = 0.75))
 plot(tg_S, col = "grey", add = TRUE, legend = FALSE)
 plot(st_geometry(tg_O), col = "red", add = TRUE)
@@ -283,11 +284,11 @@ myinv <- function(x) {
 } ## 0.001 multiplier turns m to km
 
 ## Plot inverse distance-weighting function
+par(mfrow = c(1,1))
 x = seq(from = 0, to = 10000, by = 100)
 y = myinv(x)
 plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
 text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
-
 ```
 
 ```{r, fig.width = 6, fig.height = 4, message = TRUE, error = FALSE, warning = FALSE }
@@ -406,7 +407,7 @@ hw_test_4 <- hydroweight::hydroweight(
 )
 
 ## Plot
-par(mar = c(1,1,1,1))
+par(mfrow = c(1,1), mar = c(1,1,1,1), oma = c(0,0,0,0))
 plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
 plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
 ```
@@ -607,6 +608,7 @@ results_agg <- results_agg[,unique_cols]
 names(results_agg)
 
 ## Plot
+par(mfrow = c(1, 1))
 plot(ndvi, axes = F, legend = F, box = FALSE, col = viridis(101), main = "Toy NDVI")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(st_geometry(tg_O), col = "red", add = T)
@@ -705,6 +707,7 @@ results_agg <- Reduce(merge, results_agg)
 names(results_agg)
 
 ## Plot
+par(mfrow = c(1,1))
 plot(lulc, axes = F, legend = F, box = FALSE, col = viridis(4), main = "Toy LULC")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(tg_O, col = "red", add = T, legend = FALSE)
@@ -768,7 +771,9 @@ raster in `tw_test_1` (all types of distances, see above). See `?hydroweight_att
 lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
 lulc_p <- st_as_sf(lulc_p)
 
+set.seed(123)
 lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
+set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
@@ -837,7 +842,9 @@ names of the summary table is the "category" that was summarized.
 lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
 lulc_p <- st_as_sf(lulc_p)
 
+set.seed(123)
 lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
+set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
@@ -967,7 +974,7 @@ names(sites_weights) <- tg_O_multi$Site
 # ndvi ## numeric raster
 # lulc ## categorical raster
 # lulc_p_n ## polygon with variables var_1 and var_2 as numeric
-# lulc_p_n ## polygon with variables var_1 and var_2 as categorical
+# lulc_p_c ## polygon with variables var_1 and var_2 as categorical
 
 loi_ndvi <- list(
   loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE,
