@@ -35,7 +35,7 @@ hydroweight_attributes(
 
 \item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
 
-\item{distance_weight}{\code{RasterLayer}. The distance-weighted raster.}
+\item{distance_weight}{\code{list}. The distance-weighted rasters output from \code{hydroweight}.}
 
 \item{remove_region}{\code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
 
