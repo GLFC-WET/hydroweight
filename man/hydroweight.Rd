@@ -52,7 +52,7 @@ Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
 IMPORTANTLY, this function acts on a single set of targets but can produce
 multiple weights. The distance-weighted rasters, can be used for generating
 distance-weighted landscape statistics using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
-cover weighted by flow distance to a point). See vignette for workflows.
+cover weighted by flow distance to a point). See https://github.com/bkielstr/hydroweight for workflows.
 }
 \details{
 Spatial layers should align (i.e., identical coordinate reference systems - CRS).

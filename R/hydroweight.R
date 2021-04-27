@@ -10,7 +10,7 @@
 #' IMPORTANTLY, this function acts on a single set of targets but can produce
 #' multiple weights. The distance-weighted rasters, can be used for generating
 #' distance-weighted landscape statistics using \code{hydroweight::hydroweight_attributes()} (e.g., % urban
-#' cover weighted by flow distance to a point). See vignette for workflows.
+#' cover weighted by flow distance to a point). See https://github.com/bkielstr/hydroweight for workflows.
 #'
 #' Spatial layers should align (i.e., identical coordinate reference systems - CRS).
 #' Through processing, targets are converted to the resolution and CRS of the
@@ -495,6 +495,11 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## HA-iFLO and HA-iFLS, hydrologically active ----
   if (("HAiFLO" %in% weighting_scheme) | ("HAiFLS" %in% weighting_scheme)) {
+
+    if(is.null(flow_accum)){
+      stop("`flow_accum` required for HAiFLO and/or HAiFLS calculations")
+    }
+
     whitebox::wbt_clip_raster_to_polygon(
       input = file.path(hydroweight_dir, flow_accum),
       polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),

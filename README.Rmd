@@ -80,7 +80,7 @@ in iFLO and `target_S` is a stream/waterbody target as in iFLS in
 Peterson *et al.* 2011). IMPORTANTLY, this function acts on a single set of targets 
 but can produce multiple weights. The distance-weighted rasters can be used 
 for generating distance-weighted attributes with `hydroweight_attributes()` (e.g., % urban
-cover weighted by flow distance to a point). 
+cover weighted by flow distance to a point). See `?hydroweight`.
 
 * `hydroweight_attributes()` calculates distance-weighted attributes using 
 distance-weighted rasters generated in `hydroweight()`, an attribute layer (`loi`, 
@@ -88,9 +88,21 @@ e.g., land use raster/polygon), and a region of interest (`roi`, e.g., a catchme
 polygon). The function outputs an attribute summary table or a list 
 that includes the summary table and layers used for calculation. Summary statistics 
 are calculated as in Peterson *et al.* (2011). IMPORTANTLY, this function only 
-produces one instance of the `loi` x `distance_weight` summary statistics (i.e., one `loi`, one `roi`, and one `distance_weight`). 
+produces one instance of the `loi` x `distance_weights` summary statistics (i.e., one `loi`, one `roi`, and one set of `distance_weights`). See `?hydroweight_attributes`.
 
 Workflows are provided below to run these functions across multiple sites and layers. 
+
+Distance weights defined by Peterson *et al.* (2011) are: 
+
+|Distance weight|Definition|Input layers required|
+|---------------|----------|---------------------|
+|lumped|all weights = 1|`dem`, `target_O`/`target_S`|
+|iEucO| weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)|`dem`, `target_O`|
+|iEucS| weighted inverse Euclidean distance to `target_S` (i.e., streams)|`dem`, `target_S`|
+|iFLO| weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`| 
+|iFLS| weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`| 
+|HAiFLO| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`, `accum`| 
+|HAiFLS| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_O`, `accum`| 
 
 [Back to top](#contents)
 
@@ -560,7 +572,7 @@ hwa_test_numeric <- hydroweight_attributes(
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
-  distance_weight = hw_test_1,
+  distance_weights = hw_test_1,
   remove_region = tg_O,
   return_products = TRUE
 )
@@ -572,11 +584,11 @@ names(hwa_test_numeric$attribute_table)
 ## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
 ## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
 ## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric$return_products$lumped$distance_weight_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## hwa_test_numeric$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
 ## ...
 ## ...
 ## ...
-## hwa_test_numeric$return_products$HAiFLS$distance_weight_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+## hwa_test_numeric$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 
 ## Plot
 par(mfrow = c(1, 1))
@@ -595,22 +607,22 @@ legend("bottom",
 par(mfrow = c(3, 2), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 
 ## Lumped
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weight")
-plot(hwa_test_numeric$return_products$lumped$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weight * ndvi")
-plot(hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` * hwa_test_numeric$return_products$lumped$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights")
+plot(hwa_test_numeric$return_products$lumped$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` * hwa_test_numeric$return_products$lumped$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 
 ## iEucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weight")
-plot(hwa_test_numeric$return_products$iEucO$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weight * ndvi")
-plot(hwa_test_numeric$return_products$iEucO$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iEucO$distance_weight_bounded, main = "Lumped \n- loi * distance_weight", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights")
+plot(hwa_test_numeric$return_products$iEucO$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$iEucO$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iEucO$distance_weights_bounded, main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 
 ## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weight")
-plot(hwa_test_numeric$return_products$iFLS$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weight * ndvi")
-plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iFLS$distance_weight_bounded, main = "Lumped \n- loi * distance_weight", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights")
+plot(hwa_test_numeric$return_products$iFLS$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iFLS$distance_weights_bounded, main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 ```
 
 [Back to top](#contents)
@@ -637,23 +649,23 @@ hwa_test_categorical <- hydroweight_attributes(
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
-  distance_weight = hw_test_1,
+  distance_weights = hw_test_1,
   remove_region = tg_O,
   return_products = TRUE
 )
 names(hwa_test_categorical$attribute_table)
 
 ## Resultant structure
-## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
-## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric$return_products$lumped$distance_weight_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical[[1]] == hw_test_categorical$attribute_table # Attribute table
+## hw_test_categorical[[2]] == hw_test_categorical$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_categorical$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
 ## ...
 ## ...
 ## ...
-## hwa_test_numeric$return_products$HAiFLS$distance_weight_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+## hwa_test_categorical$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 
 ## Plot
 par(mfrow = c(1, 1))
@@ -673,63 +685,63 @@ par(mfrow = c(3, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0), cex = 0.75)
 
 ## Lumped
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped")
-plot(hwa_test_categorical$return_products$lumped$distance_weight_bounded,
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded,
   axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$lumped$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
   hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[1]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$lumped$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
   hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$lumped$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
   hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 
 ## iEucO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO")
-plot(hwa_test_categorical$return_products$iEucO$distance_weight_bounded,
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded,
   axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$iEucO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
   hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[1]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$iEucO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
   hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$iEucO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
   hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 
 ## iFLO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO")
-plot(hwa_test_categorical$return_products$iFLO$distance_weight_bounded,
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded,
   axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$iFLO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
   hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[1]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$iFLO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
   hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$iFLO$distance_weight_bounded *
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
   hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
@@ -743,7 +755,7 @@ Here, we use `lulc` and polygonize the raster to `lulc_p`. We then generate some
 layer called `var_1` and `var_2`. We then spatially summarize the numeric data in those
 two columns using `hydroweight_attributes()`.
 
-Internally, the `lulc` polygons are rasterized using `distance_weight` as the template.
+Internally, the `lulc` polygons are rasterized using `distance_weights` as the template.
 This basically treats the columns as if they were individual numeric raster layers.
 Landscape statistics are calculated accordingly (e.g., distance-weighted mean).
 Those pixels falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
@@ -770,23 +782,23 @@ hwa_test_numeric_polygon <- hydroweight_attributes(
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
-  distance_weight = hw_test_1,
+  distance_weights = hw_test_1,
   remove_region = tg_O,
   return_products = TRUE
 )
 names(hwa_test_numeric_polygon$attribute_table)
 
 ## Resultant structure
-## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
-## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric$return_products$lumped$distance_weight_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric_polygon[[1]] == hw_test_numeric_polygon$attribute_table # Attribute table
+## hw_test_numeric_polygon[[2]] == hw_test_numeric_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric_polygon$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_numeric_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_numeric_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
 ## ...
 ## ...
 ## ...
-## hwa_test_numeric$return_products$HAiFLS$distance_weight_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+## hwa_test_numeric_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 ```
 
 [Back to top](#contents)
@@ -816,23 +828,23 @@ hwa_test_categorical_polygon <- hydroweight_attributes(
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
-  distance_weight = hw_test_1,
+  distance_weights = hw_test_1,
   remove_region = tg_O,
   return_products = TRUE
 )
 names(hwa_test_categorical_polygon$attribute_table)
 
 ## Resultant structure
-## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
-## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric$return_products$lumped$distance_weight_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical_polygon[[1]] == hw_test_categorical_polygon$attribute_table # Attribute table
+## hw_test_categorical_polygon[[2]] == hw_test_categorical_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical_polygon$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_categorical_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_categorical_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
 ## ...
 ## ...
 ## ...
-## hwa_test_numeric$return_products$HAiFLS$distance_weight_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+## hwa_test_categorical_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 ```
 
 [Back to top](#contents)
@@ -946,11 +958,11 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
   sel <- tg_O_multi[xx, ]
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
   sel_weights <- sites_weights[[sel$Site]]
-
+  
   ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
   loi_consist <- list(
     roi = sel_roi,
-    distance_weight = sel_weights,
+    distance_weights = sel_weights,
     remove_region = NULL,
     return_products = TRUE,
     roi_uid = sel$Site,

@@ -91,7 +91,7 @@ There are two functions:
     produce multiple weights. The distance-weighted rasters can be used
     for generating distance-weighted attributes with
     `hydroweight_attributes()` (e.g., % urban cover weighted by flow
-    distance to a point).
+    distance to a point). See `?hydroweight`.
 
   - `hydroweight_attributes()` calculates distance-weighted attributes
     using distance-weighted rasters generated in `hydroweight()`, an
@@ -100,11 +100,24 @@ There are two functions:
     an attribute summary table or a list that includes the summary table
     and layers used for calculation. Summary statistics are calculated
     as in Peterson *et al.* (2011). IMPORTANTLY, this function only
-    produces one instance of the `loi` x `distance_weight` summary
-    statistics (i.e., one `loi`, one `roi`, and one `distance_weight`).
+    produces one instance of the `loi` x `distance_weights` summary
+    statistics (i.e., one `loi`, one `roi`, and one set of
+    `distance_weights`). See `?hydroweight_attributes`.
 
 Workflows are provided below to run these functions across multiple
 sites and layers.
+
+Distance weights defined by Peterson *et al.* (2011) are:
+
+| Distance weight | Definition                                                                                                                          | Input layers required        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| lumped          | all weights = 1                                                                                                                     | `dem`, `target_O`/`target_S` |
+| iEucO           | weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)                                                             | `dem`, `target_O`            |
+| iEucS           | weighted inverse Euclidean distance to `target_S` (i.e., streams)                                                                   | `dem`, `target_S`            |
+| iFLO            | weighted inverse flow-path distance to `target_O` using d8 flow direction                                                           | `dem`, `target_O`            |
+| iFLS            | weighted inverse flow-path distance to `target_S` using d8 flow direction                                                           | `dem`, `target_S`            |
+| HAiFLO          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction | `dem`, `target_O`, `accum`   |
+| HAiFLS          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction | `dem`, `target_O`, `accum`   |
 
 [Back to top](#contents)
 
@@ -166,7 +179,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.6s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.8s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -181,7 +194,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.100s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.48s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -228,7 +241,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.6s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -271,7 +284,7 @@ tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass"
 tg_O_multi_catchment <- bind_rows(tg_O_multi_catchment)
 
 ## Plot locations
-par(mfrow = c(1,1))
+par(mfrow = c(1, 1))
 plot(toy_dem, legend = TRUE, col = viridis(101), cex.axis = 0.75, axis.args = list(cex.axis = 0.75))
 plot(tg_S, col = "grey", add = TRUE, legend = FALSE)
 plot(st_geometry(tg_O), col = "red", add = TRUE)
@@ -315,10 +328,10 @@ myinv <- function(x) {
 } ## 0.001 multiplier turns m to km
 
 ## Plot inverse distance-weighting function
-par(mfrow = c(1,1))
-x = seq(from = 0, to = 10000, by = 100)
-y = myinv(x)
-plot((x/1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
+par(mfrow = c(1, 1))
+x <- seq(from = 0, to = 10000, by = 100)
+y <- myinv(x)
+plot((x / 1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
 text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
 ```
 
@@ -341,8 +354,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-26 14:00:54
-#> Running distance-weighting @ 2021-04-26 14:00:57
+#> Preparing hydroweight layers @ 2021-04-27 15:44:06
+#> Running distance-weighting @ 2021-04-27 15:44:08
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -353,8 +366,8 @@ hw_test_1 <- hydroweight::hydroweight(
 # hw_test_1[[5]] ## iEucS
 # hw_test_1[[6]] ## iFLS
 # hw_test_1[[7]] ## HAiFLS
-# or 
-# hw_test_1[["lumped"]] 
+# or
+# hw_test_1[["lumped"]]
 # hw_test_1[["iEucO"]] etc.
 
 ## Plot different weighting schemes; where purple --> yellow == low --> high weight
@@ -463,7 +476,7 @@ hw_test_4 <- hydroweight::hydroweight(
 )
 
 ## Plot
-par(mfrow = c(1,1), mar = c(1,1,1,1), oma = c(0,0,0,0))
+par(mfrow = c(1, 1), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
 plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
 ```
@@ -513,15 +526,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-26 14:01:16
-#> Preparing hydroweight layers @ 2021-04-26 14:01:16
-#> Running distance-weighting @ 2021-04-26 14:01:18
-#> Running hydroweight for site 2 at 2021-04-26 14:01:23
-#> Preparing hydroweight layers @ 2021-04-26 14:01:23
-#> Running distance-weighting @ 2021-04-26 14:01:25
-#> Running hydroweight for site 3 at 2021-04-26 14:01:29
-#> Preparing hydroweight layers @ 2021-04-26 14:01:29
-#> Running distance-weighting @ 2021-04-26 14:01:31
+#> Running hydroweight for site 1 at 2021-04-27 15:44:29
+#> Preparing hydroweight layers @ 2021-04-27 15:44:29
+#> Running distance-weighting @ 2021-04-27 15:44:32
+#> Running hydroweight for site 2 at 2021-04-27 15:44:36
+#> Preparing hydroweight layers @ 2021-04-27 15:44:36
+#> Running distance-weighting @ 2021-04-27 15:44:38
+#> Running hydroweight for site 3 at 2021-04-27 15:44:43
+#> Preparing hydroweight layers @ 2021-04-27 15:44:43
+#> Running distance-weighting @ 2021-04-27 15:44:45
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -593,13 +606,17 @@ site3_catchment <- rasterToPolygons(site3_catchment, dissolve = T)
 site3_catchment <- st_as_sf(site3_catchment)
 
 ## Compare
-par(mfrow = c(1,3))
-plot(st_geometry(tg_O_multi_catchment[3,]), col = adjustcolor("blue", alpha.f =  0.5), 
-     main = "Site 3 catchment \n wbt_watershed-derived")
-plot(st_geometry(site3_catchment), col = adjustcolor("red", alpha.f = 0.5), 
-     main = "Site 3 catchment \n hydroweight-derived") 
-plot(st_geometry(site3_catchment), col = adjustcolor("blue", alpha.f = 0.5), main = "Overlap") 
-plot(st_geometry(tg_O_multi_catchment[3,]), col = adjustcolor("red", alpha.f = 0.5), main = "Overlap", add = T) 
+par(mfrow = c(1, 3))
+plot(st_geometry(tg_O_multi_catchment[3, ]),
+  col = adjustcolor("blue", alpha.f = 0.5),
+  main = "Site 3 catchment \n wbt_watershed-derived"
+)
+plot(st_geometry(site3_catchment),
+  col = adjustcolor("red", alpha.f = 0.5),
+  main = "Site 3 catchment \n hydroweight-derived"
+)
+plot(st_geometry(site3_catchment), col = adjustcolor("blue", alpha.f = 0.5), main = "Overlap")
+plot(st_geometry(tg_O_multi_catchment[3, ]), col = adjustcolor("red", alpha.f = 0.5), main = "Overlap", add = T)
 ```
 
 <img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
@@ -627,98 +644,24 @@ ndvi <- toy_dem
 values(ndvi) <- runif(n = (ndvi@ncols * ndvi@nrows), min = 0, max = 1)
 names(ndvi) <- "ndvi"
 
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
-hwa_test_numeric <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass") %do% {
-  hwa <- hydroweight_attributes(
-    loi = ndvi,
-    loi_attr_col = "ndvi",
-    loi_numeric = TRUE,
-    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "pixel_count"),
-    roi = tg_O_catchment,
-    roi_uid = "1",
-    roi_uid_col = "Lake",
-    distance_weight = hw_test_1[[xx]],
-    remove_region = tg_O,
-    return_products = TRUE
-  )
-
-  return(hwa)
-}
-
-## Resultant structure:
-# length(hwa_test_numeric) # Attributes and processing components for 7 inputted distance-weighted rasters
-# hwa_test_numeric[[1]][[1]] # Attributes calculated for lumped attribute statistics
-# hwa_test_numeric[[1]][[2]] # processed loi used in calculating lumped attribute statistics
-# hwa_test_numeric[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_numeric[[7]][[3]] # processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
-results <- foreach(xx = 1:length(hwa_test_numeric), .errorhandling = "pass") %do% {
-
-  ## Get names of distance-weighted rasters
-  (names_hwtn <- names(hw_test_1)[xx])
-
-  ## Paste distance-weighted raster name together with attribute column names except "site" from above
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hwa_test_numeric[[xx]][[1]])[-1]))
-
-  ## Assign column names
-  colnames(hwa_test_numeric[[xx]][[1]])[-1] <- names_hwtn
-
-  return(hwa_test_numeric[[xx]])
-}
-
-## Extract only the summary table and bind results, see names of data frame
-results_agg <- lapply(results, function(x) {
-  x[[1]]
-})
-results_agg <- Reduce(merge, results_agg)
-names(results_agg)
-#>  [1] "Lake"                     "lumped_ndvi_distwtd_mean"
-#>  [3] "lumped_ndvi_distwtd_sd"   "lumped_ndvi_mean"        
-#>  [5] "lumped_ndvi_sd"           "lumped_ndvi_median"      
-#>  [7] "lumped_ndvi_min"          "lumped_ndvi_max"         
-#>  [9] "lumped_ndvi_pixel_count"  "iEucO_ndvi_distwtd_mean" 
-#> [11] "iEucO_ndvi_distwtd_sd"    "iEucO_ndvi_mean"         
-#> [13] "iEucO_ndvi_sd"            "iEucO_ndvi_median"       
-#> [15] "iEucO_ndvi_min"           "iEucO_ndvi_max"          
-#> [17] "iEucO_ndvi_pixel_count"   "iFLO_ndvi_distwtd_mean"  
-#> [19] "iFLO_ndvi_distwtd_sd"     "iFLO_ndvi_mean"          
-#> [21] "iFLO_ndvi_sd"             "iFLO_ndvi_median"        
-#> [23] "iFLO_ndvi_min"            "iFLO_ndvi_max"           
-#> [25] "iFLO_ndvi_pixel_count"    "HAiFLO_ndvi_distwtd_mean"
-#> [27] "HAiFLO_ndvi_distwtd_sd"   "HAiFLO_ndvi_mean"        
-#> [29] "HAiFLO_ndvi_sd"           "HAiFLO_ndvi_median"      
-#> [31] "HAiFLO_ndvi_min"          "HAiFLO_ndvi_max"         
-#> [33] "HAiFLO_ndvi_pixel_count"  "iEucS_ndvi_distwtd_mean" 
-#> [35] "iEucS_ndvi_distwtd_sd"    "iEucS_ndvi_mean"         
-#> [37] "iEucS_ndvi_sd"            "iEucS_ndvi_median"       
-#> [39] "iEucS_ndvi_min"           "iEucS_ndvi_max"          
-#> [41] "iEucS_ndvi_pixel_count"   "iFLS_ndvi_distwtd_mean"  
-#> [43] "iFLS_ndvi_distwtd_sd"     "iFLS_ndvi_mean"          
-#> [45] "iFLS_ndvi_sd"             "iFLS_ndvi_median"        
-#> [47] "iFLS_ndvi_min"            "iFLS_ndvi_max"           
-#> [49] "iFLS_ndvi_pixel_count"    "HAiFLS_ndvi_distwtd_mean"
-#> [51] "HAiFLS_ndvi_distwtd_sd"   "HAiFLS_ndvi_mean"        
-#> [53] "HAiFLS_ndvi_sd"           "HAiFLS_ndvi_median"      
-#> [55] "HAiFLS_ndvi_min"          "HAiFLS_ndvi_max"         
-#> [57] "HAiFLS_ndvi_pixel_count"
-
-## Note that statistics without _distwtd are identical across distance-weighted rasters
-## So, you can take the lumped and distwtd columns to reduce duplication
-lumped_cols <- grep("lumped", names(results_agg))
-distwtd_cols <- grep("distwtd", names(results_agg))
-unique_cols <- unique(c(1, lumped_cols, distwtd_cols))
-
-results_agg <- results_agg[,unique_cols]
-names(results_agg)
-#>  [1] "Lake"                     "lumped_ndvi_distwtd_mean"
-#>  [3] "lumped_ndvi_distwtd_sd"   "lumped_ndvi_mean"        
-#>  [5] "lumped_ndvi_sd"           "lumped_ndvi_median"      
-#>  [7] "lumped_ndvi_min"          "lumped_ndvi_max"         
-#>  [9] "lumped_ndvi_pixel_count"  "iEucO_ndvi_distwtd_mean" 
+hwa_test_numeric <- hydroweight_attributes(
+  loi = ndvi,
+  loi_attr_col = "ndvi",
+  loi_numeric = TRUE,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "pixel_count"),
+  roi = tg_O_catchment,
+  roi_uid = "1",
+  roi_uid_col = "Lake",
+  distance_weights = hw_test_1,
+  remove_region = tg_O,
+  return_products = TRUE
+)
+names(hwa_test_numeric$attribute_table)
+#>  [1] "Lake"                     "lumped_ndvi_mean"        
+#>  [3] "lumped_ndvi_sd"           "lumped_ndvi_median"      
+#>  [5] "lumped_ndvi_min"          "lumped_ndvi_max"         
+#>  [7] "lumped_ndvi_pixel_count"  "lumped_ndvi_distwtd_mean"
+#>  [9] "lumped_ndvi_distwtd_sd"   "iEucO_ndvi_distwtd_mean" 
 #> [11] "iEucO_ndvi_distwtd_sd"    "iFLO_ndvi_distwtd_mean"  
 #> [13] "iFLO_ndvi_distwtd_sd"     "HAiFLO_ndvi_distwtd_mean"
 #> [15] "HAiFLO_ndvi_distwtd_sd"   "iEucS_ndvi_distwtd_mean" 
@@ -726,14 +669,28 @@ names(results_agg)
 #> [19] "iFLS_ndvi_distwtd_sd"     "HAiFLS_ndvi_distwtd_mean"
 #> [21] "HAiFLS_ndvi_distwtd_sd"
 
+## Resultant structure
+## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
+## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_numeric$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## ...
+## ...
+## ...
+## hwa_test_numeric$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+
 ## Plot
 par(mfrow = c(1, 1))
 plot(ndvi, axes = F, legend = F, box = FALSE, col = viridis(101), main = "Toy NDVI")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(st_geometry(tg_O), col = "red", add = T)
 plot(tg_S, col = "blue", add = T, legend = FALSE)
-legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
-       fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75)
+legend("bottom",
+  legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
+  fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75
+)
 ```
 
 <img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
@@ -743,22 +700,22 @@ legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
 par(mfrow = c(3, 2), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 
 ## Lumped
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weight")
-plot(results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weight * ndvi")
-plot(results[[1]]$`loi_Raster*_bounded` * results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights")
+plot(hwa_test_numeric$return_products$lumped$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` * hwa_test_numeric$return_products$lumped$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 
 ## iEucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weight")
-plot(results[[2]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weight * ndvi")
-plot(results[[2]]$`loi_Raster*_bounded` * results[[2]]$distance_weight_bounded, main = "Lumped \n- loi * distance_weight", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights")
+plot(hwa_test_numeric$return_products$iEucO$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$iEucO$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iEucO$distance_weights_bounded, main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 
 ## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weight")
-plot(results[[6]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weight * ndvi")
-plot(results[[6]]$`loi_Raster*_bounded` * results[[6]]$distance_weight_bounded, main = "Lumped \n- loi * distance_weight", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights")
+plot(hwa_test_numeric$return_products$iFLS$distance_weights_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights * ndvi")
+plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_numeric$return_products$iFLS$distance_weights_bounded, main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
 ```
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
@@ -782,54 +739,18 @@ rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 lulc <- reclassify(lulc, rclmat)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
-hwa_test_categorical <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass") %do% {
-  hwa <- hydroweight_attributes(
-    loi = lulc,
-    loi_attr_col = "lulc",
-    loi_numeric = FALSE,
-    roi = tg_O_catchment,
-    roi_uid = "1",
-    roi_uid_col = "Lake",
-    distance_weight = hw_test_1[[xx]],
-    remove_region = tg_O,
-    return_products = TRUE
-  )
-
-  return(hwa)
-}
-
-## Resultant structure:
-# length(hwa_test_categorical) # Attributes and processing components for 7 inputted distance-weighted rasters
-# hwa_test_categorical[[1]][[1]] # Attributes calculated for lumped attribute statistics
-# hwa_test_categorical[[1]][[2]] # processed loi used in calculating lumped attribute statistics
-# hwa_test_categorical[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_categorical[[7]][[3]] # processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
-
-results <- foreach(xx = 1:length(hwa_test_categorical), .errorhandling = "pass") %do% {
-
-  ## Get names of distance-weighted rasters
-  (names_hwtn <- names(hw_test_1)[xx])
-
-  ## Paste distance-weighted raster name together with attribute column names except "site" from above
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hwa_test_categorical[[xx]][[1]])[-1]))
-
-  ## Assign column names
-  colnames(hwa_test_categorical[[xx]][[1]])[-1] <- names_hwtn
-
-  return(hwa_test_categorical[[xx]])
-}
-
-## Extract only the summary table and bind results, see names of data frame
-results_agg <- lapply(results, function(x) {
-  x[[1]]
-})
-results_agg <- Reduce(merge, results_agg)
-names(results_agg)
+hwa_test_categorical <- hydroweight_attributes(
+  loi = lulc,
+  loi_attr_col = "lulc",
+  loi_numeric = FALSE,
+  roi = tg_O_catchment,
+  roi_uid = "1",
+  roi_uid_col = "Lake",
+  distance_weights = hw_test_1,
+  remove_region = tg_O,
+  return_products = TRUE
+)
+names(hwa_test_categorical$attribute_table)
 #>  [1] "Lake"               "lumped_lulc_prop_4" "lumped_lulc_prop_3"
 #>  [4] "lumped_lulc_prop_2" "iEucO_lulc_prop_4"  "iEucO_lulc_prop_3" 
 #>  [7] "iEucO_lulc_prop_2"  "iFLO_lulc_prop_4"   "iFLO_lulc_prop_3"  
@@ -839,14 +760,28 @@ names(results_agg)
 #> [19] "iFLS_lulc_prop_2"   "HAiFLS_lulc_prop_4" "HAiFLS_lulc_prop_3"
 #> [22] "HAiFLS_lulc_prop_2"
 
+## Resultant structure
+## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical[[1]] == hw_test_categorical$attribute_table # Attribute table
+## hw_test_categorical[[2]] == hw_test_categorical$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_categorical$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## ...
+## ...
+## ...
+## hwa_test_categorical$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
+
 ## Plot
-par(mfrow = c(1,1))
+par(mfrow = c(1, 1))
 plot(lulc, axes = F, legend = F, box = FALSE, col = viridis(4), main = "Toy LULC")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(tg_O, col = "red", add = T, legend = FALSE)
 plot(tg_S, col = "blue", add = T, legend = FALSE)
-legend("bottom", legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
-       fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75)
+legend("bottom",
+  legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
+  fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75
+)
 ```
 
 <img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" />
@@ -857,33 +792,66 @@ par(mfrow = c(3, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0), cex = 0.75)
 
 ## Lumped
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped")
-plot(results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded,
+  axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
-plot(results[[1]][[2]][[1]] * results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[1]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
-plot(results[[1]][[2]][[2]] * results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[2]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
-plot(results[[1]][[2]][[3]] * results[[1]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[3]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 
 ## iEucO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO")
-plot(results[[2]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded,
+  axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 4)")
-plot(results[[2]][[2]][[1]] * results[[2]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[1]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 3)")
-plot(results[[2]][[2]][[2]] * results[[2]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[2]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 2)")
-plot(results[[2]][[2]][[3]] * results[[2]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[3]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 
 ## iFLO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO")
-plot(results[[3]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded,
+  axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 4)")
-plot(results[[3]][[2]][[1]] * results[[3]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[1]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 3)")
-plot(results[[3]][[2]][[2]] * results[[3]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[2]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 2)")
-plot(results[[3]][[2]][[3]] * results[[3]]$distance_weight_bounded, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[3]],
+axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+)
 ```
 
 <img src="man/figures/README-unnamed-chunk-14-1.png" width="100%" />
@@ -897,7 +865,7 @@ generate some numeric data in the polygon layer called `var_1` and
 `var_2`. We then spatially summarize the numeric data in those two
 columns using `hydroweight_attributes()`.
 
-Internally, the `lulc` polygons are rasterized using `distance_weight`
+Internally, the `lulc` polygons are rasterized using `distance_weights`
 as the template. This basically treats the columns as if they were
 individual numeric raster layers. Landscape statistics are calculated
 accordingly (e.g., distance-weighted mean). Those pixels falling within
@@ -917,106 +885,52 @@ set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
-hwa_test_numeric_polygon <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass") %do% {
-  hwa <- hydroweight_attributes(
-    loi = lulc_p,
-    loi_attr_col = "lulc",
-    loi_categories = c("var_1", "var_2"),
-    loi_numeric = TRUE,
-    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count"),
-    roi = tg_O_catchment,
-    roi_uid = "1",
-    roi_uid_col = "Lake",
-    distance_weight = hw_test_1[[xx]],
-    remove_region = tg_O,
-    return_products = TRUE
-  )
-
-  return(hwa)
-}
-
-## Resultant structure:
-# length(hwa_test_numeric_polygon) # Attributes and processing components for 7 inputted distance-weighted rasters
-# hwa_test_numeric_polygon[[1]][[1]] # Attributes calculated for lumped attribute statistics
-# hwa_test_numeric_polygon[[1]][[2]][[1]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_1
-# hwa_test_numeric_polygon[[1]][[2]][[2]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_2
-# hwa_test_numeric_polygon[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics
-# ...
-# ...
-# ...
-# hwa_test_numeric_polygon[[7]][[3]] # processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
-results <- foreach(x = 1:length(hwa_test_numeric_polygon), .errorhandling = "pass") %do% {
-
-  ## Get names of distance-weighted rasters from hw_test_1
-  (names_hwtn <- names(hw_test_1)[x])
-
-  ## Paste distance-weighted raster name together with attribute column names except "site" from above
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hwa_test_numeric_polygon[[x]][[1]])[-1]))
-
-  ## Assign column names
-  colnames(hwa_test_numeric_polygon[[x]][[1]])[-1] <- names_hwtn
-
-  return(hwa_test_numeric_polygon[[x]])
-}
-
-## Extract only the summary table and bind results, see names of data frame
-results_agg <- lapply(results, function(x) {
-  x[[1]]
-})
-results_agg <- Reduce(merge, results_agg)
-names(results_agg)
-#>  [1] "Lake"                           "lumped_lulc_var_1_distwtd_mean"
-#>  [3] "lumped_lulc_var_2_distwtd_mean" "lumped_lulc_var_1_distwtd_sd"  
-#>  [5] "lumped_lulc_var_2_distwtd_sd"   "lumped_lulc_var_1_mean"        
-#>  [7] "lumped_lulc_var_2_mean"         "lumped_lulc_var_1_sd"          
-#>  [9] "lumped_lulc_var_2_sd"           "lumped_lulc_var_1_min"         
-#> [11] "lumped_lulc_var_2_min"          "lumped_lulc_var_1_max"         
-#> [13] "lumped_lulc_var_2_max"          "lumped_lulc_var_1_pixel_count" 
-#> [15] "lumped_lulc_var_2_pixel_count"  "iEucO_lulc_var_1_distwtd_mean" 
+hwa_test_numeric_polygon <- hydroweight_attributes(
+  loi = lulc_p,
+  loi_attr_col = "lulc",
+  loi_categories = c("var_1", "var_2"),
+  loi_numeric = TRUE,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count"),
+  roi = tg_O_catchment,
+  roi_uid = "1",
+  roi_uid_col = "Lake",
+  distance_weights = hw_test_1,
+  remove_region = tg_O,
+  return_products = TRUE
+)
+names(hwa_test_numeric_polygon$attribute_table)
+#>  [1] "Lake"                           "lumped_lulc_var_1_mean"        
+#>  [3] "lumped_lulc_var_2_mean"         "lumped_lulc_var_1_sd"          
+#>  [5] "lumped_lulc_var_2_sd"           "lumped_lulc_var_1_min"         
+#>  [7] "lumped_lulc_var_2_min"          "lumped_lulc_var_1_max"         
+#>  [9] "lumped_lulc_var_2_max"          "lumped_lulc_var_1_pixel_count" 
+#> [11] "lumped_lulc_var_2_pixel_count"  "lumped_lulc_var_1_distwtd_mean"
+#> [13] "lumped_lulc_var_2_distwtd_mean" "lumped_lulc_var_1_distwtd_sd"  
+#> [15] "lumped_lulc_var_2_distwtd_sd"   "iEucO_lulc_var_1_distwtd_mean" 
 #> [17] "iEucO_lulc_var_2_distwtd_mean"  "iEucO_lulc_var_1_distwtd_sd"   
-#> [19] "iEucO_lulc_var_2_distwtd_sd"    "iEucO_lulc_var_1_mean"         
-#> [21] "iEucO_lulc_var_2_mean"          "iEucO_lulc_var_1_sd"           
-#> [23] "iEucO_lulc_var_2_sd"            "iEucO_lulc_var_1_min"          
-#> [25] "iEucO_lulc_var_2_min"           "iEucO_lulc_var_1_max"          
-#> [27] "iEucO_lulc_var_2_max"           "iEucO_lulc_var_1_pixel_count"  
-#> [29] "iEucO_lulc_var_2_pixel_count"   "iFLO_lulc_var_1_distwtd_mean"  
-#> [31] "iFLO_lulc_var_2_distwtd_mean"   "iFLO_lulc_var_1_distwtd_sd"    
-#> [33] "iFLO_lulc_var_2_distwtd_sd"     "iFLO_lulc_var_1_mean"          
-#> [35] "iFLO_lulc_var_2_mean"           "iFLO_lulc_var_1_sd"            
-#> [37] "iFLO_lulc_var_2_sd"             "iFLO_lulc_var_1_min"           
-#> [39] "iFLO_lulc_var_2_min"            "iFLO_lulc_var_1_max"           
-#> [41] "iFLO_lulc_var_2_max"            "iFLO_lulc_var_1_pixel_count"   
-#> [43] "iFLO_lulc_var_2_pixel_count"    "HAiFLO_lulc_var_1_distwtd_mean"
-#> [45] "HAiFLO_lulc_var_2_distwtd_mean" "HAiFLO_lulc_var_1_distwtd_sd"  
-#> [47] "HAiFLO_lulc_var_2_distwtd_sd"   "HAiFLO_lulc_var_1_mean"        
-#> [49] "HAiFLO_lulc_var_2_mean"         "HAiFLO_lulc_var_1_sd"          
-#> [51] "HAiFLO_lulc_var_2_sd"           "HAiFLO_lulc_var_1_min"         
-#> [53] "HAiFLO_lulc_var_2_min"          "HAiFLO_lulc_var_1_max"         
-#> [55] "HAiFLO_lulc_var_2_max"          "HAiFLO_lulc_var_1_pixel_count" 
-#> [57] "HAiFLO_lulc_var_2_pixel_count"  "iEucS_lulc_var_1_distwtd_mean" 
-#> [59] "iEucS_lulc_var_2_distwtd_mean"  "iEucS_lulc_var_1_distwtd_sd"   
-#> [61] "iEucS_lulc_var_2_distwtd_sd"    "iEucS_lulc_var_1_mean"         
-#> [63] "iEucS_lulc_var_2_mean"          "iEucS_lulc_var_1_sd"           
-#> [65] "iEucS_lulc_var_2_sd"            "iEucS_lulc_var_1_min"          
-#> [67] "iEucS_lulc_var_2_min"           "iEucS_lulc_var_1_max"          
-#> [69] "iEucS_lulc_var_2_max"           "iEucS_lulc_var_1_pixel_count"  
-#> [71] "iEucS_lulc_var_2_pixel_count"   "iFLS_lulc_var_1_distwtd_mean"  
-#> [73] "iFLS_lulc_var_2_distwtd_mean"   "iFLS_lulc_var_1_distwtd_sd"    
-#> [75] "iFLS_lulc_var_2_distwtd_sd"     "iFLS_lulc_var_1_mean"          
-#> [77] "iFLS_lulc_var_2_mean"           "iFLS_lulc_var_1_sd"            
-#> [79] "iFLS_lulc_var_2_sd"             "iFLS_lulc_var_1_min"           
-#> [81] "iFLS_lulc_var_2_min"            "iFLS_lulc_var_1_max"           
-#> [83] "iFLS_lulc_var_2_max"            "iFLS_lulc_var_1_pixel_count"   
-#> [85] "iFLS_lulc_var_2_pixel_count"    "HAiFLS_lulc_var_1_distwtd_mean"
-#> [87] "HAiFLS_lulc_var_2_distwtd_mean" "HAiFLS_lulc_var_1_distwtd_sd"  
-#> [89] "HAiFLS_lulc_var_2_distwtd_sd"   "HAiFLS_lulc_var_1_mean"        
-#> [91] "HAiFLS_lulc_var_2_mean"         "HAiFLS_lulc_var_1_sd"          
-#> [93] "HAiFLS_lulc_var_2_sd"           "HAiFLS_lulc_var_1_min"         
-#> [95] "HAiFLS_lulc_var_2_min"          "HAiFLS_lulc_var_1_max"         
-#> [97] "HAiFLS_lulc_var_2_max"          "HAiFLS_lulc_var_1_pixel_count" 
-#> [99] "HAiFLS_lulc_var_2_pixel_count"
+#> [19] "iEucO_lulc_var_2_distwtd_sd"    "iFLO_lulc_var_1_distwtd_mean"  
+#> [21] "iFLO_lulc_var_2_distwtd_mean"   "iFLO_lulc_var_1_distwtd_sd"    
+#> [23] "iFLO_lulc_var_2_distwtd_sd"     "HAiFLO_lulc_var_1_distwtd_mean"
+#> [25] "HAiFLO_lulc_var_2_distwtd_mean" "HAiFLO_lulc_var_1_distwtd_sd"  
+#> [27] "HAiFLO_lulc_var_2_distwtd_sd"   "iEucS_lulc_var_1_distwtd_mean" 
+#> [29] "iEucS_lulc_var_2_distwtd_mean"  "iEucS_lulc_var_1_distwtd_sd"   
+#> [31] "iEucS_lulc_var_2_distwtd_sd"    "iFLS_lulc_var_1_distwtd_mean"  
+#> [33] "iFLS_lulc_var_2_distwtd_mean"   "iFLS_lulc_var_1_distwtd_sd"    
+#> [35] "iFLS_lulc_var_2_distwtd_sd"     "HAiFLS_lulc_var_1_distwtd_mean"
+#> [37] "HAiFLS_lulc_var_2_distwtd_mean" "HAiFLS_lulc_var_1_distwtd_sd"  
+#> [39] "HAiFLS_lulc_var_2_distwtd_sd"
+
+## Resultant structure
+## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric_polygon[[1]] == hw_test_numeric_polygon$attribute_table # Attribute table
+## hw_test_numeric_polygon[[2]] == hw_test_numeric_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_numeric_polygon$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_numeric_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_numeric_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## ...
+## ...
+## ...
+## hwa_test_numeric_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 ```
 
 [Back to top](#contents)
@@ -1039,56 +953,19 @@ set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
-hwa_test_categorical_polygon <- foreach(xx = 1:length(hw_test_1), .errorhandling = "pass") %do% {
- 
-  hwa <- hydroweight_attributes(
-    loi = lulc_p,
-    loi_attr_col = "lulc",
-    loi_categories = c("var_1", "var_2"),
-    loi_numeric = FALSE,
-    roi = tg_O_catchment,
-    roi_uid = "1",
-    roi_uid_col = "Lake",
-    distance_weight = hw_test_1[[xx]],
-    remove_region = tg_O,
-    return_products = TRUE
-  )
-
-  return(hwa)
-}
-
-## Resultant structure:
-# length(hwa_test_categorical_polygon) # Attributes and processing components for 7 inputted distance-weighted rasters
-# hwa_test_categorical_polygon[[1]][[1]] # Attributes calculated for lumped attribute statistics
-# hwa_test_categorical_polygon[[1]][[2]][[1]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_1
-# hwa_test_categorical_polygon[[1]][[2]][[2]] # processed loi used in calculating lumped attribute statistics, RasterLayer representing var_2
-# hwa_test_categorical_polygon[[1]][[3]] # processed distance-weighted raster used in calculating lumped attribute statistics
-# ...
-# ...
-# ...
-# hwa_test_categorical_polygon[[7]][[3]] # processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## For each distance-weighted raster input, extract results and apply name changes to specify distance-weighting name used
-results <- foreach(x = 1:length(hwa_test_categorical_polygon), .errorhandling = "pass") %do% {
-
-  ## Get names of distance-weighted rasters from hw_test_1
-  (names_hwtn <- names(hw_test_1)[x])
-
-  ## Paste distance-weighted raster name together with attribute column names except "site" from above
-  (names_hwtn <- paste0(names_hwtn, "_", colnames(hwa_test_categorical_polygon[[x]][[1]])[-1]))
-
-  ## Assign column names
-  colnames(hwa_test_categorical_polygon[[x]][[1]])[-1] <- names_hwtn
-
-  return(hwa_test_categorical_polygon[[x]])
-}
-
-## Extract only the summary table and bind results, see names of data frame
-results_agg <- lapply(results, function(x) {
-  x[[1]]
-})
-results_agg <- Reduce(merge, results_agg)
-names(results_agg)
+hwa_test_categorical_polygon <- hydroweight_attributes(
+  loi = lulc_p,
+  loi_attr_col = "lulc",
+  loi_categories = c("var_1", "var_2"),
+  loi_numeric = FALSE,
+  roi = tg_O_catchment,
+  roi_uid = "1",
+  roi_uid_col = "Lake",
+  distance_weights = hw_test_1,
+  remove_region = tg_O,
+  return_products = TRUE
+)
+names(hwa_test_categorical_polygon$attribute_table)
 #>  [1] "Lake"                      "lumped_lulc_prop_var_1_3" 
 #>  [3] "lumped_lulc_prop_var_1_10" "lumped_lulc_prop_var_1_2" 
 #>  [5] "lumped_lulc_prop_var_2_22" "lumped_lulc_prop_var_2_29"
@@ -1111,6 +988,18 @@ names(results_agg)
 #> [39] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_1_2" 
 #> [41] "HAiFLS_lulc_prop_var_2_22" "HAiFLS_lulc_prop_var_2_29"
 #> [43] "HAiFLS_lulc_prop_var_2_21"
+
+## Resultant structure
+## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical_polygon[[1]] == hw_test_categorical_polygon$attribute_table # Attribute table
+## hw_test_categorical_polygon[[2]] == hw_test_categorical_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
+## hw_test_categorical_polygon$return_products$lumped # Processing components used in calculating lumped statistics
+## hwa_test_categorical_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
+## hwa_test_categorical_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
+## ...
+## ...
+## ...
+## hwa_test_categorical_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
 ```
 
 [Back to top](#contents)
@@ -1125,8 +1014,7 @@ layers of interest.
 The basic chain looks like this this:
 
   - For each site: Run `hydroweight()`
-      - For each distance-weighted raster,
-          - For each layer of interest: Run `hydroweight_attributes()`
+      - For each layer of interest: Run `hydroweight_attributes()`
 
 Here, we try to make the code easier to troubleshoot rather than make it
 look pretty:
@@ -1227,72 +1115,51 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
   sel <- tg_O_multi[xx, ]
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
   sel_weights <- sites_weights[[sel$Site]]
+  
+  ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
+  loi_consist <- list(
+    roi = sel_roi,
+    distance_weights = sel_weights,
+    remove_region = NULL,
+    return_products = TRUE,
+    roi_uid = sel$Site,
+    roi_uid_col = "Site"
+  )
 
-  ## For each distance-weighted raster,
-  site_layers_statistics <- foreach(yy = 1:length(sel_weights), .errorhandling = "pass") %do% {
+  ## For each loi,
+  sel_layers_hwa <- foreach(yy = 1:length(loi_variable), .errorhandling = "pass") %do% {
 
-    ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
-    loi_consist <- list(
-      roi = sel_roi,
-      distance_weight = sel_weights[[yy]],
-      remove_region = NULL,
-      return_products = TRUE,
-      roi_uid = sel$Site,
-      roi_uid_col = "Site"
-    )
+    ## Combine loi_variable[[y]] with loi_consist
+    loi_combined <- c(loi_variable[[yy]], loi_consist)
 
-    ## For each loi,
-    layers_statistics <- foreach(zz = 1:length(loi_variable), .errorhandling = "pass") %do% {
+    ## Run hydroweight_attributes using arguments in loi_combined
+    loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
 
-      ## Combine loi_variable[[y]] with loi_consist
-      loi_combined <- c(loi_variable[[zz]], loi_consist)
-
-      ## Run hydroweight_attributes using arguments in loi_combined
-      loi_output <- do.call(hydroweight::hydroweight_attributes, loi_combined)
-
-      ## Append names
-      l_o <- paste(names(sel_weights)[yy], colnames(loi_output$loi_statistics), sep = "_")
-      l_o[grep(loi_consist$roi_uid_col, l_o)] <- loi_consist$roi_uid_col
-      colnames(loi_output$loi_statistics) <- l_o
-
-      return(loi_output)
-    }
-    return(layers_statistics)
+    return(loi_output)
   }
-  return(site_layers_statistics)
+
+  return(sel_layers_hwa)
 }
 
 length(sites_attributes_products) ## List of results; one list per site
 #> [1] 3
-length(sites_attributes_products[[1]]) ## List of results for one site; one list of results per distance-weighted raster
-#> [1] 7
-length(sites_attributes_products[[1]][[1]]) ## List of results for one site and one distance-weighted raster; one list of results per loi
+length(sites_attributes_products[[1]]) ## List of results for site 1; one list of results per loi
 #> [1] 4
-length(sites_attributes_products[[1]][[1]][[1]]) # List of results for one site, one distance-weighted raster, and one loi; one data frame, one loi, and one distance-weighted raster
-#> [1] 3
-(sites_attributes_products[[1]][[1]][[1]][[1]]) # statistics table
-#>   Site lumped_ndvi_distwtd_mean lumped_ndvi_distwtd_sd lumped_ndvi_mean
-#> 1    1                0.4997713              0.2895169        0.4997713
-#>   lumped_ndvi_sd lumped_ndvi_min lumped_ndvi_max lumped_ndvi_pixel_count
-#> 1      0.2895169    2.400018e-05       0.9999773                   21669
-(sites_attributes_products[[1]][[1]][[1]][[2]]) # loi clipped by roi
-#> class      : RasterLayer 
-#> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
-#> resolution : 89.9835, 90.02154  (x, y)
-#> extent     : 664692.1, 685928.2, 4878994, 4895828  (xmin, xmax, ymin, ymax)
-#> crs        : +proj=lcc +lat_0=0 +lon_0=-85 +lat_1=44.5 +lat_2=53.5 +x_0=930000 +y_0=6430000 +datum=NAD83 +units=m +no_defs 
-#> source     : memory
-#> names      : ndvi 
-#> values     : 2.400018e-05, 0.9999773  (min, max)
-(sites_attributes_products[[1]][[1]][[1]][[3]]) # distance-weighted raster clipped by roi
-#> class      : RasterLayer 
-#> dimensions : 187, 236, 44132  (nrow, ncol, ncell)
-#> resolution : 89.9835, 90.02154  (x, y)
-#> extent     : 664692.1, 685928.2, 4878994, 4895828  (xmin, xmax, ymin, ymax)
-#> crs        : +proj=lcc +lat_0=0 +lon_0=-85 +lat_1=44.5 +lat_2=53.5 +x_0=930000 +y_0=6430000 +datum=NAD83 +units=m +no_defs 
-#> source     : memory
-#> names      : layer 
-#> values     : 1, 1  (min, max)
+length(sites_attributes_products[[1]][[1]]) ## List of results for site 1 and loi 1
+#> [1] 2
+names(sites_attributes_products[[1]][[1]]$attribute_table) ## Attribute table for site 1 and loi 1
+#>  [1] "Site"                     "lumped_ndvi_mean"        
+#>  [3] "lumped_ndvi_sd"           "lumped_ndvi_min"         
+#>  [5] "lumped_ndvi_max"          "lumped_ndvi_pixel_count" 
+#>  [7] "lumped_ndvi_distwtd_mean" "lumped_ndvi_distwtd_sd"  
+#>  [9] "iEucO_ndvi_distwtd_mean"  "iEucO_ndvi_distwtd_sd"   
+#> [11] "iFLO_ndvi_distwtd_mean"   "iFLO_ndvi_distwtd_sd"    
+#> [13] "HAiFLO_ndvi_distwtd_mean" "HAiFLO_ndvi_distwtd_sd"  
+#> [15] "iEucS_ndvi_distwtd_mean"  "iEucS_ndvi_distwtd_sd"   
+#> [17] "iFLS_ndvi_distwtd_mean"   "iFLS_ndvi_distwtd_sd"    
+#> [19] "HAiFLS_ndvi_distwtd_mean" "HAiFLS_ndvi_distwtd_sd"
+names(sites_attributes_products[[1]][[1]]$return_products) ## Return products for site 1 and loi 1 per distance-weighted raster
+#> [1] "lumped" "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS"
 ```
 
 ### 5.4 Extract and adjust results data frames
@@ -1305,18 +1172,7 @@ sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .erro
 
   ## Selects distance-weighted raster results set
   site_stats <- foreach(yy = 1:length(sel_site), .errorhandling = "pass") %do% {
-    sel_dwr <- sel_site[[yy]]
-
-    ## Extracts data frame of statistics per loi
-    dwr_stats <- foreach(zz = 1:length(sel_dwr), .errorhandling = "pass") %do% {
-      
-      return(sel_dwr[[zz]]$loi_statistics)
-    }
-
-    ## Merges the loi-specific datasets
-    dwr_stats <- Reduce(merge, dwr_stats)
-
-    return(dwr_stats)
+    sel_site[[yy]]$attribute_table
   }
 
   ## Merges the distance-weighted raster-specific datasets
@@ -1333,54 +1189,72 @@ sites_attributes_df <- bind_rows(sites_attributes_list)
 ## This is only true for columns containing "prop".
 sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[, grep("prop", colnames(sites_attributes_df))])] <- 0
 
-## Remove duplicated data
-lumped_cols <- grep("lumped", names(sites_attributes_df))
-distwtd_cols <- grep("distwtd", names(sites_attributes_df))
-unique_cols <- unique(c(1, lumped_cols, distwtd_cols))
-unique_cols
-#>  [1]   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
-#> [20]  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  44  45  46  47
-#> [39]  64  65  75  76  77  78  95  96 106 107 108 109 126 127 137 138 139 140 157
-#> [58] 158 168 169 170 171 188 189 199 200 201 202
-
-sites_attributes_df <- sites_attributes_df[, unique_cols]
-
 ## Final data frame
 colnames(sites_attributes_df)
-#>  [1] "Site"                           "lumped_ndvi_distwtd_mean"      
-#>  [3] "lumped_ndvi_distwtd_sd"         "lumped_ndvi_mean"              
-#>  [5] "lumped_ndvi_sd"                 "lumped_ndvi_min"               
-#>  [7] "lumped_ndvi_max"                "lumped_ndvi_pixel_count"       
-#>  [9] "lumped_lulc_prop_4"             "lumped_lulc_prop_3"            
-#> [11] "lumped_lulc_prop_2"             "lumped_lulc_prop_1"            
-#> [13] "lumped_lulc_var_1_distwtd_mean" "lumped_lulc_var_2_distwtd_mean"
-#> [15] "lumped_lulc_var_1_distwtd_sd"   "lumped_lulc_var_2_distwtd_sd"  
-#> [17] "lumped_lulc_var_1_mean"         "lumped_lulc_var_2_mean"        
-#> [19] "lumped_lulc_var_1_sd"           "lumped_lulc_var_2_sd"          
-#> [21] "lumped_lulc_var_1_min"          "lumped_lulc_var_2_min"         
-#> [23] "lumped_lulc_var_1_max"          "lumped_lulc_var_2_max"         
-#> [25] "lumped_lulc_var_1_pixel_count"  "lumped_lulc_var_2_pixel_count" 
-#> [27] "lumped_lulc_prop_var_1_3"       "lumped_lulc_prop_var_1_10"     
-#> [29] "lumped_lulc_prop_var_1_2"       "lumped_lulc_prop_var_2_22"     
-#> [31] "lumped_lulc_prop_var_2_29"      "lumped_lulc_prop_var_2_21"     
-#> [33] "iEucO_ndvi_distwtd_mean"        "iEucO_ndvi_distwtd_sd"         
-#> [35] "iEucO_lulc_var_1_distwtd_mean"  "iEucO_lulc_var_2_distwtd_mean" 
-#> [37] "iEucO_lulc_var_1_distwtd_sd"    "iEucO_lulc_var_2_distwtd_sd"   
-#> [39] "iFLO_ndvi_distwtd_mean"         "iFLO_ndvi_distwtd_sd"          
-#> [41] "iFLO_lulc_var_1_distwtd_mean"   "iFLO_lulc_var_2_distwtd_mean"  
-#> [43] "iFLO_lulc_var_1_distwtd_sd"     "iFLO_lulc_var_2_distwtd_sd"    
-#> [45] "HAiFLO_ndvi_distwtd_mean"       "HAiFLO_ndvi_distwtd_sd"        
-#> [47] "HAiFLO_lulc_var_1_distwtd_mean" "HAiFLO_lulc_var_2_distwtd_mean"
-#> [49] "HAiFLO_lulc_var_1_distwtd_sd"   "HAiFLO_lulc_var_2_distwtd_sd"  
-#> [51] "iEucS_ndvi_distwtd_mean"        "iEucS_ndvi_distwtd_sd"         
-#> [53] "iEucS_lulc_var_1_distwtd_mean"  "iEucS_lulc_var_2_distwtd_mean" 
-#> [55] "iEucS_lulc_var_1_distwtd_sd"    "iEucS_lulc_var_2_distwtd_sd"   
-#> [57] "iFLS_ndvi_distwtd_mean"         "iFLS_ndvi_distwtd_sd"          
-#> [59] "iFLS_lulc_var_1_distwtd_mean"   "iFLS_lulc_var_2_distwtd_mean"  
-#> [61] "iFLS_lulc_var_1_distwtd_sd"     "iFLS_lulc_var_2_distwtd_sd"    
-#> [63] "HAiFLS_ndvi_distwtd_mean"       "HAiFLS_ndvi_distwtd_sd"        
-#> [65] "HAiFLS_lulc_var_1_distwtd_mean" "HAiFLS_lulc_var_2_distwtd_mean"
-#> [67] "HAiFLS_lulc_var_1_distwtd_sd"   "HAiFLS_lulc_var_2_distwtd_sd"
+#>   [1] "Site"                           "lumped_ndvi_mean"              
+#>   [3] "lumped_ndvi_sd"                 "lumped_ndvi_min"               
+#>   [5] "lumped_ndvi_max"                "lumped_ndvi_pixel_count"       
+#>   [7] "lumped_ndvi_distwtd_mean"       "lumped_ndvi_distwtd_sd"        
+#>   [9] "iEucO_ndvi_distwtd_mean"        "iEucO_ndvi_distwtd_sd"         
+#>  [11] "iFLO_ndvi_distwtd_mean"         "iFLO_ndvi_distwtd_sd"          
+#>  [13] "HAiFLO_ndvi_distwtd_mean"       "HAiFLO_ndvi_distwtd_sd"        
+#>  [15] "iEucS_ndvi_distwtd_mean"        "iEucS_ndvi_distwtd_sd"         
+#>  [17] "iFLS_ndvi_distwtd_mean"         "iFLS_ndvi_distwtd_sd"          
+#>  [19] "HAiFLS_ndvi_distwtd_mean"       "HAiFLS_ndvi_distwtd_sd"        
+#>  [21] "lumped_lulc_prop_4"             "lumped_lulc_prop_3"            
+#>  [23] "lumped_lulc_prop_2"             "lumped_lulc_prop_1"            
+#>  [25] "iEucO_lulc_prop_4"              "iEucO_lulc_prop_3"             
+#>  [27] "iEucO_lulc_prop_2"              "iEucO_lulc_prop_1"             
+#>  [29] "iFLO_lulc_prop_4"               "iFLO_lulc_prop_3"              
+#>  [31] "iFLO_lulc_prop_2"               "iFLO_lulc_prop_1"              
+#>  [33] "HAiFLO_lulc_prop_4"             "HAiFLO_lulc_prop_3"            
+#>  [35] "HAiFLO_lulc_prop_2"             "HAiFLO_lulc_prop_1"            
+#>  [37] "iEucS_lulc_prop_4"              "iEucS_lulc_prop_3"             
+#>  [39] "iEucS_lulc_prop_2"              "iEucS_lulc_prop_1"             
+#>  [41] "iFLS_lulc_prop_4"               "iFLS_lulc_prop_3"              
+#>  [43] "iFLS_lulc_prop_2"               "iFLS_lulc_prop_1"              
+#>  [45] "HAiFLS_lulc_prop_4"             "HAiFLS_lulc_prop_3"            
+#>  [47] "HAiFLS_lulc_prop_2"             "HAiFLS_lulc_prop_1"            
+#>  [49] "lumped_lulc_var_1_mean"         "lumped_lulc_var_2_mean"        
+#>  [51] "lumped_lulc_var_1_sd"           "lumped_lulc_var_2_sd"          
+#>  [53] "lumped_lulc_var_1_min"          "lumped_lulc_var_2_min"         
+#>  [55] "lumped_lulc_var_1_max"          "lumped_lulc_var_2_max"         
+#>  [57] "lumped_lulc_var_1_pixel_count"  "lumped_lulc_var_2_pixel_count" 
+#>  [59] "lumped_lulc_var_1_distwtd_mean" "lumped_lulc_var_2_distwtd_mean"
+#>  [61] "lumped_lulc_var_1_distwtd_sd"   "lumped_lulc_var_2_distwtd_sd"  
+#>  [63] "iEucO_lulc_var_1_distwtd_mean"  "iEucO_lulc_var_2_distwtd_mean" 
+#>  [65] "iEucO_lulc_var_1_distwtd_sd"    "iEucO_lulc_var_2_distwtd_sd"   
+#>  [67] "iFLO_lulc_var_1_distwtd_mean"   "iFLO_lulc_var_2_distwtd_mean"  
+#>  [69] "iFLO_lulc_var_1_distwtd_sd"     "iFLO_lulc_var_2_distwtd_sd"    
+#>  [71] "HAiFLO_lulc_var_1_distwtd_mean" "HAiFLO_lulc_var_2_distwtd_mean"
+#>  [73] "HAiFLO_lulc_var_1_distwtd_sd"   "HAiFLO_lulc_var_2_distwtd_sd"  
+#>  [75] "iEucS_lulc_var_1_distwtd_mean"  "iEucS_lulc_var_2_distwtd_mean" 
+#>  [77] "iEucS_lulc_var_1_distwtd_sd"    "iEucS_lulc_var_2_distwtd_sd"   
+#>  [79] "iFLS_lulc_var_1_distwtd_mean"   "iFLS_lulc_var_2_distwtd_mean"  
+#>  [81] "iFLS_lulc_var_1_distwtd_sd"     "iFLS_lulc_var_2_distwtd_sd"    
+#>  [83] "HAiFLS_lulc_var_1_distwtd_mean" "HAiFLS_lulc_var_2_distwtd_mean"
+#>  [85] "HAiFLS_lulc_var_1_distwtd_sd"   "HAiFLS_lulc_var_2_distwtd_sd"  
+#>  [87] "lumped_lulc_prop_var_1_3"       "lumped_lulc_prop_var_1_10"     
+#>  [89] "lumped_lulc_prop_var_1_2"       "lumped_lulc_prop_var_2_22"     
+#>  [91] "lumped_lulc_prop_var_2_29"      "lumped_lulc_prop_var_2_21"     
+#>  [93] "iEucO_lulc_prop_var_1_3"        "iEucO_lulc_prop_var_1_10"      
+#>  [95] "iEucO_lulc_prop_var_1_2"        "iEucO_lulc_prop_var_2_22"      
+#>  [97] "iEucO_lulc_prop_var_2_29"       "iEucO_lulc_prop_var_2_21"      
+#>  [99] "iFLO_lulc_prop_var_1_3"         "iFLO_lulc_prop_var_1_10"       
+#> [101] "iFLO_lulc_prop_var_1_2"         "iFLO_lulc_prop_var_2_22"       
+#> [103] "iFLO_lulc_prop_var_2_29"        "iFLO_lulc_prop_var_2_21"       
+#> [105] "HAiFLO_lulc_prop_var_1_3"       "HAiFLO_lulc_prop_var_1_10"     
+#> [107] "HAiFLO_lulc_prop_var_1_2"       "HAiFLO_lulc_prop_var_2_22"     
+#> [109] "HAiFLO_lulc_prop_var_2_29"      "HAiFLO_lulc_prop_var_2_21"     
+#> [111] "iEucS_lulc_prop_var_1_3"        "iEucS_lulc_prop_var_1_10"      
+#> [113] "iEucS_lulc_prop_var_1_2"        "iEucS_lulc_prop_var_2_22"      
+#> [115] "iEucS_lulc_prop_var_2_29"       "iEucS_lulc_prop_var_2_21"      
+#> [117] "iFLS_lulc_prop_var_1_3"         "iFLS_lulc_prop_var_1_10"       
+#> [119] "iFLS_lulc_prop_var_1_2"         "iFLS_lulc_prop_var_2_22"       
+#> [121] "iFLS_lulc_prop_var_2_29"        "iFLS_lulc_prop_var_2_21"       
+#> [123] "HAiFLS_lulc_prop_var_1_3"       "HAiFLS_lulc_prop_var_1_10"     
+#> [125] "HAiFLS_lulc_prop_var_1_2"       "HAiFLS_lulc_prop_var_2_22"     
+#> [127] "HAiFLS_lulc_prop_var_2_29"      "HAiFLS_lulc_prop_var_2_21"
 ```
 
 Now - like any good environmental scientist - you have more variables
