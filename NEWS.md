@@ -1,3 +1,7 @@
+## hydroweight 1.0.0
+
+* package ready for release
+
 ## hydroweight 0.0.0.9014 
 
 * Edited `README` in anticipation of v1.0.0 release
