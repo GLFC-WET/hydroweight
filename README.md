@@ -41,9 +41,9 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
         layers](#53-run-hydroweight_attributes-across-sites-and-layers)
       - [5.4 Extract and adjust results data
         frames](#54-extract-and-adjust-results-data-frames)
-  - [6.0 References](#60-references)
-  - [7.0 Future plans](#70-future-plans)
-  - [8.0 Acknowledgements](#80-acknowledgements)
+  - [6.0 Future plans](#60-future-plans)
+  - [7.0 Acknowledgements](#70-acknowledgements)
+  - [8.0 References](#80-references)
 
 ## 1.0 Introduction
 
@@ -117,18 +117,19 @@ Distance weights defined by Peterson *et al.* (2011) are:
 | iFLO            | weighted inverse flow-path distance to `target_O` using d8 flow direction                                                           | `dem`, `target_O`            |
 | iFLS            | weighted inverse flow-path distance to `target_S` using d8 flow direction                                                           | `dem`, `target_S`            |
 | HAiFLO          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction | `dem`, `target_O`, `accum`   |
-| HAiFLS          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction | `dem`, `target_O`, `accum`   |
+| HAiFLS          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction | `dem`, `target_S`, `accum`   |
 
 [Back to top](#contents)
 
 ## 2.0 System setup and installation
 
-WhiteboxTools must be installed for ***hydroweight*** to run. See
+*WhiteboxTools* must be installed for ***hydroweight*** to run. See
 [whiteboxR](https://github.com/giswqs/whiteboxR) or below for
-installation. `Whitebox` runs `whitebox_tools.exe` which is installed to
-`your-libary-path/whitebox/WBT`. This may cause problems depending on
-your specific computer setup. One possible solution is to ensure there
-are no spaces in the R library path (check using `.libPaths()`)
+installation. *R*’s `whitebox` runs `whitebox_tools.exe` which is
+installed to `your-R-libary-path/whitebox/WBT`. This may cause problems
+depending on your specific computer setup. One possible solution is to
+ensure there are no spaces in the R library path (check using
+`.libPaths()`).
 
 ``` r
 ## Follow instructions for whitebox installation accordingly
@@ -147,7 +148,7 @@ devtools::install_github("bkielstr/hydroweight")
 
 ### 3.1 Generate toy terrain dataset
 
-We begin by bringing in our toy digital elevation model and use it to
+We begin by bringing in our toy digital elevation model and using it to
 generate terrain products.
 
 ``` r
@@ -179,7 +180,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.8s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -194,7 +195,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.48s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.63s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -209,18 +210,18 @@ wbt_extract_streams(
 
 ### 3.2 Generate toy targets
 
-Here we will generate a few targets. Note that the user could provide
-their own vector or raster type targets (see `?hydroweight`). Targets
-are often called *pour points*; here, targets can be a group of raster
+Next we generate a few targets below. Users can provide their own vector
+or raster type targets (see `?hydroweight`). Targets are often called
+*pour points* in the literature; here, targets can be a group of raster
 cells, polygons, polylines, or points.
 
-Below, our first target is a low lying area we will call a lake
-(`tg_O`). All cells \<220 m elevation are `TRUE` or `1` and those \>220
-m are assigned `NA`. We also generate its catchment (`tg_O_catchment`)
-using `whitebox::wbt_watershed()`. Our target streams (`tg_S`) are
-loaded from the `whitebox::wbt_extract_streams()` output. Finally, we do
-some manipulation to the stream network raster to generate three points
-along the stream network (`tg_O_multi`) and their catchments
+Our first target is a low lying area we will call a lake (`tg_O`). All
+cells \<220 m elevation are assigned `TRUE` or `1` and those \>220 m are
+assigned `NA`. We also generate its catchment (`tg_O_catchment`) using
+`whitebox::wbt_watershed()`. Our target streams (`tg_S`) are loaded from
+the `whitebox::wbt_extract_streams()` output. Finally, we do some
+manipulation to the stream network raster to generate three points along
+the stream network (`tg_O_multi`) and their catchments
 (`tg_O_multi_catchment`).
 
 ``` r
@@ -241,7 +242,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.6s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -354,8 +355,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-27 15:44:06
-#> Running distance-weighting @ 2021-04-27 15:44:08
+#> Preparing hydroweight layers @ 2021-04-28 16:15:22
+#> Running distance-weighting @ 2021-04-28 16:15:25
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -398,9 +399,9 @@ Important things to note from this plot:
     (i.e., the streams to the east). These would be removed depending on
     catchment boundaries of interest when using
     `hydroweight::hydroweight_attributes()`  
-  - As in Peterson *et al.* (2011), for HAiFLO and HAiFLS, the targets
-    are set to NoData (i.e., NA) since they likely represent
-    concentrated flow areas.
+  - As in Peterson *et al.* (2011), for HAiFLS, the targets are set to
+    NoData (i.e., NA) since they likely represent concentrated flow
+    areas.
 
 These temporary files are made per instance of
 `hydroweight::hydroweight()`:
@@ -526,15 +527,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-27 15:44:29
-#> Preparing hydroweight layers @ 2021-04-27 15:44:29
-#> Running distance-weighting @ 2021-04-27 15:44:32
-#> Running hydroweight for site 2 at 2021-04-27 15:44:36
-#> Preparing hydroweight layers @ 2021-04-27 15:44:36
-#> Running distance-weighting @ 2021-04-27 15:44:38
-#> Running hydroweight for site 3 at 2021-04-27 15:44:43
-#> Preparing hydroweight layers @ 2021-04-27 15:44:43
-#> Running distance-weighting @ 2021-04-27 15:44:45
+#> Running hydroweight for site 1 at 2021-04-28 16:15:45
+#> Preparing hydroweight layers @ 2021-04-28 16:15:45
+#> Running distance-weighting @ 2021-04-28 16:15:47
+#> Running hydroweight for site 2 at 2021-04-28 16:15:51
+#> Preparing hydroweight layers @ 2021-04-28 16:15:51
+#> Running distance-weighting @ 2021-04-28 16:15:54
+#> Running hydroweight for site 3 at 2021-04-28 16:15:58
+#> Preparing hydroweight layers @ 2021-04-28 16:15:58
+#> Running distance-weighting @ 2021-04-28 16:16:00
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -551,7 +552,7 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 ## ...
 ## hw_test_5[[3]][[7]] # site 3, HAiFLS
 
-## Loading up data as if it were not assigned to object
+## Loading up data as if it were not originally assigned to object hw_test_5
 inv_distance_collect <- file.path(hydroweight_dir, paste0(tg_O_multi$Site, "_inv_distances.rds"))
 hw_test_5 <- lapply(inv_distance_collect, function(x) {
   readRDS(x)
@@ -627,16 +628,16 @@ plot(st_geometry(tg_O_multi_catchment[3, ]), col = adjustcolor("red", alpha.f = 
 
 ### 4.1 Using a numeric raster layer of interest
 
-Applying the same approach as above (i.e., using `foreach()`), we
-generate distance-weighted attributes for a single site across all of
-our distance-weighted rasters.
+Using the results of `hydroweight()` (i.e., a list of distance-weighted
+rasters), we generate distance-weighted attributes for a single site
+across the weighting schemes.
 
 First, we generate a numeric raster layer of interest `loi = ndvi` and
 then summarize those pixels falling within the region of interest, `roi
 = tg_O_catchment`, for each distance-weighted raster in `tw_test_1` (all
-types of distances, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how
-results are returned.
+weighting schemes, see above). See `?hydroweight_attributes` for `loi_`-
+and `roi_`-specific information indicating type of data and how results
+are returned.
 
 ``` r
 ## Construct continuous dataset
@@ -724,10 +725,10 @@ plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_nume
 
 ### 4.2 Using a categorical raster layer of interest
 
-We generate a categorical raster layer of interest `loi = lulc` and then
-summarize those pixels falling within the region of interest, `roi =
-tg_O_catchment`, for each distance-weighted raster in `tw_test_1` (all
-types of distances, see above). See `?hydroweight_attributes` for
+Here, we generate a categorical raster layer of interest `loi = lulc`
+and then summarize those pixels falling within the region of interest,
+`roi = tg_O_catchment`, for each distance-weighted raster in `tw_test_1`
+(all weighting schemes, see above). See `?hydroweight_attributes` for
 `loi_`- and `roi_`-specific information indicating type of data and how
 results are returned.
 
@@ -870,7 +871,7 @@ as the template. This basically treats the columns as if they were
 individual numeric raster layers. Landscape statistics are calculated
 accordingly (e.g., distance-weighted mean). Those pixels falling within
 the region of interest, `roi = tg_O_catchment`, for each
-distance-weighted raster in `tw_test_1` (all types of distances, see
+distance-weighted raster in `tw_test_1` (all weighting schemes, see
 above). See `?hydroweight_attributes` for `loi_`- and `roi_`-specific
 information indicating type of data and how results are returned.
 
@@ -1262,7 +1263,7 @@ and/or metrics than sites.
 
 [Back to top](#contents)
 
-## 6.0 Future Plans
+## 6.0 Future plans
 
 This package was implemented to mostly serve our purposes and is
 functional enough. There is probably lots of room for improvement that
