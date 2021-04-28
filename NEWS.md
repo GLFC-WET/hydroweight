@@ -1,3 +1,7 @@
+## hydroweight 0.0.0.9014 
+
+* Edited `README` in anticipation of v1.0.0 release
+
 ## hydroweight 0.0.0.9013 
 
 * Overhauled `hydroweight_attributes()` to take in the results (i.e., a list) of `hydroweight()` to simplify between-function processing. 
