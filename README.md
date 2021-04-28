@@ -195,7 +195,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.63s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.49s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -355,8 +355,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-28 16:15:22
-#> Running distance-weighting @ 2021-04-28 16:15:25
+#> Preparing hydroweight layers @ 2021-04-28 16:47:53
+#> Running distance-weighting @ 2021-04-28 16:47:55
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -527,15 +527,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-28 16:15:45
-#> Preparing hydroweight layers @ 2021-04-28 16:15:45
-#> Running distance-weighting @ 2021-04-28 16:15:47
-#> Running hydroweight for site 2 at 2021-04-28 16:15:51
-#> Preparing hydroweight layers @ 2021-04-28 16:15:51
-#> Running distance-weighting @ 2021-04-28 16:15:54
-#> Running hydroweight for site 3 at 2021-04-28 16:15:58
-#> Preparing hydroweight layers @ 2021-04-28 16:15:58
-#> Running distance-weighting @ 2021-04-28 16:16:00
+#> Running hydroweight for site 1 at 2021-04-28 16:48:15
+#> Preparing hydroweight layers @ 2021-04-28 16:48:15
+#> Running distance-weighting @ 2021-04-28 16:48:17
+#> Running hydroweight for site 2 at 2021-04-28 16:48:22
+#> Preparing hydroweight layers @ 2021-04-28 16:48:22
+#> Running distance-weighting @ 2021-04-28 16:48:24
+#> Running hydroweight for site 3 at 2021-04-28 16:48:28
+#> Preparing hydroweight layers @ 2021-04-28 16:48:28
+#> Running distance-weighting @ 2021-04-28 16:48:30
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -1312,6 +1312,10 @@ Journal of the American Water Resources Association, 53(5): 1241–1249.
 Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation
 of IDW-PLUS. R package version 0.1.0.
 <https://CRAN.R-project.org/package=rdwplus>
+
+R Core Team (2021). R: A language and environment for statistical
+computing. R Foundation for Statistical Computing, Vienna, Austria.
+<https://www.R-project.org/>
 
 Wickham, H., Bryan, J. (2021). R Packages. 2nd edition.
 <https://r-pkgs.org/>.

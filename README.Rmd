@@ -1062,6 +1062,8 @@ Journal of the American Water Resources Association, 53(5): 1241–1249. https:/
 
 Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation of IDW-PLUS. R package version 0.1.0. https://CRAN.R-project.org/package=rdwplus
 
+R Core Team (2021). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. https://www.R-project.org/
+
 Wickham, H., Bryan, J. (2021). R Packages. 2nd edition. https://r-pkgs.org/.
 
 Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
