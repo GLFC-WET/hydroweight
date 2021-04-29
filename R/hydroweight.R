@@ -107,7 +107,7 @@ hydroweight <- function(hydroweight_dir = NULL,
         whitebox::wbt_reclass(
           input = file.path(hydroweight_dir, clip_region),
           output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
-          reclass_vals = "1;min,max"
+          reclass_vals = "1,min,max"
         )
 
         whitebox::wbt_raster_to_vector_polygons(
@@ -126,10 +126,11 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
 
   if (is.null(clip_region)) {
+
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, dem),
       output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
-      reclass_vals = "1;min;30000", # because max sometimes misses max values?
+      reclass_vals = "1,min,30000", # because max sometimes misses max values?
       # verbose_mode = TRUE
     )
 
@@ -345,7 +346,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP-lumped.tif"),
-      reclass_vals = "1;min;30000"
+      reclass_vals = "1,min,30000"
     ) # because max sometimes misses max values?
 
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
@@ -360,7 +361,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-      reclass_vals = "1;min;30000"
+      reclass_vals = "1,min,30000"
     ) # because max sometimes misses max values?
 
     # cost <- dem_clip

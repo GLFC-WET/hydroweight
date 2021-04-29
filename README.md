@@ -44,6 +44,7 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
   - [6.0 Future plans](#60-future-plans)
   - [7.0 Acknowledgements](#70-acknowledgements)
   - [8.0 References](#80-references)
+  - [9.0 Copyright](#90-copyright)
 
 ## 1.0 Introduction
 
@@ -125,11 +126,10 @@ Distance weights defined by Peterson *et al.* (2011) are:
 
 *WhiteboxTools* must be installed for ***hydroweight*** to run. See
 [whiteboxR](https://github.com/giswqs/whiteboxR) or below for
-installation. *R*’s `whitebox` runs `whitebox_tools.exe` which is
-installed to `your-R-libary-path/whitebox/WBT`. This may cause problems
-depending on your specific computer setup. One possible solution is to
-ensure there are no spaces in the R library path (check using
-`.libPaths()`).
+installation. *R*’s `whitebox` runs `whitebox_tools` which is installed
+to `your-R-libary-path/whitebox/WBT`. This may cause problems depending
+on your specific computer setup. One possible solution is to ensure
+there are no spaces in the R library path (check using `.libPaths()`).
 
 ``` r
 ## Follow instructions for whitebox installation accordingly
@@ -137,9 +137,10 @@ install.packages("whitebox", repos="http://R-Forge.R-project.org")
 
 library(whitebox)
 whitebox::wbt_init()
+whitebox::wbt_version()
 
 ## Install current version of hydroweight
-devtools::install_github("bkielstr/hydroweight")
+devtools::install_github("bkielstr/hydroweight@main")
 ```
 
 [Back to top](#contents)
@@ -180,7 +181,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.8s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -195,7 +196,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.49s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.36s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -242,7 +243,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.9s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -355,8 +356,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-28 16:47:53
-#> Running distance-weighting @ 2021-04-28 16:47:55
+#> Preparing hydroweight layers @ 2021-04-29 16:31:42
+#> Running distance-weighting @ 2021-04-29 16:31:45
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -527,15 +528,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-28 16:48:15
-#> Preparing hydroweight layers @ 2021-04-28 16:48:15
-#> Running distance-weighting @ 2021-04-28 16:48:17
-#> Running hydroweight for site 2 at 2021-04-28 16:48:22
-#> Preparing hydroweight layers @ 2021-04-28 16:48:22
-#> Running distance-weighting @ 2021-04-28 16:48:24
-#> Running hydroweight for site 3 at 2021-04-28 16:48:28
-#> Preparing hydroweight layers @ 2021-04-28 16:48:28
-#> Running distance-weighting @ 2021-04-28 16:48:30
+#> Running hydroweight for site 1 at 2021-04-29 16:32:06
+#> Preparing hydroweight layers @ 2021-04-29 16:32:06
+#> Running distance-weighting @ 2021-04-29 16:32:08
+#> Running hydroweight for site 2 at 2021-04-29 16:32:13
+#> Preparing hydroweight layers @ 2021-04-29 16:32:13
+#> Running distance-weighting @ 2021-04-29 16:32:15
+#> Running hydroweight for site 3 at 2021-04-29 16:32:20
+#> Preparing hydroweight layers @ 2021-04-29 16:32:20
+#> Running distance-weighting @ 2021-04-29 16:32:22
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -1287,6 +1288,11 @@ Thank you to for early review/testing (alphabetical order):
 
 Darren McCormick, Courtney Mondoux, Emily Smenderovac
 
+We acknowledge the funding support of Natural Resources Canada, the
+Ontario Ministry of Natural Resources, and a Natural Sciences and
+Engineering Research Council of Canada Strategic Partnership Grant
+(STPGP 521405-2018).
+
 [Back to top](#contents)
 
 ## 8.0 References
@@ -1324,3 +1330,8 @@ Wu, Q. (2020). whitebox: ‘WhiteboxTools’ R Frontend. R package version
 1.4.0. <https://github.com/giswqs/whiteboxR>
 
 [Back to top](#contents)
+
+## 9.0 Copyright
+
+Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as
+represented by the Minister of Natural Resources Canada

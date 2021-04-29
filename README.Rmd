@@ -37,6 +37,8 @@ knitr::opts_chunk$set(
 * [6.0 Future plans](#60-future-plans)
 * [7.0 Acknowledgements](#70-acknowledgements) 
 * [8.0 References](#80-references)
+* [9.0 Copyright](#90-copyright)
+
   
 ## 1.0 Introduction
 
@@ -109,7 +111,7 @@ Distance weights defined by Peterson *et al.* (2011) are:
 ## 2.0 System setup and installation
 
 *WhiteboxTools* must be installed for ***hydroweight*** to run. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation. 
-*R*'s `whitebox` runs `whitebox_tools.exe` which is installed to `your-R-libary-path/whitebox/WBT`. 
+*R*'s `whitebox` runs `whitebox_tools` which is installed to `your-R-libary-path/whitebox/WBT`. 
 This may cause problems depending on your specific computer setup. One possible 
 solution is to ensure there are no spaces in the R library path (check using `.libPaths()`).
 
@@ -120,9 +122,10 @@ install.packages("whitebox", repos="http://R-Forge.R-project.org")
 
 library(whitebox)
 whitebox::wbt_init()
+whitebox::wbt_version()
 
 ## Install current version of hydroweight
-devtools::install_github("bkielstr/hydroweight")
+devtools::install_github("bkielstr/hydroweight@main")
 ```
 
 [Back to top](#contents)
@@ -1047,6 +1050,9 @@ Thank you to for early review/testing (alphabetical order):
 
 Darren McCormick, Courtney Mondoux, Emily Smenderovac
 
+We acknowledge the funding support of Natural Resources Canada, the Ontario Ministry of Natural Resources, 
+and a Natural Sciences and Engineering Research Council of Canada Strategic Partnership Grant (STPGP 521405-2018).
+
 [Back to top](#contents)
 
 ## 8.0 References
@@ -1069,3 +1075,7 @@ Wickham, H., Bryan, J. (2021). R Packages. 2nd edition. https://r-pkgs.org/.
 Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
 
 [Back to top](#contents)
+
+## 9.0 Copyright 
+
+Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada
