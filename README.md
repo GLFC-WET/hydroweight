@@ -3,6 +3,8 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+[![DOI](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
+
 ## Contents
 
   - [1.0 Introduction](#10-introduction)
@@ -181,7 +183,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.8s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -196,7 +198,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.36s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.60s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -204,7 +206,7 @@ wbt_extract_streams(
   output = file.path(hydroweight_dir, "toy_dem_streams.tif"),
   threshold = 2000
 )
-#> [1] "extract_streams - Elapsed Time (excluding I/O): 0.1s"
+#> [1] "extract_streams - Elapsed Time (excluding I/O): 0.2s"
 ```
 
 [Back to top](#contents)
@@ -243,7 +245,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.9s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -356,8 +358,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-04-29 16:31:42
-#> Running distance-weighting @ 2021-04-29 16:31:45
+#> Preparing hydroweight layers @ 2021-05-03 10:45:02
+#> Running distance-weighting @ 2021-05-03 10:45:05
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -528,15 +530,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-04-29 16:32:06
-#> Preparing hydroweight layers @ 2021-04-29 16:32:06
-#> Running distance-weighting @ 2021-04-29 16:32:08
-#> Running hydroweight for site 2 at 2021-04-29 16:32:13
-#> Preparing hydroweight layers @ 2021-04-29 16:32:13
-#> Running distance-weighting @ 2021-04-29 16:32:15
-#> Running hydroweight for site 3 at 2021-04-29 16:32:20
-#> Preparing hydroweight layers @ 2021-04-29 16:32:20
-#> Running distance-weighting @ 2021-04-29 16:32:22
+#> Running hydroweight for site 1 at 2021-05-03 10:45:26
+#> Preparing hydroweight layers @ 2021-05-03 10:45:26
+#> Running distance-weighting @ 2021-05-03 10:45:28
+#> Running hydroweight for site 2 at 2021-05-03 10:45:33
+#> Preparing hydroweight layers @ 2021-05-03 10:45:33
+#> Running distance-weighting @ 2021-05-03 10:45:35
+#> Running hydroweight for site 3 at 2021-05-03 10:45:40
+#> Preparing hydroweight layers @ 2021-05-03 10:45:40
+#> Running distance-weighting @ 2021-05-03 10:45:42
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
