@@ -1,6 +1,6 @@
 Package: hydroweight
 Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",
@@ -22,7 +22,7 @@ Authors@R: c(
     person("Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
             role = "cph")
     )
-Description: Implements workflow to compute spatially explicit landscape metrics 
+Description: Implements workflows to compute spatially explicit landscape metrics 
     described in Peterson et al. (2011) <doi:10.1111/j.1365-2427.2010.02507.x>. 
     Uses previously generated terrain products (examples provided) and a user- 
     defined weighting function to produce distance-weighted rasters. Weighted rasters 

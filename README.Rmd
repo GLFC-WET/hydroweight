@@ -1,7 +1,8 @@
 ---
 title: "hydroweight: Inverse distance-weighted rasters and landscape attributes"
 output: 
-  github_document
+  github_document:
+    pandoc_args: --webtex
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -553,12 +554,35 @@ plot(st_geometry(tg_O_multi_catchment[3, ]), col = adjustcolor("red", alpha.f = 
 
 ## 4.0 Inverse distance-weighted attributes using `hydroweight_attributes()`
 
+`hydroweight_attributes()` uses `hydroweight()` output and layers of interest (`loi`) to calculate distance-weighted attributes within a region of interest (`roi`). Inputs can be numeric rasters, categorical rasters, and polygon data with either numeric or categorical data in the columns. Internally, all layers are projected to or rasterized to the spatial resolution of the `hydroweight()` output (i.e., the original DEM).
+
+For numeric inputs, the distance-weighted mean and standard deviation for each `roi`:`loi` combination 
+are calculated using
+
+<p align="center">
+  <img width="150" height="75" src="./man/figures/WeightedAvg.svg">
+</p>
+
+<p align="center">
+  <img width="225" height="113" src="./man/figures/WeightedStd.svg">
+</p>
+
+where $n$ is the number of cells, $w_i$ are the cell weights, and $x_i$ are `loi` cell values, $m$ is the number or non-zero weights, and $\bar{x}^*$ is the weighted mean. For categorical inputs, the proportion for each `roi`:`loi` combination is calculated using
+
+<p align="center">
+  <img width="150" height="75" src="./man/figures/WeightedProp.svg">
+</p>
+
+where $I(k_i)=1$ when category $k$ is present in a cell or $I(k_i)=0$ when not. 
+
+Finally, `loi` `NA` values are handled differently depending on `loi` type. For numeric, `NA` cells are excluded from all calculations. If `cell_count` is specified in `loi_statistics` (see below), count of non-`NA` cells and `NA` cells are returned in the attribute table. For categorical, `NA` cells are considered a category and are included in the calculated proportions. A `prop_NA` column is included in the attribute table. The `lumped_"loi"_prop_NA` would be the true proportion of `NA` cells whereas other columns would be their respective distance-weighted `NA` proportions. This could allow the user to re-calculate proportions using non-`NA` values only. 
+
 ### 4.1 Using a numeric raster layer of interest
 
 Using the results of `hydroweight()` (i.e., a list of distance-weighted rasters), we generate
 distance-weighted attributes for a single site across the weighting schemes.
 
-First, we generate a numeric raster layer of interest `loi = ndvi` and then summarize those pixels
+First, we generate a numeric raster layer of interest `loi = ndvi` and then summarize those cells
 falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
 raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
 `loi_`- and `roi_`-specific information indicating type of data and how results are returned.
@@ -573,7 +597,7 @@ hwa_test_numeric <- hydroweight_attributes(
   loi = ndvi,
   loi_attr_col = "ndvi",
   loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "pixel_count"),
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "cell_count"),
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
@@ -634,19 +658,20 @@ plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_nume
 
 ### 4.2 Using a categorical raster layer of interest
 
-Here, we generate a categorical raster layer of interest `loi = lulc` and then summarize those pixels
+Here, we generate a categorical raster layer of interest `loi = lulc` and then summarize those cells
 falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
 raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
 `loi_`- and `roi_`-specific information indicating type of data and how results are returned.
 
 ```{r, fig.width=6, fig.height=6, message = FALSE, error = FALSE, warning = FALSE}
 ## Construct categorical dataset by reclassify elevation values into categories
+## All values > 0 and <= 220 become 1, etc. 
 lulc <- toy_dem
-m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4)
+m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4) 
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 lulc <- reclassify(lulc, rclmat)
 
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
+## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
 hwa_test_categorical <- hydroweight_attributes(
   loi = lulc,
   loi_attr_col = "lulc",
@@ -695,17 +720,17 @@ plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded,
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
-  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[1]],
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[4]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
-  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[2]],
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$lumped$distance_weights_bounded *
-  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[3]],
+  hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 
@@ -716,17 +741,17 @@ plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded,
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[1]],
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[4]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[2]],
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$iEucO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[3]],
+  hwa_test_categorical$return_products$iEucO$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 
@@ -737,17 +762,17 @@ plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded,
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[1]],
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[4]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[2]],
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[3]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLO - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$iFLO$distance_weights_bounded *
-  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[3]],
+  hwa_test_categorical$return_products$iFLO$`loi_Raster*_bounded`[[2]],
 axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 )
 ```
@@ -763,7 +788,7 @@ two columns using `hydroweight_attributes()`.
 Internally, the `lulc` polygons are rasterized using `distance_weights` as the template.
 This basically treats the columns as if they were individual numeric raster layers.
 Landscape statistics are calculated accordingly (e.g., distance-weighted mean).
-Those pixels falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
+Those cells falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
 raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
 `loi_`- and `roi_`-specific information indicating type of data and how results are returned.
 
@@ -777,13 +802,13 @@ lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
 set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
+## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
 hwa_test_numeric_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
   loi_categories = c("var_1", "var_2"),
   loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count"),
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count"),
   roi = tg_O_catchment,
   roi_uid = "1",
   roi_uid_col = "Lake",
@@ -824,7 +849,7 @@ lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
 set.seed(123)
 lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for ndvi
+## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
 hwa_test_categorical_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
@@ -929,7 +954,7 @@ names(sites_weights) <- tg_O_multi$Site
 
 loi_ndvi <- list(
   loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count")
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
 )
 
 loi_lulc <- list(
@@ -939,7 +964,7 @@ loi_lulc <- list(
 loi_lulc_p_n <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
   loi_categories = c("var_1", "var_2"),
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "pixel_count")
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
 )
 
 loi_lulc_p_c <- list(

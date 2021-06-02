@@ -16,7 +16,7 @@
 #' @param loi_attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
 #' @param loi_categories character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.
-#' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "pixel_count"). Those without distwtd_ are simple "lumped" statistics.
+#' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.
 #' @param roi \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
 #' @param roi_uid_col character. Column name that will be assigned to the roi_uid.
@@ -47,7 +47,7 @@ hydroweight_attributes <- function(loi = NULL,
     loi_resample <- "ngb"
   }
 
-  if (class(loi)[1] == "RasterLayer") {
+  if (inherits(loi, "RasterLayer")) {
     message("\n Reprojecting `loi` to match `distance_weights` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`")
 
     loi_r <- raster::projectRaster(
@@ -64,8 +64,7 @@ hydroweight_attributes <- function(loi = NULL,
 
   ## If polygon loi has a field of interest with categorical data, categories
   ## are used to produce a RasterBrick of these
-
-  if (class(loi)[1] == "sf") {
+  if (inherits(loi, "sf")) {
     if (loi_numeric == TRUE) {
       loi_r <- lapply(loi_categories, function(x) {
         loi_return <- fasterize::fasterize(loi,
@@ -90,8 +89,8 @@ hydroweight_attributes <- function(loi = NULL,
     }
   }
 
-  ## Mask to roi
-  if (class(roi)[1] == "sf") {
+  ## Generate roi
+  if (inherits(roi, "sf")) {
     roi_r <- fasterize::fasterize(roi, raster = distance_weights[[1]])
   } else {
     message("\n Reprojecting `roi` to match `distance_weights` attributes using method `loi_resample`")
@@ -103,30 +102,30 @@ hydroweight_attributes <- function(loi = NULL,
     )
   }
 
-  distance_weights_attributes <- lapply(1:length(distance_weights), function(ii){
-
-    ## Mask out roi and remove_region
-    loi_r_mask <- raster::mask(loi_r, roi_r)
-    distance_weights_mask <- raster::mask(distance_weights[[ii]], roi_r)
-
-    ## Mask out remove_region
-    if (!is.null(remove_region)) {
-      if (class(remove_region)[1] == "sf") {
-        remove_region_r <- fasterize::fasterize(remove_region, raster = distance_weights[[1]])
-      } else {
-        remove_region_r <- remove_region
-      }
-
-      loi_r_mask <- raster::mask(loi_r_mask, remove_region_r,
-        inverse = TRUE
-      )
-      distance_weights_mask <- raster::mask(distance_weights_mask, remove_region_r,
-        inverse = TRUE
-      )
+  ## Mask out remove_region if present
+  if (!is.null(remove_region)) {
+    if (inherits(remove_region, "sf")) {
+      remove_region_r <- fasterize::fasterize(remove_region, raster = distance_weights[[1]])
+    } else {
+      remove_region_r <- remove_region
     }
+
+    roi_r <- raster::mask(roi_r, mask = remove_region_r, inverse = TRUE)
+  }
+
+  distance_weights_attributes <- lapply(1:length(distance_weights), function(ii) {
 
     ## For raster data with loi_numeric numbers
     if (loi_numeric == TRUE) {
+
+      ## Mask out roi
+      loi_r_mask <- raster::mask(loi_r, roi_r)
+      distance_weights_mask <- raster::mask(distance_weights[[ii]], roi_r)
+
+      ## Make sure NA across loi_r_mask is replicated across distance_weights_mask
+      distance_weights_mask <- distance_weights_mask * !is.na(loi_r_mask)
+
+      ##
       (loi_dist <- loi_r_mask * distance_weights_mask)
       names(loi_dist) <- names(loi_r_mask)
 
@@ -148,13 +147,15 @@ hydroweight_attributes <- function(loi = NULL,
       (loi_min <- raster::cellStats(loi_r_mask, stat = "min", na.rm = T))
       (loi_max <- raster::cellStats(loi_r_mask, stat = "max", na.rm = T))
       (loi_sum <- raster::cellStats(loi_r_mask, stat = "sum", na.rm = T))
-      (loi_pixel_is_na <- !is.na(loi_r_mask))
-      (loi_pixel_count <- raster::cellStats(loi_pixel_is_na, "sum", na.rm = T))
+      (loi_cell_count <- !is.na(loi_r_mask))
+      (loi_cell_count <- raster::cellStats(loi_cell_count, "sum", na.rm = T))
+      (roi_cell_count <- raster::cellStats(roi_r, "sum", na.rm = T))
+      (loi_NA_cell_count <- roi_cell_count - loi_cell_count)
 
       loi_stats <- data.frame(
         loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
         loi_median, loi_min, loi_max,
-        loi_sum, loi_pixel_count
+        loi_sum, loi_cell_count, loi_NA_cell_count
       )
 
       ## If single RasterLayer
@@ -170,7 +171,7 @@ hydroweight_attributes <- function(loi = NULL,
         loi_stats_w <- tidyr::pivot_wider(loi_stats, values_from = c(
           loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
           loi_median, loi_min, loi_max,
-          loi_sum, loi_pixel_count
+          loi_sum, loi_cell_count, loi_NA_cell_count
         ), names_from = "cats")
         colnames(loi_stats_w) <- gsub("loi_", "", colnames(loi_stats_w))
 
@@ -189,23 +190,29 @@ hydroweight_attributes <- function(loi = NULL,
     ## For raster data with categorical numbers
     if (loi_numeric == FALSE) {
 
+      ## Change all categorical NAs to 987654321; these will be converted back to NA shortly
+      loi_r[is.na(loi_r)] <- 987654321
+
       ## Construct brick if "RasterLayer"
-      if (class(loi_r_mask) == "RasterLayer") {
-        (uv <- unique(loi_r_mask@data@values))
+      if (inherits(loi_r, "RasterLayer")) {
+        (uv <- raster::unique(loi_r, na.last = TRUE))
         (uv <- uv[!is.na(uv)])
 
         brick_list <- lapply(uv, function(x) {
-          loi_r_mask_ret <- loi_r_mask
-          loi_r_mask_ret[loi_r_mask_ret@data@values == x] <- 9999
-          loi_r_mask_ret[loi_r_mask_ret@data@values != 9999] <- NA
-          loi_r_mask_ret[loi_r_mask_ret@data@values == 9999] <- 1
+          loi_r_ret <- loi_r
+          loi_r_ret[loi_r_ret@data@values == x] <- 9999
+          loi_r_ret[loi_r_ret@data@values != 9999] <- NA
+          loi_r_ret[loi_r_ret@data@values == 9999] <- 1
 
-          return(loi_r_mask_ret)
+          return(loi_r_ret)
         })
 
-        loi_r_mask <- raster::brick(brick_list)
-        names(loi_r_mask) <- uv
+        loi_r <- raster::brick(brick_list)
+        names(loi_r) <- uv
       }
+
+      loi_r_mask <- raster::mask(loi_r, roi_r)
+      distance_weights_mask <- raster::mask(distance_weights[[ii]], roi_r)
 
       loi_dist <- loi_r_mask * distance_weights_mask
       names(loi_dist) <- names(loi_r_mask)
@@ -218,6 +225,7 @@ hydroweight_attributes <- function(loi = NULL,
       (colnames(loi_stats) <- gsub("X", "_", colnames(loi_stats)))
       (colnames(loi_stats) <- paste(loi_attr_col, "prop", colnames(loi_stats), sep = "_"))
       (colnames(loi_stats) <- gsub("__", "_", colnames(loi_stats)))
+      (colnames(loi_stats) <- gsub("987654321", "NA", colnames(loi_stats)))
     }
 
     loi_stats <- data.frame(data.frame(roi_uid = roi_uid), loi_stats)
@@ -246,7 +254,7 @@ hydroweight_attributes <- function(loi = NULL,
   })
 
   ## Pull out attribute_frames and adjust
-  attribute_frames <- lapply(1:length(distance_weights_attributes), function(ii){
+  attribute_frames <- lapply(1:length(distance_weights_attributes), function(ii) {
     if (return_products == TRUE) {
       sub_frame <- distance_weights_attributes[[ii]][[1]]
 
@@ -297,18 +305,14 @@ hydroweight_attributes <- function(loi = NULL,
 
   ## If return_products == TRUE, remove the attribute table, keep the other parts of the list, and name according to distance_weights
   if (return_products == TRUE) {
-
-    attribute_products <- lapply(1:length(distance_weights_attributes), function(ii){
-
+    attribute_products <- lapply(1:length(distance_weights_attributes), function(ii) {
       sub_products <- distance_weights_attributes[[ii]][-1]
-
     })
     names(attribute_products) <- names(distance_weights)
 
     return_list <- list(attribute_frames_return, attribute_products)
     names(return_list) <- c("attribute_table", "return_products")
   } else {
-
     return_list <- attribute_frames_return
   }
 
