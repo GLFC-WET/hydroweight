@@ -86,6 +86,9 @@ hydroweight_attributes <- function(loi = NULL,
         brick_ret
       })
       loi_r <- raster::brick(loi_r)
+
+      ## Account for fasterizing NAs
+      names(loi_r) <- gsub("NA\\.", "XNA", names(loi_r))
     }
   }
 
@@ -190,13 +193,13 @@ hydroweight_attributes <- function(loi = NULL,
     ## For raster data with categorical numbers
     if (loi_numeric == FALSE) {
 
-      ## Change all categorical NAs to 987654321; these will be converted back to NA shortly
-      loi_r[is.na(loi_r)] <- 987654321
-
       ## Construct brick if "RasterLayer"
       if (inherits(loi_r, "RasterLayer")) {
+
+        ## Change all categorical NAs to 987654321; these will be converted back to NA shortly
+        loi_r[is.na(loi_r)] <- 987654321
+
         (uv <- raster::unique(loi_r, na.last = TRUE))
-        (uv <- uv[!is.na(uv)])
 
         brick_list <- lapply(uv, function(x) {
           loi_r_ret <- loi_r
@@ -209,6 +212,7 @@ hydroweight_attributes <- function(loi = NULL,
 
         loi_r <- raster::brick(brick_list)
         names(loi_r) <- uv
+        names(loi_r) <- gsub("987654321", "NA", names(loi_r))
       }
 
       loi_r_mask <- raster::mask(loi_r, roi_r)
@@ -225,12 +229,10 @@ hydroweight_attributes <- function(loi = NULL,
       (colnames(loi_stats) <- gsub("X", "_", colnames(loi_stats)))
       (colnames(loi_stats) <- paste(loi_attr_col, "prop", colnames(loi_stats), sep = "_"))
       (colnames(loi_stats) <- gsub("__", "_", colnames(loi_stats)))
-      (colnames(loi_stats) <- gsub("987654321", "NA", colnames(loi_stats)))
     }
 
     loi_stats <- data.frame(data.frame(roi_uid = roi_uid), loi_stats)
     colnames(loi_stats)[1] <- roi_uid_col
-    colnames(loi_stats) <- gsub("inv_", "", colnames(loi_stats))
 
     ## Reduce loi_stats frame according to loi_numeric_stats
     if (!is.null(loi_numeric_stats)) {
@@ -242,6 +244,8 @@ hydroweight_attributes <- function(loi = NULL,
 
       loi_stats <- loi_stats[, c(1, col_return)]
     }
+
+    loi_stats
 
     if (return_products == TRUE) {
       ret_list <- list(loi_stats, loi_r_mask, distance_weights_mask)
