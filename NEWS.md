@@ -1,5 +1,9 @@
 ## hydroweight 1.1.0 
 
+* Added README devtools::install_github(whitebox) for access to the whiteboxR github repository since R-Forge version still installs WhiteboxTools version 1.4.0 
+
+## hydroweight 1.1.0 
+
 * Thanks to Courtney Mondoux for recognizing the issue of how `hydroweight_attributes()` incorrectly handled `loi` `NA` values in calculations.
 * Changed how `hydroweight_attributes()` handles `loi` `NA` data. For numeric, ignores `NA` in `loi` and `roi` by ensuring that these two layers have identical `NA` cells. New column added for when `loi_numeric = TRUE` as the `loi` `NA` cell count within `roi`. For categorical, `NA` are now considered a category.  
 * Updated `README` to describe how `hydroweight_attributes` handles `NA` data under section 4.0.

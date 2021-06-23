@@ -135,7 +135,8 @@ there are no spaces in the R library path (check using `.libPaths()`).
 
 ``` r
 ## Follow instructions for whitebox installation accordingly
-install.packages("whitebox", repos="http://R-Forge.R-project.org")
+## install.packages("whitebox", repos="http://R-Forge.R-project.org") # For R-Forge version (currently WhiteboxTools v 1.4)
+devtools::install_github("giswqs/whiteboxR") # For latest version
 
 library(whitebox)
 whitebox::wbt_init()
@@ -183,7 +184,7 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.8s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
@@ -198,7 +199,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.80s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.62s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -245,7 +246,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.12s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -358,8 +359,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-06-01 16:01:38
-#> Running distance-weighting @ 2021-06-01 16:01:40
+#> Preparing hydroweight layers @ 2021-06-23 16:09:02
+#> Running distance-weighting @ 2021-06-23 16:09:05
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -530,15 +531,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-06-01 16:02:00
-#> Preparing hydroweight layers @ 2021-06-01 16:02:00
-#> Running distance-weighting @ 2021-06-01 16:02:02
-#> Running hydroweight for site 2 at 2021-06-01 16:02:07
-#> Preparing hydroweight layers @ 2021-06-01 16:02:07
-#> Running distance-weighting @ 2021-06-01 16:02:09
-#> Running hydroweight for site 3 at 2021-06-01 16:02:13
-#> Preparing hydroweight layers @ 2021-06-01 16:02:13
-#> Running distance-weighting @ 2021-06-01 16:02:16
+#> Running hydroweight for site 1 at 2021-06-23 16:09:26
+#> Preparing hydroweight layers @ 2021-06-23 16:09:26
+#> Running distance-weighting @ 2021-06-23 16:09:29
+#> Running hydroweight for site 2 at 2021-06-23 16:09:33
+#> Preparing hydroweight layers @ 2021-06-23 16:09:33
+#> Running distance-weighting @ 2021-06-23 16:09:36
+#> Running hydroweight for site 3 at 2021-06-23 16:09:40
+#> Preparing hydroweight layers @ 2021-06-23 16:09:40
+#> Running distance-weighting @ 2021-06-23 16:09:43
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites

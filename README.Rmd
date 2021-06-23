@@ -121,7 +121,8 @@ solution is to ensure there are no spaces in the R library path (check using `.l
 
 ```{r, eval = FALSE}
 ## Follow instructions for whitebox installation accordingly
-install.packages("whitebox", repos="http://R-Forge.R-project.org")
+## install.packages("whitebox", repos="http://R-Forge.R-project.org") # For R-Forge version (currently WhiteboxTools v 1.4)
+devtools::install_github("giswqs/whiteboxR") # For latest version
 
 library(whitebox)
 whitebox::wbt_init()
