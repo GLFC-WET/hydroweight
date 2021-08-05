@@ -7,7 +7,7 @@
 hydroweight_attributes(
   loi = NULL,
   loi_attr_col = NULL,
-  loi_categories = NULL,
+  loi_columns = NULL,
   loi_numeric = NULL,
   loi_numeric_stats = NULL,
   roi = NULL,
@@ -23,7 +23,7 @@ hydroweight_attributes(
 
 \item{loi_attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
 
-\item{loi_categories}{character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.}
+\item{loi_columns}{character. The column names over which to summarize the attributes.}
 
 \item{loi_numeric}{logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.}
 

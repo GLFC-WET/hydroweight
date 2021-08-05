@@ -807,7 +807,7 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 hwa_test_numeric_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric = TRUE,
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count"),
   roi = tg_O_catchment,
@@ -854,7 +854,7 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 hwa_test_categorical_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric = FALSE,
   roi = tg_O_catchment,
   roi_uid = "1",
@@ -964,13 +964,13 @@ loi_lulc <- list(
 
 loi_lulc_p_n <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
 )
 
 loi_lulc_p_c <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
-  loi_categories = c("var_1", "var_2")
+  loi_columns = c("var_1", "var_2")
 )
 
 ## These are combined into a list of lists

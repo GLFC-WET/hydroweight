@@ -184,14 +184,14 @@ wbt_breach_depressions(
   dem = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
-#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.7s"
+#> [1] "breach_depressions - Elapsed Time (excluding I/O): 0.18s"
 
 ## Generate d8 flow pointer (note: other flow directions are available)
 wbt_d8_pointer(
   dem = file.path(hydroweight_dir, "toy_dem_breached.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached_d8.tif")
 )
-#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.1s"
+#> [1] "d8_pointer - Elapsed Time (excluding I/O): 0.3s"
 
 ## Generate d8 flow accumulation in units of cells (note: other flow directions are available)
 wbt_d8_flow_accumulation(
@@ -199,7 +199,7 @@ wbt_d8_flow_accumulation(
   output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
-#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.62s"
+#> [1] "d8_flow_accumulation - Elapsed Time (excluding I/O): 0.143s"
 
 ## Generate streams with a stream initiation threshold of 2000 cells
 wbt_extract_streams(
@@ -207,7 +207,7 @@ wbt_extract_streams(
   output = file.path(hydroweight_dir, "toy_dem_streams.tif"),
   threshold = 2000
 )
-#> [1] "extract_streams - Elapsed Time (excluding I/O): 0.1s"
+#> [1] "extract_streams - Elapsed Time (excluding I/O): 0.2s"
 ```
 
 [Back to top](#contents)
@@ -246,7 +246,7 @@ wbt_watershed(
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
-#> [1] "watershed - Elapsed Time (excluding I/O): 0.12s"
+#> [1] "watershed - Elapsed Time (excluding I/O): 0.11s"
 
 tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
 tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
@@ -359,8 +359,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-06-23 16:09:02
-#> Running distance-weighting @ 2021-06-23 16:09:05
+#> Preparing hydroweight layers @ 2021-08-05 11:55:13
+#> Running distance-weighting @ 2021-08-05 11:55:18
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -531,15 +531,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-06-23 16:09:26
-#> Preparing hydroweight layers @ 2021-06-23 16:09:26
-#> Running distance-weighting @ 2021-06-23 16:09:29
-#> Running hydroweight for site 2 at 2021-06-23 16:09:33
-#> Preparing hydroweight layers @ 2021-06-23 16:09:33
-#> Running distance-weighting @ 2021-06-23 16:09:36
-#> Running hydroweight for site 3 at 2021-06-23 16:09:40
-#> Preparing hydroweight layers @ 2021-06-23 16:09:40
-#> Running distance-weighting @ 2021-06-23 16:09:43
+#> Running hydroweight for site 1 at 2021-08-05 11:55:59
+#> Preparing hydroweight layers @ 2021-08-05 11:55:59
+#> Running distance-weighting @ 2021-08-05 11:56:03
+#> Running hydroweight for site 2 at 2021-08-05 11:56:12
+#> Preparing hydroweight layers @ 2021-08-05 11:56:12
+#> Running distance-weighting @ 2021-08-05 11:56:16
+#> Running hydroweight for site 3 at 2021-08-05 11:56:25
+#> Preparing hydroweight layers @ 2021-08-05 11:56:25
+#> Running distance-weighting @ 2021-08-05 11:56:30
 
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
@@ -952,7 +952,7 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 hwa_test_numeric_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric = TRUE,
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count"),
   roi = tg_O_catchment,
@@ -1021,7 +1021,7 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 hwa_test_categorical_polygon <- hydroweight_attributes(
   loi = lulc_p,
   loi_attr_col = "lulc",
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric = FALSE,
   roi = tg_O_catchment,
   roi_uid = "1",
@@ -1155,13 +1155,13 @@ loi_lulc <- list(
 
 loi_lulc_p_n <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
-  loi_categories = c("var_1", "var_2"),
+  loi_columns = c("var_1", "var_2"),
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
 )
 
 loi_lulc_p_c <- list(
   loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
-  loi_categories = c("var_1", "var_2")
+  loi_columns = c("var_1", "var_2")
 )
 
 ## These are combined into a list of lists

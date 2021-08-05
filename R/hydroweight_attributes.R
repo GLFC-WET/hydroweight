@@ -13,9 +13,9 @@
 #' Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS).
 #'
 #' @param loi \code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).
-#' @param loi_attr_col character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)
-#' @param loi_categories character. If \code{loi_numeric = FALSE}, the column names over which to summarize the attributes.
-#' @param loi_numeric logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.
+#' @param loi_attr_col character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)
+#' @param loi_columns character. The column names over which to summarize the attributes.
+#' @param loi_numeric logical. If \code{TRUE}, the `loi_columns` being summarized are numeric. If \code{FALSE}, the `loi_columns` being summarized are categorical.
 #' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.
 #' @param roi \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
@@ -28,7 +28,7 @@
 
 hydroweight_attributes <- function(loi = NULL,
                                    loi_attr_col = NULL,
-                                   loi_categories = NULL,
+                                   loi_columns = NULL,
                                    loi_numeric = NULL,
                                    loi_numeric_stats = NULL,
                                    roi = NULL,
@@ -66,18 +66,18 @@ hydroweight_attributes <- function(loi = NULL,
   ## are used to produce a RasterBrick of these
   if (inherits(loi, "sf")) {
     if (loi_numeric == TRUE) {
-      loi_r <- lapply(loi_categories, function(x) {
+      loi_r <- lapply(loi_columns, function(x) {
         loi_return <- fasterize::fasterize(loi,
           raster = distance_weights[[1]],
           field = x
         )
       })
-      names(loi_r) <- loi_categories
+      names(loi_r) <- loi_columns
       loi_r <- raster::brick(loi_r)
     }
 
     if (loi_numeric == FALSE) {
-      loi_r <- lapply(loi_categories, function(x) {
+      loi_r <- lapply(loi_columns, function(x) {
         brick_ret <- fasterize::fasterize(loi,
           raster = distance_weights[[1]],
           by = x
@@ -178,8 +178,8 @@ hydroweight_attributes <- function(loi = NULL,
         ), names_from = "cats")
         colnames(loi_stats_w) <- gsub("loi_", "", colnames(loi_stats_w))
 
-        (vars_strings <- stringr::str_extract(colnames(loi_stats_w), loi_categories))
-        (stats_strings <- stringr::str_replace(colnames(loi_stats_w), paste0("_", loi_categories), ""))
+        (vars_strings <- stringr::str_extract(colnames(loi_stats_w), loi_columns))
+        (stats_strings <- stringr::str_replace(colnames(loi_stats_w), paste0("_", loi_columns), ""))
         (colnames_strings <- paste(vars_strings, stats_strings, sep = "_"))
 
         loi_stats_w <- as.data.frame(loi_stats_w)

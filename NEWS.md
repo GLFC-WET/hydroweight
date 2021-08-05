@@ -1,3 +1,7 @@
+## hydroweight 1.2.0 
+
+* changed `hydroweight_attributes()`'s `loi_categories` to `loi_columns` and removed mention that `loi_categories` is only for when `loi_numeric = TRUE` (this was incorrect). `loi_columns` can be used to specify columns over which numeric or categorical attributes can be generated. Thanks to Ellie Austin for finding an error leading to this need for clarification.
+
 ## hydroweight 1.1.0 
 
 * Added README devtools::install_github(whitebox) for access to the whiteboxR github repository since R-Forge version still installs WhiteboxTools version 1.4.0 
