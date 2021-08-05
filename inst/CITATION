@@ -12,6 +12,6 @@ citEntry(entry = "Manual",
 
   textVersion  =
   paste("Brian W. Kielstra, Robert W. Mackereth, Stephanie J. Melles, and Erik J.S. Emilson (2021).",
-        "hydroweight: Inverse distance-weighted rasters and landscape attributes.", "R package version 1.1.0.",
+        "hydroweight: Inverse distance-weighted rasters and landscape attributes.", "R package version 1.2.0.",
         "https://doi.org/10.5281/zenodo.4728558.")
 )
