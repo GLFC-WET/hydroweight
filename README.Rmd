@@ -66,8 +66,8 @@ target where areas nearby have more weight than those farther away (i.e., invers
 distance-weighting). A set of inverse distance weighting scenarios for stream 
 survey sites was described in Peterson *et al.* (2011) that included various 
 types of Euclidean and flow-path distances to targets. Tools are implemented 
-as *IDW-Plus* in *ArcGIS* (Peterson et al. 2017) as well as in *rdwplus* in R 
-through GRASS GIS (Pearse et al. 2019).
+as *IDW-Plus* in *ArcGIS* (Peterson et al. 2017) as well as in *rdwplus* in *R* 
+through *GRASS GIS* (Pearse et al. 2019).
 
 ***hydroweight*** replicates the above approaches but also provides a set of simple and 
 flexible functions to accommodate a wider set of scenarios and statistics 
@@ -104,20 +104,14 @@ Distance weights defined by Peterson *et al.* (2011) are:
 |lumped|all weights = 1|`dem`, `target_O`/`target_S`|
 |iEucO| weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)|`dem`, `target_O`|
 |iEucS| weighted inverse Euclidean distance to `target_S` (i.e., streams)|`dem`, `target_S`|
-|iFLO| weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`| 
-|iFLS| weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`| 
-|HAiFLO| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`, `accum`| 
+|iFLO| weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`| |iFLS| weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`| |HAiFLO| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`, `accum`| 
 |HAiFLS| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`, `accum`| 
 
 [Back to top](#contents)
 
 ## 2.0 System setup and installation
 
-*WhiteboxTools* must be installed for ***hydroweight*** to run. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation. 
-*R*'s `whitebox` runs `whitebox_tools` which is installed to `your-R-libary-path/whitebox/WBT`. 
-This may cause problems depending on your specific computer setup. One possible 
-solution is to ensure there are no spaces in the R library path (check using `.libPaths()`).
-
+*WhiteboxTools* and *whitebox* are required for ***hydroweight***. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation.
 
 ```{r, eval = FALSE}
 ## Follow instructions for whitebox installation accordingly
@@ -125,8 +119,12 @@ solution is to ensure there are no spaces in the R library path (check using `.l
 devtools::install_github("giswqs/whiteboxR") # For latest version
 
 library(whitebox)
-whitebox::wbt_init()
-whitebox::wbt_version()
+## Your next step is to download and install the WhiteboxTools binary:
+##    > whitebox::install_whitebox()
+## If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`': 
+##     > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
+## whitebox::install_whitebox()
+## whitebox::wbt_version()
 
 ## Install current version of hydroweight
 devtools::install_github("bkielstr/hydroweight@main")

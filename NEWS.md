@@ -1,3 +1,8 @@
+## hydroweight 1.2.1 
+
+* changed some README.Rmd text to reflect installation changes to `whitebox`.
+* updated author e-mail address
+
 ## hydroweight 1.2.0 
 
 * changed `hydroweight_attributes()`'s `loi_categories` to `loi_columns` and removed mention that `loi_categories` is only for when `loi_numeric = TRUE` (this was incorrect). `loi_columns` can be used to specify columns over which numeric or categorical attributes can be generated. Thanks to Ellie Austin for finding an error leading to this need for clarification.

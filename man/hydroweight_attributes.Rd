@@ -21,11 +21,11 @@ hydroweight_attributes(
 \arguments{
 \item{loi}{\code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
 
-\item{loi_attr_col}{character. A name that will precede the attributes (e.g., loi_mean, loi_median etc.)}
+\item{loi_attr_col}{character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)}
 
 \item{loi_columns}{character. The column names over which to summarize the attributes.}
 
-\item{loi_numeric}{logical. If \code{TRUE}, the attributes being summarized are numeric. If \code{FALSE}, the attributes being summarized are categorical.}
+\item{loi_numeric}{logical. If \code{TRUE}, the \code{loi_columns} being summarized are numeric. If \code{FALSE}, the \code{loi_columns} being summarized are categorical.}
 
 \item{loi_numeric_stats}{character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.}
 
