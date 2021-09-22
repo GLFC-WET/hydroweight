@@ -81,7 +81,7 @@ on a digital elevation model raster. Examples of targets include single points,
 areas such as lakes, or linear features such as streams. The function outputs
 a list of `length(weighting_scheme)` and an accompanying `*.rds` file
 of distance-weighted rasters for targets (`target_O` is a point/area target as
-in iFLO and `target_S` is a stream/waterbody target as in iFLS in
+in iFLO and `target_S` is a linear feature target as in iFLS in
 Peterson *et al.* 2011). IMPORTANTLY, this function acts on a single set of targets 
 but can produce multiple weights. The distance-weighted rasters can be used 
 for generating distance-weighted attributes with `hydroweight_attributes()` (e.g., % urban
@@ -115,16 +115,30 @@ Distance weights defined by Peterson *et al.* (2011) are:
 
 ```{r, eval = FALSE}
 ## Follow instructions for whitebox installation accordingly
-## install.packages("whitebox", repos="http://R-Forge.R-project.org") # For R-Forge version (currently WhiteboxTools v 1.4)
-devtools::install_github("giswqs/whiteboxR") # For latest version
+## devtools::install_github("giswqs/whiteboxR") # For development version
+## whitebox is now available on CRAN
+install.packages("whitebox")
 
 library(whitebox)
+install_whitebox()
+## Possible warning message:
+## ------------------------------------------------------------------------
+## Could not find WhiteboxTools!
+## ------------------------------------------------------------------------
+## 
 ## Your next step is to download and install the WhiteboxTools binary:
-##    > whitebox::install_whitebox()
+##     > whitebox::install_whitebox()
+##
 ## If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`': 
-##     > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
-## whitebox::install_whitebox()
-## whitebox::wbt_version()
+##    > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
+##
+## For whitebox package documentation, ask for help:
+##    > ??whitebox
+##
+## For more information visit https://giswqs.github.io/whiteboxR/
+##
+## ------------------------------------------------------------------------
+
 
 ## Install current version of hydroweight
 devtools::install_github("bkielstr/hydroweight@main")
@@ -207,7 +221,7 @@ stream network (`tg_O_multi`) and their catchments (`tg_O_multi_catchment`).
 ```{r, fig.width = 5, fig.height = 5, message = FALSE, error = FALSE, warning = FALSE}
 ## For hydroweight, there are target_O and target_S
 ## target_O is a target point/area for calculating distances
-## target_S is a stream/waterbody target for calculating distances
+## target_S is a stream/linear feature target for calculating distances
 
 ## Generate target_O, tg_O, representing a lake.
 tg_O <- toy_dem < 220
@@ -282,7 +296,7 @@ and using our streams as `target_S` for iEucS, iFLS, and HAiFLS. For export of
 the distance-weighted rasters, we use "Lake"; the .rds exported from `hydroweight()`
 to `hydroweight_dir` will now be called "Lake_inv_distances.rds". Since our DEM
 is small, we decide to not clip our region (i.e., `clip_region = NULL`). Using
-`OS_combine = TRUE`, we indicate that distances to the nearest waterbody will be
+`OS_combine = TRUE`, we indicate that distances to the nearest water feature will be
 either the lake or stream. Furthermore, for HAiFLO or HAiFLS, both the lake and
 streams will be set to NoData for their calculation as these represent areas 
 of concentrated flow rather than areas of direct terrestrial-aquatic interaction 

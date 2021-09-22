@@ -89,7 +89,7 @@ There are two functions:
     function outputs a list of `length(weighting_scheme)` and an
     accompanying `*.rds` file of distance-weighted rasters for targets
     (`target_O` is a point/area target as in iFLO and `target_S` is a
-    stream/waterbody target as in iFLS in Peterson *et al.* 2011).
+    linear feature target as in iFLS in Peterson *et al.* 2011).
     IMPORTANTLY, this function acts on a single set of targets but can
     produce multiple weights. The distance-weighted rasters can be used
     for generating distance-weighted attributes with
@@ -130,16 +130,30 @@ installation.
 
 ``` r
 ## Follow instructions for whitebox installation accordingly
-## install.packages("whitebox", repos="http://R-Forge.R-project.org") # For R-Forge version (currently WhiteboxTools v 1.4)
-devtools::install_github("giswqs/whiteboxR") # For latest version
+## devtools::install_github("giswqs/whiteboxR") # For development version
+## whitebox is now available on CRAN
+install.packages("whitebox")
 
 library(whitebox)
+install_whitebox()
+## Possible warning message:
+## ------------------------------------------------------------------------
+## Could not find WhiteboxTools!
+## ------------------------------------------------------------------------
+## 
 ## Your next step is to download and install the WhiteboxTools binary:
-##    > whitebox::install_whitebox()
+##     > whitebox::install_whitebox()
+##
 ## If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`': 
-##     > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
-## whitebox::install_whitebox()
-## whitebox::wbt_version()
+##    > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
+##
+## For whitebox package documentation, ask for help:
+##    > ??whitebox
+##
+## For more information visit https://giswqs.github.io/whiteboxR/
+##
+## ------------------------------------------------------------------------
+
 
 ## Install current version of hydroweight
 devtools::install_github("bkielstr/hydroweight@main")
@@ -226,7 +240,7 @@ along the stream network (`tg_O_multi`) and their catchments
 ``` r
 ## For hydroweight, there are target_O and target_S
 ## target_O is a target point/area for calculating distances
-## target_S is a stream/waterbody target for calculating distances
+## target_S is a stream/linear feature target for calculating distances
 
 ## Generate target_O, tg_O, representing a lake.
 tg_O <- toy_dem < 220
@@ -304,14 +318,14 @@ and HAiFLS. For export of the distance-weighted rasters, we use “Lake”;
 the .rds exported from `hydroweight()` to `hydroweight_dir` will now be
 called “Lake\_inv\_distances.rds”. Since our DEM is small, we decide to
 not clip our region (i.e., `clip_region = NULL`). Using
-`OS_combine = TRUE`, we indicate that distances to the nearest waterbody
-will be either the lake or stream. Furthermore, for HAiFLO or HAiFLS,
-both the lake and streams will be set to NoData for their calculation as
-these represent areas of concentrated flow rather than areas of direct
-terrestrial-aquatic interaction (see Peterson *et al.* 2011). Our `dem`
-and `flow_accum` are assigned using character strings with the `.tif`
-files located in `hydroweight_dir`. Weighting schemes and the inverse
-function are indicated.
+`OS_combine = TRUE`, we indicate that distances to the nearest water
+feature will be either the lake or stream. Furthermore, for HAiFLO or
+HAiFLS, both the lake and streams will be set to NoData for their
+calculation as these represent areas of concentrated flow rather than
+areas of direct terrestrial-aquatic interaction (see Peterson *et al.*
+2011). Our `dem` and `flow_accum` are assigned using character strings
+with the `.tif` files located in `hydroweight_dir`. Weighting schemes
+and the inverse function are indicated.
 
 Note that these distance-weighted rasters will eventually be clipped to
 an `roi` - a region of interest like a site’s catchment - in
@@ -353,9 +367,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-09-03 14:02:52
-#> Running distance-weighting @ 2021-09-03 14:02:55
-
+#> Preparing hydroweight layers @ 2021-09-22 15:25:51
+#> Running distance-weighting @ 2021-09-22 15:25:54
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
 # hw_test_1[[1]] ## lumped
@@ -525,16 +538,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-09-03 14:03:19
-#> Preparing hydroweight layers @ 2021-09-03 14:03:19
-#> Running distance-weighting @ 2021-09-03 14:03:21
-#> Running hydroweight for site 2 at 2021-09-03 14:03:26
-#> Preparing hydroweight layers @ 2021-09-03 14:03:26
-#> Running distance-weighting @ 2021-09-03 14:03:29
-#> Running hydroweight for site 3 at 2021-09-03 14:03:33
-#> Preparing hydroweight layers @ 2021-09-03 14:03:33
-#> Running distance-weighting @ 2021-09-03 14:03:36
-
+#> Running hydroweight for site 1 at 2021-09-22 15:26:17
+#> Preparing hydroweight layers @ 2021-09-22 15:26:17
+#> Running distance-weighting @ 2021-09-22 15:26:20
+#> Running hydroweight for site 2 at 2021-09-22 15:26:26
+#> Preparing hydroweight layers @ 2021-09-22 15:26:26
+#> Running distance-weighting @ 2021-09-22 15:26:29
+#> Running hydroweight for site 3 at 2021-09-22 15:26:34
+#> Preparing hydroweight layers @ 2021-09-22 15:26:34
+#> Running distance-weighting @ 2021-09-22 15:26:36
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
 ## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site
@@ -717,7 +729,6 @@ names(hwa_test_numeric$attribute_table)
 #> [17] "iEucS_ndvi_distwtd_mean"   "iEucS_ndvi_distwtd_sd"    
 #> [19] "iFLS_ndvi_distwtd_mean"    "iFLS_ndvi_distwtd_sd"     
 #> [21] "HAiFLS_ndvi_distwtd_mean"  "HAiFLS_ndvi_distwtd_sd"
-
 ## Resultant structure
 ## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
@@ -811,7 +822,6 @@ names(hwa_test_categorical$attribute_table)
 #> [22] "iFLS_lulc_prop_1"   "iFLS_lulc_prop_2"   "iFLS_lulc_prop_3"  
 #> [25] "iFLS_lulc_prop_4"   "HAiFLS_lulc_prop_1" "HAiFLS_lulc_prop_2"
 #> [28] "HAiFLS_lulc_prop_3" "HAiFLS_lulc_prop_4"
-
 ## Resultant structure
 ## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_categorical[[1]] == hw_test_categorical$attribute_table # Attribute table
@@ -972,7 +982,6 @@ names(hwa_test_numeric_polygon$attribute_table)
 #> [37] "iFLS_lulc_var_2_distwtd_sd"      "HAiFLS_lulc_var_1_distwtd_mean" 
 #> [39] "HAiFLS_lulc_var_2_distwtd_mean"  "HAiFLS_lulc_var_1_distwtd_sd"   
 #> [41] "HAiFLS_lulc_var_2_distwtd_sd"
-
 ## Resultant structure
 ## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_numeric_polygon[[1]] == hw_test_numeric_polygon$attribute_table # Attribute table
@@ -1041,7 +1050,6 @@ names(hwa_test_categorical_polygon$attribute_table)
 #> [39] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_1_2" 
 #> [41] "HAiFLS_lulc_prop_var_2_22" "HAiFLS_lulc_prop_var_2_29"
 #> [43] "HAiFLS_lulc_prop_var_2_21"
-
 ## Resultant structure
 ## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_categorical_polygon[[1]] == hw_test_categorical_polygon$attribute_table # Attribute table

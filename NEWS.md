@@ -1,3 +1,9 @@
+## hydroweight 1.2.2
+
+* removes mention of "waterbody" when discussing linear features and target_S. 
+* turns off hard coded verbose_mode = TRUE in `whitebox` functions
+* updates README.Rmd to reflect CRAN availability and installation
+
 ## hydroweight 1.2.1 
 
 * changed some README.Rmd text to reflect installation changes to `whitebox`.
