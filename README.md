@@ -367,8 +367,8 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-09-22 15:25:51
-#> Running distance-weighting @ 2021-09-22 15:25:54
+#> Preparing hydroweight layers @ 2021-09-22 16:29:58
+#> Running distance-weighting @ 2021-09-22 16:30:01
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
 # hw_test_1[[1]] ## lumped
@@ -538,15 +538,15 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-09-22 15:26:17
-#> Preparing hydroweight layers @ 2021-09-22 15:26:17
-#> Running distance-weighting @ 2021-09-22 15:26:20
-#> Running hydroweight for site 2 at 2021-09-22 15:26:26
-#> Preparing hydroweight layers @ 2021-09-22 15:26:26
-#> Running distance-weighting @ 2021-09-22 15:26:29
-#> Running hydroweight for site 3 at 2021-09-22 15:26:34
-#> Preparing hydroweight layers @ 2021-09-22 15:26:34
-#> Running distance-weighting @ 2021-09-22 15:26:36
+#> Running hydroweight for site 1 at 2021-09-22 16:30:23
+#> Preparing hydroweight layers @ 2021-09-22 16:30:23
+#> Running distance-weighting @ 2021-09-22 16:30:26
+#> Running hydroweight for site 2 at 2021-09-22 16:30:31
+#> Preparing hydroweight layers @ 2021-09-22 16:30:31
+#> Running distance-weighting @ 2021-09-22 16:30:33
+#> Running hydroweight for site 3 at 2021-09-22 16:30:38
+#> Preparing hydroweight layers @ 2021-09-22 16:30:38
+#> Running distance-weighting @ 2021-09-22 16:30:41
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
 ## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site

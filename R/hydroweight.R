@@ -60,6 +60,9 @@ hydroweight <- function(hydroweight_dir = NULL,
                         }) {
   message("Preparing hydroweight layers @ ", Sys.time())
 
+  ## Set whitebox verbose_mode to FALSE
+  whitebox::wbt_options(verbose = FALSE)
+
   ## PREPARE HYDROWEIGHT LAYERS ----
 
   (dem_r <- raster::raster(file.path(hydroweight_dir, dem)))
@@ -131,13 +134,13 @@ hydroweight <- function(hydroweight_dir = NULL,
       input = file.path(hydroweight_dir, dem),
       output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
       reclass_vals = "1,min,30000", # because max sometimes misses max values?
-      # verbose_mode = TRUE
+      verbose_mode = FALSE
     )
 
     whitebox::wbt_raster_to_vector_polygons(
       input = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
       output = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-      # verbose_mode = TRUE
+      verbose_mode = FALSE
     )
 
     clip_region <- sf::st_read(file.path(hydroweight_dir, "TEMP-clip_region.shp"), quiet = TRUE)
@@ -156,8 +159,8 @@ hydroweight <- function(hydroweight_dir = NULL,
   whitebox::wbt_clip_raster_to_polygon(
     input = file.path(hydroweight_dir, dem),
     polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-    output = file.path(hydroweight_dir, "TEMP-dem_clip.tif")
-    # verbose_mode = TRUE
+    output = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
+    verbose_mode = FALSE
   )
 
   dem_clip <- raster::raster(file.path(hydroweight_dir, "TEMP-dem_clip.tif"))
@@ -375,8 +378,8 @@ hydroweight <- function(hydroweight_dir = NULL,
       source = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
       cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
       out_accum = file.path(hydroweight_dir, "TEMP-cost_distance.tif"),
-      out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif")
-      # verbose_mode = TRUE
+      out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif"),
+      verbose_mode = FALSE
     )
 
     iEucO <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
@@ -397,8 +400,8 @@ hydroweight <- function(hydroweight_dir = NULL,
         source = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
         out_accum = file.path(hydroweight_dir, "TEMP-cost_distance.tif"),
-        out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif")
-        # verbose_mode = TRUE
+        out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif"),
+        verbose_mode = FALSE
       )
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
@@ -417,8 +420,8 @@ hydroweight <- function(hydroweight_dir = NULL,
         source = file.path(hydroweight_dir, "TEMP-OS_combine.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
         out_accum = file.path(hydroweight_dir, "TEMP-cost_distance.tif"),
-        out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif")
-        # verbose_mode = TRUE
+        out_backlink = file.path(hydroweight_dir, "TEMP-cost_backlink.tif"),
+        verbose_mode = FALSE
       )
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
@@ -438,8 +441,8 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_downslope_distance_to_stream(
       dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       streams = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
-      output = file.path(hydroweight_dir, "TEMP-flowdist.tif")
-      # verbose_mode = TRUE
+      output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+      verbose_mode = FALSE
     )
 
     iFLO <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
@@ -459,8 +462,8 @@ hydroweight <- function(hydroweight_dir = NULL,
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
-        output = file.path(hydroweight_dir, "TEMP-flowdist.tif")
-        # verbose_mode = TRUE
+        output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+        verbose_mode = FALSE
       )
 
       iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
@@ -478,8 +481,8 @@ hydroweight <- function(hydroweight_dir = NULL,
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-OS_combine.tif"),
-        output = file.path(hydroweight_dir, "TEMP-flowdist.tif")
-        # verbose_mode = TRUE
+        output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+        verbose_mode = FALSE
       )
 
       iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
@@ -504,8 +507,8 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_clip_raster_to_polygon(
       input = file.path(hydroweight_dir, flow_accum),
       polygons = file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-      output = file.path(hydroweight_dir, "TEMP-flow_accum_clip.tif")
-      # verbose_mode = TRUE
+      output = file.path(hydroweight_dir, "TEMP-flow_accum_clip.tif"),
+      verbose_mode = FALSE
     )
 
     accum_clip <- raster::raster(file.path(hydroweight_dir, "TEMP-flow_accum_clip.tif"))

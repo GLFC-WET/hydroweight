@@ -1,6 +1,6 @@
 Package: hydroweight
 Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
-Version: 1.2.2
+Version: 1.2.3
 Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",

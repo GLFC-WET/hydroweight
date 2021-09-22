@@ -1,3 +1,7 @@
+## hydroweight 1.2.3 
+
+* sets verbose_mode = FALSE for all `whitebox` functions using `wbt_options` in `hydroweight()`.
+
 ## hydroweight 1.2.2
 
 * removes mention of "waterbody" when discussing linear features and target_S. 

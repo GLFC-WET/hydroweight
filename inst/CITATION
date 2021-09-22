@@ -6,7 +6,7 @@ citEntry(entry = "Manual",
                             as.person("Robert W. Mackereth"),
 		                        as.person("Stephanie J. Melles"),
 		                        as.person("Erik J.S. Emilson")),
-  note         = "R package version 1.2.2",
+  note         = "R package version 1.2.3",
   url          = "https://github.com/bkielstr/hydroweight",
   doi          = "https://doi.org/10.5281/zenodo.4728558",
 
