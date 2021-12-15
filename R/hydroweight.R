@@ -42,8 +42,8 @@
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
-#' @param inv_function function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
-#' @return A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
+#' @param inv_function function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
+#' @return Named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
 #' @export
 #'
 hydroweight <- function(hydroweight_dir = NULL,
@@ -58,12 +58,19 @@ hydroweight <- function(hydroweight_dir = NULL,
                         inv_function = function(x) {
                           (x * 0.001 + 1)^-1
                         }) {
-  message("Preparing hydroweight layers @ ", Sys.time())
+
+  ## SET UP ----
+
+  ## Set up raster temp file for out-of-memory raster files
+  raster::rasterOptions(tmpdir = hydroweight_dir)
+  raster::rasterTmpFile(prefix = "hydroweight_")
 
   ## Set whitebox verbose_mode to FALSE
   whitebox::wbt_options(verbose = FALSE)
 
   ## PREPARE HYDROWEIGHT LAYERS ----
+
+  message("Preparing hydroweight layers @ ", Sys.time())
 
   (dem_r <- raster::raster(file.path(hydroweight_dir, dem)))
 
@@ -117,13 +124,6 @@ hydroweight <- function(hydroweight_dir = NULL,
           input = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
           output = file.path(hydroweight_dir, "TEMP-clip_region.shp")
         )
-
-        # clip_region[!is.na(clip_region)] <- 1
-        # clip_region <- raster::rasterToPolygons(clip_region, dissolve = TRUE)
-        # clip_region <- sf::st_as_sf(clip_region)
-        # sf::st_write(clip_region, file.path(hydroweight_dir, "TEMP-clip_region.shp"),
-        #  append = FALSE, quiet = TRUE
-        # )
       }
     }
   }
@@ -133,7 +133,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, dem),
       output = file.path(hydroweight_dir, "TEMP-clip_region.tif"),
-      reclass_vals = "1,min,30000", # because max sometimes misses max values?
+      reclass_vals = "1,min,1000000", # because max sometimes misses max values?
       verbose_mode = FALSE
     )
 
@@ -349,14 +349,12 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP-lumped.tif"),
-      reclass_vals = "1,min,30000"
+      reclass_vals = "1,min,1000000"
     ) # because max sometimes misses max values?
 
     lumped_inv <- raster::raster(file.path(hydroweight_dir, "TEMP-lumped.tif"), values = TRUE)
     raster::crs(lumped_inv) <- dem_crs
     lumped_inv <- raster::setValues(raster::raster(lumped_inv), lumped_inv[])
-    # lumped_inv <- dem_clip
-    # lumped_inv[!is.na(lumped_inv)] <- 1
   }
 
   ## iEucO, Euclidean distance to target_O ----
@@ -364,15 +362,8 @@ hydroweight <- function(hydroweight_dir = NULL,
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-      reclass_vals = "1,min,30000"
+      reclass_vals = "1,min,1000000"
     ) # because max sometimes misses max values?
-
-    # cost <- dem_clip
-    # cost[cost > 0] <- 1
-    # raster::writeRaster(cost,
-    #  file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
-    #  overwrite = TRUE, options = c("COMPRESS=NONE")
-    # )
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
@@ -383,9 +374,27 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
 
     iEucO <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
-    iEucO_inv <- raster::calc(iEucO, fun = inv_function)
-    raster::crs(iEucO_inv) <- dem_crs
 
+    if(is.list(inv_function)){
+
+      if("iEucO" %in% names(inv_function)){
+
+        iEucO_inv <- raster::calc(iEucO, fun = inv_function$iEucO)
+
+      } else {
+
+        stop("no `iEucO` found in names(inv_function); please name elements of `inv_function`")
+
+      }
+
+
+    } else {
+
+      iEucO_inv <- raster::calc(iEucO, fun = inv_function)
+
+    }
+
+    raster::crs(iEucO_inv) <- dem_crs
     raster::writeRaster(iEucO_inv,
       file.path(hydroweight_dir, "TEMP-iEucO.tif"),
       overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -393,7 +402,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
   }
 
-  ## iEucS, Euclidean distance to streams ----
+  ## iEucS, Euclidean distance to target_S ----
   if ("iEucS" %in% weighting_scheme) {
     if (OS_combine == FALSE) {
       whitebox::wbt_cost_distance(
@@ -405,9 +414,27 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
-      iEucS_inv <- raster::calc(iEucS, fun = inv_function)
-      raster::crs(iEucS_inv) <- dem_crs
 
+      if(is.list(inv_function)){
+
+        if("iEucS" %in% names(inv_function)){
+
+          iEucS_inv <- raster::calc(iEucS, fun = inv_function$iEucS)
+
+        } else {
+
+          stop("no `iEucS` found in names(inv_function); please name elements of `inv_function`")
+
+        }
+
+
+      } else {
+
+        iEucS_inv <- raster::calc(iEucS, fun = inv_function)
+
+      }
+
+      raster::crs(iEucS_inv) <- dem_crs
       raster::writeRaster(iEucS_inv,
         file.path(hydroweight_dir, "TEMP-iEucS.tif"),
         overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -425,9 +452,27 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iEucS <- raster::raster(file.path(hydroweight_dir, "TEMP-cost_distance.tif"))
-      iEucS_inv <- raster::calc(iEucS, fun = inv_function)
-      raster::crs(iEucS_inv) <- dem_crs
 
+      if(is.list(inv_function)){
+
+        if("iEucS" %in% names(inv_function)){
+
+          iEucS_inv <- raster::calc(iEucS, fun = inv_function$iEucS)
+
+        } else {
+
+          stop("no `iEucS` found in names(inv_function); please name elements of `inv_function`")
+
+        }
+
+
+      } else {
+
+        iEucS_inv <- raster::calc(iEucS, fun = inv_function)
+
+      }
+
+      raster::crs(iEucS_inv) <- dem_crs
       raster::writeRaster(iEucS_inv,
         file.path(hydroweight_dir, "TEMP-iEucS.tif"),
         overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -437,18 +482,36 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
 
   ## iFLO, flow line distance to target_O ----
-  if ("iFLO" %in% weighting_scheme) {
+  if ("iFLO" %in% weighting_scheme | "HAiFLO" %in% weighting_scheme) {
     whitebox::wbt_downslope_distance_to_stream(
       dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       streams = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
-      output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+      output = file.path(hydroweight_dir, "TEMP-flowdist-iFLO.tif"),
       verbose_mode = FALSE
     )
 
-    iFLO <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
-    iFLO_inv <- raster::calc(iFLO, fun = inv_function)
-    raster::crs(iFLO_inv) <- dem_crs
+    iFLO <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLO.tif"))
 
+    if(is.list(inv_function)){
+
+      if("iFLO" %in% names(inv_function)){
+
+        iFLO_inv <- raster::calc(iFLO, fun = inv_function$iFLO)
+
+      } else {
+
+        stop("no `iFLO` found in names(inv_function); please name elements of `inv_function`")
+
+      }
+
+
+    } else {
+
+      iFLO_inv <- raster::calc(iFLO, fun = inv_function)
+
+    }
+
+    raster::crs(iFLO_inv) <- dem_crs
     raster::writeRaster(iFLO_inv,
       file.path(hydroweight_dir, "TEMP-iFLO.tif"),
       overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -457,19 +520,37 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
 
   ## iFLS, flow line distance to target_S ----
-  if ("iFLS" %in% weighting_scheme) {
+  if ("iFLS" %in% weighting_scheme | "HAiFLS" %in% weighting_scheme) {
     if (OS_combine == FALSE) {
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
-        output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+        output = file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"),
         verbose_mode = FALSE
       )
 
-      iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
-      iFLS_inv <- raster::calc(iFLS, fun = inv_function)
-      raster::crs(iFLS_inv) <- dem_crs
+      iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"))
 
+      if(is.list(inv_function)){
+
+        if("iFLS" %in% names(inv_function)){
+
+          iFLS_inv <- raster::calc(iFLS, fun = inv_function$iFLS)
+
+        } else {
+
+          stop("no `iFLS` found in names(inv_function); please name elements of `inv_function`")
+
+        }
+
+
+      } else {
+
+        iFLS_inv <- raster::calc(iFLS, fun = inv_function)
+
+      }
+
+      raster::crs(iFLS_inv) <- dem_crs
       raster::writeRaster(iFLS_inv,
         file.path(hydroweight_dir, "TEMP-iFLS.tif"),
         overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -481,14 +562,32 @@ hydroweight <- function(hydroweight_dir = NULL,
       whitebox::wbt_downslope_distance_to_stream(
         dem = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
         streams = file.path(hydroweight_dir, "TEMP-OS_combine.tif"),
-        output = file.path(hydroweight_dir, "TEMP-flowdist.tif"),
+        output = file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"),
         verbose_mode = FALSE
       )
 
-      iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist.tif"))
-      iFLS_inv <- raster::calc(iFLS, fun = inv_function)
-      raster::crs(iFLS_inv) <- dem_crs
+      iFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"))
 
+      if(is.list(inv_function)){
+
+        if("iFLS" %in% names(inv_function)){
+
+          iFLS_inv <- raster::calc(iFLS, fun = inv_function$iFLS)
+
+        } else {
+
+          stop("no `iFLS` found in names(inv_function); please name elements of `inv_function`")
+
+        }
+
+
+      } else {
+
+        iFLS_inv <- raster::calc(iFLS, fun = inv_function)
+
+      }
+
+      raster::crs(iFLS_inv) <- dem_crs
       raster::writeRaster(iFLS_inv,
         file.path(hydroweight_dir, "TEMP-iFLS.tif"),
         overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -516,8 +615,31 @@ hydroweight <- function(hydroweight_dir = NULL,
     raster::crs(accum_clip) <- dem_crs
 
     if ("HAiFLO" %in% weighting_scheme) {
-      HAiFLO_inv <- iFLO_inv * accum_clip
 
+      HAiFLO <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLO.tif"))
+
+      if(is.list(inv_function)){
+
+        if("HAiFLO" %in% names(inv_function)){
+
+          iFLO_inv <- raster::calc(HAiFLO, fun = inv_function$HAiFLO)
+
+        } else {
+
+          stop("no `HAiFLO` found in names(inv_function); please name elements of `inv_function`")
+
+        }
+
+
+      } else {
+
+        HAiFLO_inv <- raster::calc(HAiFLO, fun = inv_function)
+
+      }
+
+      HAiFLO_inv <- HAiFLO_inv * accum_clip
+
+      raster::crs(HAiFLO_inv) <- dem_crs
       raster::writeRaster(HAiFLO_inv,
         file.path(hydroweight_dir, "TEMP-HAiFLO.tif"),
         overwrite = TRUE, options = c("COMPRESS=NONE"),
@@ -527,7 +649,29 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     if ("HAiFLS" %in% weighting_scheme) {
       if (OS_combine == TRUE) {
-        HAiFLS_inv <- iFLS_inv * accum_clip
+
+        HAiFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"))
+
+        if(is.list(inv_function)){
+
+          if("HAiFLS" %in% names(inv_function)){
+
+            iFLS_inv <- raster::calc(HAiFLS, fun = inv_function$HAiFLS)
+
+          } else {
+
+            stop("no `HAiFLS` found in names(inv_function); please name elements of `inv_function`")
+
+          }
+
+
+        } else {
+
+          HAiFLS_inv <- raster::calc(HAiFLS, fun = inv_function)
+
+        }
+
+        HAiFLS_inv <- HAiFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, OS_combine_r, maskvalue = 1)
 
         raster::writeRaster(HAiFLS_inv,
@@ -538,7 +682,28 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       if (OS_combine == FALSE) {
-        HAiFLS_inv <- iFLS_inv * accum_clip
+        HAiFLS <- raster::raster(file.path(hydroweight_dir, "TEMP-flowdist-iFLS.tif"))
+
+        if(is.list(inv_function)){
+
+          if("HAiFLS" %in% names(inv_function)){
+
+            iFLS_inv <- raster::calc(HAiFLS, fun = inv_function$HAiFLS)
+
+          } else {
+
+            stop("no `HAiFLS` found in names(inv_function); please name elements of `inv_function`")
+
+          }
+
+
+        } else {
+
+          HAiFLS_inv <- raster::calc(HAiFLS, fun = inv_function)
+
+        }
+
+        HAiFLS_inv <- HAiFLS_inv * accum_clip
         HAiFLS_inv <- raster::mask(HAiFLS_inv, target_S_r, maskvalue = 1)
 
         raster::writeRaster(HAiFLS_inv,
@@ -563,6 +728,11 @@ hydroweight <- function(hydroweight_dir = NULL,
     hydroweight_dir,
     paste0(target_uid, "_inv_distances.rds")
   ))
+
+  ## CLEAN UP ----
+  temp_rasters <- list.files(path = hydroweight_dir, pattern = "hydroweight",
+                             full.names = TRUE)
+  file.remove(temp_rasters)
 
   return(dist_list)
 }

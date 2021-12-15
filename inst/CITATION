@@ -6,7 +6,7 @@ citEntry(entry = "Manual",
                             as.person("Robert W. Mackereth"),
 		                        as.person("Stephanie J. Melles"),
 		                        as.person("Erik J.S. Emilson")),
-  note         = "R package version 1.2.3",
+  note         = "R package version 1.2.4",
   url          = "https://github.com/bkielstr/hydroweight",
   doi          = "https://doi.org/10.5281/zenodo.4728558",
 
@@ -14,4 +14,25 @@ citEntry(entry = "Manual",
   paste("Brian W. Kielstra, Robert W. Mackereth, Stephanie J. Melles, and Erik J.S. Emilson (2021).",
         "hydroweight: Inverse distance-weighted rasters and landscape attributes.", "R package version 1.2.0.",
         "https://doi.org/10.5281/zenodo.4728558.")
+)
+
+citEntry(entry = "Article",
+  title        = "A comparison of spatially explicit landscape representation methods and their relationship to stream condition",
+  author       = personList(as.person("Erin E. Peterson"),
+                   as.person("Fran Sheldon"),
+                   as.person("Ross Darnell"),
+                   as.person("Stuart E. Bunn"),
+                   as.person("Bronwyn D. Harch")),
+  journal      = "Freshwater Biology",
+  year         = "2011",
+  volume       = "56",
+  number       = "3",
+  pages        = "590--610",
+  url          = "https://doi.org/10.1111/j.1365-2427.2010.02507.x",
+
+  textVersion  =
+  paste("Erin E. Peterson, Fran Sheldon, Ross Darnell, Stuart E. Bunn, and Bronwyn D. Harch (2011).",
+        "A comparison of spatially explicit landscape representation methods and their relationship to stream condition.",
+        "Freshwater Biology, 56(3), 590-610.",
+        "URL https://doi.org/10.1111/j.1365-2427.2010.02507.x.")
 )

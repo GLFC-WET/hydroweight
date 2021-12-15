@@ -229,12 +229,12 @@ or raster type targets (see `?hydroweight`). Targets are often called
 cells, polygons, polylines, or points.
 
 Our first target is a low lying area we will call a lake (`tg_O`). All
-cells &lt;220 m elevation are assigned `TRUE` or `1` and those &gt;220 m
-are assigned `NA`. We also generate its catchment (`tg_O_catchment`)
-using `whitebox::wbt_watershed()`. Our target streams (`tg_S`) are
-loaded from the `whitebox::wbt_extract_streams()` output. Finally, we do
-some manipulation to the stream network raster to generate three points
-along the stream network (`tg_O_multi`) and their catchments
+cells \<220 m elevation are assigned `TRUE` or `1` and those \>220 m are
+assigned `NA`. We also generate its catchment (`tg_O_catchment`) using
+`whitebox::wbt_watershed()`. Our target streams (`tg_S`) are loaded from
+the `whitebox::wbt_extract_streams()` output. Finally, we do some
+manipulation to the stream network raster to generate three points along
+the stream network (`tg_O_multi`) and their catchments
 (`tg_O_multi_catchment`).
 
 ``` r
@@ -316,7 +316,7 @@ Below, `hydroweight()` is run using our lake as `target_O` for iEucO,
 iFLO, and HAiFLO, and using our streams as `target_S` for iEucS, iFLS,
 and HAiFLS. For export of the distance-weighted rasters, we use “Lake”;
 the .rds exported from `hydroweight()` to `hydroweight_dir` will now be
-called “Lake\_inv\_distances.rds”. Since our DEM is small, we decide to
+called “Lake_inv_distances.rds”. Since our DEM is small, we decide to
 not clip our region (i.e., `clip_region = NULL`). Using
 `OS_combine = TRUE`, we indicate that distances to the nearest water
 feature will be either the lake or stream. Furthermore, for HAiFLO or
@@ -367,8 +367,9 @@ hw_test_1 <- hydroweight::hydroweight(
   ),
   inv_function = myinv
 )
-#> Preparing hydroweight layers @ 2021-09-22 16:29:58
-#> Running distance-weighting @ 2021-09-22 16:30:01
+#> Preparing hydroweight layers @ 2021-12-15 16:44:45
+#> Running distance-weighting @ 2021-12-15 16:44:49
+
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
 # hw_test_1[[1]] ## lumped
@@ -388,7 +389,7 @@ layout(matrix(c(
   1, 2, 3, 4,
   1, 5, 6, 7
 ), nrow = 2, byrow = TRUE))
-plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, box = FALSE, col = viridis(101))
+plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, box = FALSE, col = viridis(101)[101])
 plot(hw_test_1[[2]], main = "iEucO", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(hw_test_1[[3]], main = "iFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(log(hw_test_1[[4]]), main = "HAiFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
@@ -538,15 +539,16 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2021-09-22 16:30:23
-#> Preparing hydroweight layers @ 2021-09-22 16:30:23
-#> Running distance-weighting @ 2021-09-22 16:30:26
-#> Running hydroweight for site 2 at 2021-09-22 16:30:31
-#> Preparing hydroweight layers @ 2021-09-22 16:30:31
-#> Running distance-weighting @ 2021-09-22 16:30:33
-#> Running hydroweight for site 3 at 2021-09-22 16:30:38
-#> Preparing hydroweight layers @ 2021-09-22 16:30:38
-#> Running distance-weighting @ 2021-09-22 16:30:41
+#> Running hydroweight for site 1 at 2021-12-15 16:45:23
+#> Preparing hydroweight layers @ 2021-12-15 16:45:23
+#> Running distance-weighting @ 2021-12-15 16:45:27
+#> Running hydroweight for site 2 at 2021-12-15 16:45:33
+#> Preparing hydroweight layers @ 2021-12-15 16:45:33
+#> Running distance-weighting @ 2021-12-15 16:45:36
+#> Running hydroweight for site 3 at 2021-12-15 16:45:43
+#> Preparing hydroweight layers @ 2021-12-15 16:45:43
+#> Running distance-weighting @ 2021-12-15 16:45:46
+
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
 ## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site
@@ -655,11 +657,10 @@ for each `roi`:`loi` combination are calculated using
 </p>
 
 where ![n](https://latex.codecogs.com/png.latex?n "n") is the number of
-cells, ![w\_i](https://latex.codecogs.com/png.latex?w_i "w_i") are the
-cell weights, and
-![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i") are `loi` cell
-values, ![m](https://latex.codecogs.com/png.latex?m "m") is the number
-or non-zero weights, and
+cells, ![w_i](https://latex.codecogs.com/png.latex?w_i "w_i") are the
+cell weights, and ![x_i](https://latex.codecogs.com/png.latex?x_i "x_i")
+are `loi` cell values, ![m](https://latex.codecogs.com/png.latex?m "m")
+is the number or non-zero weights, and
 ![\\bar{x}^\*](https://latex.codecogs.com/png.latex?%5Cbar%7Bx%7D%5E%2A "\bar{x}^*")
 is the weighted mean. For categorical inputs, the proportion for each
 `roi`:`loi` combination is calculated using
@@ -669,10 +670,10 @@ is the weighted mean. For categorical inputs, the proportion for each
 </p>
 
 where
-![I(k\_i)=1](https://latex.codecogs.com/png.latex?I%28k_i%29%3D1 "I(k_i)=1")
+![I(k_i)=1](https://latex.codecogs.com/png.latex?I%28k_i%29%3D1 "I(k_i)=1")
 when category ![k](https://latex.codecogs.com/png.latex?k "k") is
 present in a cell or
-![I(k\_i)=0](https://latex.codecogs.com/png.latex?I%28k_i%29%3D0 "I(k_i)=0")
+![I(k_i)=0](https://latex.codecogs.com/png.latex?I%28k_i%29%3D0 "I(k_i)=0")
 when not.
 
 Finally, `loi` `NA` values are handled differently depending on `loi`
@@ -729,6 +730,7 @@ names(hwa_test_numeric$attribute_table)
 #> [17] "iEucS_ndvi_distwtd_mean"   "iEucS_ndvi_distwtd_sd"    
 #> [19] "iFLS_ndvi_distwtd_mean"    "iFLS_ndvi_distwtd_sd"     
 #> [21] "HAiFLS_ndvi_distwtd_mean"  "HAiFLS_ndvi_distwtd_sd"
+
 ## Resultant structure
 ## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
@@ -822,6 +824,7 @@ names(hwa_test_categorical$attribute_table)
 #> [22] "iFLS_lulc_prop_1"   "iFLS_lulc_prop_2"   "iFLS_lulc_prop_3"  
 #> [25] "iFLS_lulc_prop_4"   "HAiFLS_lulc_prop_1" "HAiFLS_lulc_prop_2"
 #> [28] "HAiFLS_lulc_prop_3" "HAiFLS_lulc_prop_4"
+
 ## Resultant structure
 ## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_categorical[[1]] == hw_test_categorical$attribute_table # Attribute table
@@ -982,6 +985,7 @@ names(hwa_test_numeric_polygon$attribute_table)
 #> [37] "iFLS_lulc_var_2_distwtd_sd"      "HAiFLS_lulc_var_1_distwtd_mean" 
 #> [39] "HAiFLS_lulc_var_2_distwtd_mean"  "HAiFLS_lulc_var_1_distwtd_sd"   
 #> [41] "HAiFLS_lulc_var_2_distwtd_sd"
+
 ## Resultant structure
 ## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_numeric_polygon[[1]] == hw_test_numeric_polygon$attribute_table # Attribute table
@@ -1050,6 +1054,7 @@ names(hwa_test_categorical_polygon$attribute_table)
 #> [39] "HAiFLS_lulc_prop_var_1_10" "HAiFLS_lulc_prop_var_1_2" 
 #> [41] "HAiFLS_lulc_prop_var_2_22" "HAiFLS_lulc_prop_var_2_29"
 #> [43] "HAiFLS_lulc_prop_var_2_21"
+
 ## Resultant structure
 ## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
 ## hw_test_categorical_polygon[[1]] == hw_test_categorical_polygon$attribute_table # Attribute table

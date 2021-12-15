@@ -1,3 +1,11 @@
+## hydroweight 1.2.4 
+
+* Added Peterson et al. 2011 paper to CITATION. 
+* Changed hardcoding of 0-30000 to 0-1000000 when needing to capture all realistic values of dem; I've noticed `max` sometimes missed large values? Check in forthcoming 1.2.5 release.
+* Added ability to have per-weighting scheme inverse distance weighting functions via a named list.
+* Added a temporary raster clean up process for out-of-memory rasters. When rasters must be stored out-of-memory, they are placed in `hydroweight_dir` with a `hydroweight_` tag and cleaned up after each `hydroweight()` run. Thanks to Emily Smenderovac for pointing out that her computer was full.
+* Changed `lumped` in figures to yellow signifying lumped weights = 1.
+
 ## hydroweight 1.2.3 
 
 * sets verbose_mode = FALSE for all `whitebox` functions using `wbt_options` in `hydroweight()`.
