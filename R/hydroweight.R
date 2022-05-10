@@ -308,7 +308,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (class(target_S)[1] == "RasterLayer") {
     target_S_r <- target_S
     target_S_r <- raster::projectRaster(target_S_r, dem_clip, method = "ngb")
-    raster::writeRaster(target_S_r, paste0(target_uid,file.path(hydroweight_dir, "TEMP-target_S_clip.tif")),
+    raster::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"TEMP-target_S_clip.tif")),
       overwrite = TRUE
     )
   }
