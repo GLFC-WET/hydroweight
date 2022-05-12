@@ -163,6 +163,7 @@ library(viridis)
 library(whitebox)
 
 ## Import toy_dem from whitebox package
+toy_file<-sample_dem_data()
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
 toy_dem <- raster(x = toy_file, values = TRUE)
 crs(toy_dem) <- "+init=epsg:3161"
