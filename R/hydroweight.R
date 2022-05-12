@@ -59,11 +59,12 @@ hydroweight <- function(hydroweight_dir = NULL,
                           (x * 0.001 + 1)^-1
                         }) {
 
+  if (is.null(target_uid)) stop("target_uid must be specified")
   ## SET UP ----
 
   ## Set up raster temp file for out-of-memory raster files
   raster::rasterOptions(tmpdir = hydroweight_dir)
-  raster::rasterTmpFile(prefix = "hydroweight_")
+  raster::rasterTmpFile(prefix = paste0(target_uid,"hydroweight_"))
 
   ## Set whitebox verbose_mode to FALSE
   whitebox::wbt_options(verbose = FALSE)
@@ -730,7 +731,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ))
 
   ## CLEAN UP ----
-  temp_rasters <- list.files(path = hydroweight_dir, pattern = "hydroweight",
+  temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"hydroweight"),
                              full.names = TRUE)
   file.remove(temp_rasters)
   
