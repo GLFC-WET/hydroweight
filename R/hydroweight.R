@@ -109,11 +109,11 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       if (grepl(".tif", clip_region)) {
-        clip_region <- raster::raster(file.path(hydroweight_dir, clip_region))
+        #clip_region <- raster::raster(file.path(hydroweight_dir, clip_region))
 
-        if (is.na(raster::crs(clip_region)) | is.null(raster::crs(clip_region))) {
-          stop("clip_region crs() is NULL or NA. Apply projection before continuing")
-        }
+        #if (is.na(raster::crs(clip_region)) | is.null(raster::crs(clip_region))) {
+        #  stop("clip_region crs() is NULL or NA. Apply projection before continuing")
+        #}
 
         whitebox::wbt_reclass(
           input = file.path(hydroweight_dir, clip_region),
@@ -125,6 +125,10 @@ hydroweight <- function(hydroweight_dir = NULL,
           input = file.path(hydroweight_dir, paste0(target_uid,"TEMP-clip_region.tif")),
           output = file.path(hydroweight_dir, paste0(target_uid,"TEMP-clip_region.shp"))
         )
+        
+        clip_region <- sf::st_read(file.path(hydroweight_dir, paste0(target_uid,"TEMP-clip_region.shp")), quiet = TRUE)
+        sf::st_crs(clip_region) <- sf::st_crs(dem_crs)
+        sf::st_write(clip_region, file.path(hydroweight_dir, paste0(target_uid,"TEMP-clip_region.shp")), append = FALSE, quiet = TRUE)
       }
     }
   }
