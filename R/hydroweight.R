@@ -643,7 +643,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
       terra::crs(flow_accum_clip)<-dem_crs
 
-      flow_accum_clip<-terra::project(flow_accum_clip,dem_clip)
+      flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near")
 
       terra::writeRaster(flow_accum_clip,
                          flow_accum_clip_path,
