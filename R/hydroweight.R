@@ -359,7 +359,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     terra::crs(OS_combine_r) <- dem_crs
     terra::writeRaster(OS_combine_r,
                        file.path(hydroweight_dir, paste0(target_uid,"_TEMP-OS_combine.tif")),
-                       overwrite = TRUE, options = c("COMPRESS=NONE"),
+                       overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                        NAflag = -9999
     )
   }
@@ -421,7 +421,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     terra::crs(iEucO_inv) <- dem_crs
     terra::writeRaster(iEucO_inv,
                        file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iEucO.tif")),
-                       overwrite = TRUE, options = c("COMPRESS=NONE"),
+                       overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                        NAflag = -9999
     )
   }
@@ -462,7 +462,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       terra::crs(iEucS_inv) <- dem_crs
       terra::writeRaster(iEucS_inv,
                          file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iEucS.tif")),
-                         overwrite = TRUE, options = c("COMPRESS=NONE"),
+                         overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
       )
     }
@@ -501,7 +501,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       terra::crs(iEucS_inv) <- dem_crs
       terra::writeRaster(iEucS_inv,
                          file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iEucS.tif")),
-                         overwrite = TRUE, options = c("COMPRESS=NONE"),
+                         overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
       )
     }
@@ -541,7 +541,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     terra::crs(iFLO_inv) <- dem_crs
     terra::writeRaster(iFLO_inv,
                        file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iFLO.tif")),
-                       overwrite = TRUE, options = c("COMPRESS=NONE"),
+                       overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                        NAflag = -9999
     )
   }
@@ -581,7 +581,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       terra::crs(iFLS_inv) <- dem_crs
       terra::writeRaster(iFLS_inv,
                          file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iFLS.tif")),
-                         overwrite = TRUE, options = c("COMPRESS=NONE"),
+                         overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
       )
     }
@@ -619,7 +619,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       terra::crs(iFLS_inv) <- dem_crs
       terra::writeRaster(iFLS_inv,
                          file.path(hydroweight_dir, paste0(target_uid,"_TEMP-iFLS.tif")),
-                         overwrite = TRUE, options = c("COMPRESS=NONE"),
+                         overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
       )
     }
@@ -672,7 +672,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       terra::crs(HAiFLO_inv) <- dem_crs
       terra::writeRaster(HAiFLO_inv,
                          file.path(hydroweight_dir, paste0(target_uid,"_TEMP-HAiFLO.tif")),
-                         overwrite = TRUE, options = c("COMPRESS=NONE"),
+                         overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
       )
     }
@@ -707,7 +707,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
         terra::writeRaster(HAiFLS_inv,
                            file.path(hydroweight_dir, paste0(target_uid,"_TEMP-HAiFLS.tif")),
-                           overwrite = TRUE, options = c("COMPRESS=NONE"),
+                           overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                            NAflag = -9999
         )
       }
@@ -740,7 +740,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
         terra::writeRaster(HAiFLS_inv,
                            file.path(hydroweight_dir, paste0(target_uid,"_TEMP-HAiFLS.tif")),
-                           overwrite = TRUE, options = c("COMPRESS=NONE"),
+                           overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                            NAflag = -9999
         )
       }
