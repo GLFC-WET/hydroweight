@@ -67,7 +67,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## SET UP ----
 
   ## Set up raster temp file for out-of-memory raster files
-  terra::terraOptions(tmpdir = hydroweight_dir)
+  terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())))
   #terra::rastTmpFile(prefix = paste0(target_uid,"_hydroweight_"))
 
   ## Set whitebox verbose_mode to FALSE
