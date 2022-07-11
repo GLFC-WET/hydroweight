@@ -642,6 +642,9 @@ hydroweight <- function(hydroweight_dir = NULL,
         y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
       )
       terra::crs(flow_accum_clip)<-dem_crs
+
+      flow_accum_clip<-terra::project(flow_accum_clip,dem_clip)
+
       terra::writeRaster(flow_accum_clip,
                          flow_accum_clip_path,
                          overwrite=T)
@@ -655,8 +658,10 @@ hydroweight <- function(hydroweight_dir = NULL,
     # )
 
     accum_clip <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")))
-    accum_clip <- accum_clip + 1
+    # accum_clip <- accum_clip + 1 # PS: I don't know if this is necessary anymore
     terra::crs(accum_clip) <- dem_crs
+
+    accum_clip<-terra::project(accum_clip,dem_clip,method="near")
 
     if ("HAiFLO" %in% weighting_scheme) {
 
