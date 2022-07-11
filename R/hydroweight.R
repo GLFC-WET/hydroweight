@@ -67,7 +67,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## SET UP ----
 
   ## Set up raster temp file for out-of-memory raster files
-  #terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())))
+  terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())))
   #terra::rastTmpFile(prefix = paste0(target_uid,"_hydroweight_")) #PS: this isn't an option in terra
 
   ## Set whitebox verbose_mode to FALSE
@@ -88,7 +88,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## Prepare clip_region ----
   clip_region_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp"))
   if (!is.null(clip_region)) {
-    if (!restart | !file.exists(clip_region_path)) {
+    if (!restart & !file.exists(clip_region_path)) {
       if (class(clip_region)[1] == "numeric" & class(target_O)[1] == "sf") {
         clip_region <- sf::st_buffer(target_O, clip_region)
         sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
@@ -171,10 +171,10 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   dem_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif"))
 
-  if (!restart | !file.exists(dem_clip_path)) {
+  if (!restart & !file.exists(dem_clip_path)) {
     dem_clip<-terra::crop(
       x=terra::rast(file.path(hydroweight_dir, dem)),
-      y=terra::vect(dem_clip_path)
+      y=terra::vect(clip_region_path)
     )
     terra::crs(dem_clip)<-dem_crs
     terra::writeRaster(dem_clip,
@@ -636,7 +636,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     flow_accum_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif"))
 
-    if (!restart | !file.exists(flow_accum_clip_path)){
+    if (!restart & !file.exists(flow_accum_clip_path)){
       flow_accum_clip<-terra::crop(
         x=terra::rast(file.path(hydroweight_dir, flow_accum)),
         y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
