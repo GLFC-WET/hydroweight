@@ -386,13 +386,13 @@ hydroweight <- function(hydroweight_dir = NULL,
   if ("iEucO" %in% weighting_scheme) {
     whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")),
-      output = file.path(hydroweight_dir, paste0(target_uid,"TEMP_dem_clip_cost.tif")),
+      output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
       reclass_vals = "1,min,1000000"
     ) # because max sometimes misses max values?
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
-      cost = file.path(hydroweight_dir, paste0(target_uid,"TEMP_dem_clip_cost.tif")),
+      cost = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
       out_accum = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")),
       out_backlink = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_backlink.tif")),
       verbose_mode = FALSE
@@ -433,7 +433,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (OS_combine == FALSE) {
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
-        cost = file.path(hydroweight_dir, paste0(target_uid,"TEMP_dem_clip_cost.tif")),
+        cost = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
         out_accum = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")),
         out_backlink = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_backlink.tif")),
         verbose_mode = FALSE
@@ -472,7 +472,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (OS_combine == TRUE) {
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-OS_combine.tif")),
-        cost = file.path(hydroweight_dir, paste0(target_uid,"TEMP_dem_clip_cost.tif")),
+        cost = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
         out_accum = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")),
         out_backlink = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_backlink.tif")),
         verbose_mode = FALSE
