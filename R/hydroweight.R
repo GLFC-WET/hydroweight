@@ -60,6 +60,8 @@ hydroweight <- function(hydroweight_dir = NULL,
                         inv_function = function(x) {
                           (x * 0.001 + 1)^-1
                         }) {
+  # TODO: Add checks to make sure all raster inputs are SpatRaster NOT RasterLayer
+  # TODO: class(___)[1] should be changed to inherits()
 
   if (is.null(target_uid)) stop("target_uid must be specified")
   ## SET UP ----
@@ -244,7 +246,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (sf::st_is(target_O, "POINT")) {
       target_O_r <- terra::rasterize(sf::st_coordinates(target_O),
                                      y = dem_clip,
-                                     field = 1,
+                                     # field = 1, # this isn't needed in terra
                                      filename = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                                      overwrite = TRUE
       )
@@ -252,8 +254,8 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
 
   ## write target_O and adjust to clip_region if RasterLayer
-  if (class(target_O)[1] == "RasterLayer") {
-    target_O_r <- target_O
+  if (class(target_O)[1] %in% c("SpatRaster","RasterLayer")) {
+    target_O_r <- terra::rast(target_O)
     target_O_r <- terra::project(target_O_r, dem_clip, method = "near")
     terra::writeRaster(target_O_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                         overwrite = TRUE
@@ -326,8 +328,8 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
 
   ## write target_S and adjust to clip_region if RasterLayer
-  if (class(target_S)[1] == "RasterLayer") {
-    target_S_r <- target_S
+  if (class(target_S)[1] %in% c("SpatRaster","RasterLayer")) {
+    target_S_r <- terra::rast(target_S)
     target_S_r <- terra::project(target_S_r, dem_clip, method = "near")
     terra::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
                         overwrite = TRUE
