@@ -177,7 +177,9 @@ hydroweight <- function(hydroweight_dir = NULL,
       y=terra::vect(dem_clip_path)
     )
     terra::crs(dem_clip)<-dem_crs
-    terra::writeRaster(dem_clip,dem_clip_path)
+    terra::writeRaster(dem_clip,
+                       dem_clip_path,
+                       overwrite=T)
     # whitebox::wbt_clip_raster_to_polygon( #PS I think is is very slow for large rasters
     #   input = file.path(hydroweight_dir, dem),
     #   polygons = clip_region_path,
@@ -632,12 +634,25 @@ hydroweight <- function(hydroweight_dir = NULL,
       stop("`flow_accum` required for HAiFLO and/or HAiFLS calculations")
     }
 
-    whitebox::wbt_clip_raster_to_polygon(
-      input = file.path(hydroweight_dir, flow_accum),
-      polygons = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")),
-      output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")),
-      verbose_mode = FALSE
-    )
+    flow_accum_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif"))
+
+    if (!restart | !file.exists(flow_accum_clip_path)){
+      flow_accum_clip<-terra::crop(
+        x=terra::rast(file.path(hydroweight_dir, flow_accum)),
+        y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
+      )
+      terra::crs(flow_accum_clip)<-dem_crs
+      terra::writeRaster(flow_accum_clip,
+                         flow_accum_clip_path,
+                         overwrite=T)
+    }
+
+    # whitebox::wbt_clip_raster_to_polygon( #PS I think this is slower than terra
+    #   input = file.path(hydroweight_dir, flow_accum),
+    #   polygons = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")),
+    #   output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")),
+    #   verbose_mode = FALSE
+    # )
 
     accum_clip <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")))
     accum_clip <- accum_clip + 1
