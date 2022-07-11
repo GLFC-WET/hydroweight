@@ -375,7 +375,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       reclass_vals = "1,min,1000000"
     ) # because max sometimes misses max values?
 
-    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")), values = TRUE)
+    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")))
     terra::crs(lumped_inv) <- dem_crs
     lumped_inv <- terra::setValues(terra::rast(lumped_inv), lumped_inv[])
   }
@@ -397,6 +397,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
 
     iEucO <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")))
+    terra::crs(iEucO) <- dem_crs
 
     if(is.list(inv_function)){
 
@@ -437,6 +438,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iEucS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")))
+      terra::crs(iEucS) <- dem_crs
 
       if(is.list(inv_function)){
 
@@ -475,6 +477,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iEucS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-cost_distance.tif")))
+      terra::crs(iEucS) <- dem_crs
 
       if(is.list(inv_function)){
 
@@ -514,6 +517,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     )
 
     iFLO <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO.tif")))
+    terra::crs(iFLO) <- dem_crs
 
     if(is.list(inv_function)){
 
@@ -553,6 +557,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iFLS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLS.tif")))
+      terra::crs(iFLS) <- dem_crs
 
       if(is.list(inv_function)){
 
@@ -590,6 +595,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
 
       iFLS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLS.tif")))
+      terra::crs(iFLS) <- dem_crs
 
       if(is.list(inv_function)){
 
@@ -640,6 +646,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if ("HAiFLO" %in% weighting_scheme) {
 
       HAiFLO <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO.tif")))
+      terra::crs(HAiFLO) <- dem_crs
 
       if(is.list(inv_function)){
 
@@ -674,6 +681,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       if (OS_combine == TRUE) {
 
         HAiFLS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLS.tif")))
+        terra::crs(HAiFLS) <- dem_crs
 
         if(is.list(inv_function)){
 
@@ -706,6 +714,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
       if (OS_combine == FALSE) {
         HAiFLS <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLS.tif")))
+        terra::crs(HAiFLS) <- dem_crs
 
         if(is.list(inv_function)){
 
