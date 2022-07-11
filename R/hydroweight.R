@@ -170,12 +170,18 @@ hydroweight <- function(hydroweight_dir = NULL,
   dem_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif"))
 
   if (!restart | !file.exists(dem_clip_path)) {
-    whitebox::wbt_clip_raster_to_polygon(
-      input = file.path(hydroweight_dir, dem),
-      polygons = clip_region_path,
-      output = dem_clip_path,
-      verbose_mode = FALSE
+    dem_clip<-terra::crop(
+      x=terra::rast(file.path(hydroweight_dir, dem)),
+      y=terra::vect(dem_clip_path)
     )
+    terra::crs(dem_clip)<-dem_crs
+    terra::writeRaster(dem_clip,dem_clip_path)
+    # whitebox::wbt_clip_raster_to_polygon( #PS I think is is very slow for large rasters
+    #   input = file.path(hydroweight_dir, dem),
+    #   polygons = clip_region_path,
+    #   output = dem_clip_path,
+    #   verbose_mode = FALSE
+    # )
   }
 
   dem_clip <- terra::rast(dem_clip_path)
