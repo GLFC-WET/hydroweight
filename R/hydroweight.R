@@ -86,7 +86,6 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## Prepare clip_region ----
   clip_region_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp"))
   if (!is.null(clip_region)) {
-    if (!restart & !file.exists(clip_region_path)) {
       if (class(clip_region)[1] == "numeric" & class(target_O)[1] == "sf") {
         clip_region <- sf::st_buffer(target_O, clip_region)
         sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
@@ -130,10 +129,7 @@ hydroweight <- function(hydroweight_dir = NULL,
           sf::st_write(clip_region, clip_region_path, append = FALSE, quiet = TRUE)
         }
       }
-    } else {
-      clip_region<-sf::st_read(clip_region_path, quiet = TRUE)
-      sf::st_crs(clip_region) <- sf::st_crs(dem_crs)
-    }
+    
 
   }
 
