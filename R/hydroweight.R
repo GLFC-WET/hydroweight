@@ -257,7 +257,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (class(target_O)[1] %in% c("RasterLayer")) target_O_r <- terra::rast(target_O)
     if (class(target_O)[1] %in% c("SpatRaster")) target_O_r <- target_O
 
-    target_O_r <- terra::project(target_O_r, dem_clip, method = "near",filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")))
+    target_O_r <- terra::project(target_O_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")))
     terra::writeRaster(target_O_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                        overwrite = TRUE
     )
@@ -393,7 +393,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     lumped_inv <- dem_clip
     lumped_inv[!is.na(lumped_inv)]<-1
-    writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")))
+    terra::writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif"),overwrite=T))
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
@@ -647,7 +647,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
     )
     terra::crs(flow_accum_clip)<-dem_crs
-    flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near",filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")))
+    flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")))
     terra::writeRaster(flow_accum_clip,
                        flow_accum_clip_path,
                        overwrite=T)
@@ -664,7 +664,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     # accum_clip <- accum_clip + 1 # PS: I don't know if this is necessary anymore
     terra::crs(accum_clip) <- dem_crs
 
-    accum_clip<-terra::project(accum_clip,dem_clip,method="near",filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO.tif")))
+    accum_clip<-terra::project(accum_clip,dem_clip,method="near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO.tif")))
 
     if ("HAiFLO" %in% weighting_scheme) {
 
