@@ -779,6 +779,8 @@ hydroweight <- function(hydroweight_dir = NULL,
   })
   names(dist_list) <- weighting_scheme
 
+  dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50
+
   saveRDS(dist_list, file = file.path(
     hydroweight_dir,
     paste0(target_uid, "_inv_distances.rds")

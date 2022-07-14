@@ -38,6 +38,9 @@ hydroweight_attributes <- function(loi = NULL,
                                    remove_region = NULL,
                                    return_products = TRUE) {
 
+  distance_weights<-lapply(distance_weights,terra::rast)
+  distance_weights<-lapply(distance_weights,raster::raster) # haven't converted this function to terra yet
+
   ## Set resampling based on loi_numeric
   if (loi_numeric == TRUE) {
     loi_resample <- "bilinear"
