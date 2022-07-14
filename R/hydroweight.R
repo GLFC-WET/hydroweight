@@ -86,50 +86,50 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## Prepare clip_region ----
   clip_region_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp"))
   if (!is.null(clip_region)) {
-      if (class(clip_region)[1] == "numeric" & class(target_O)[1] == "sf") {
-        clip_region <- sf::st_buffer(target_O, clip_region)
+    if (class(clip_region)[1] == "numeric" & class(target_O)[1] == "sf") {
+      clip_region <- sf::st_buffer(target_O, clip_region)
+      sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
+      )
+    }
+
+    if (class(clip_region)[1] == "sf") {
+      sf::st_write(clip_region, clip_region_path, append = FALSE, quiet = TRUE
+      )
+    }
+
+    if (class(clip_region)[1] == "character") {
+      if (!grepl(".shp", clip_region) & !grepl(".tif", clip_region)) {
+        stop("If clip_region is character, target_O should be a .shp or .tif")
+      }
+
+      if (grepl(".shp", clip_region)) {
+        clip_region <- sf::st_read(file.path(hydroweight_dir, clip_region))
         sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
         )
-      }
+      } else if (grepl(".tif", clip_region)) {
+        #clip_region <- terra::rast(file.path(hydroweight_dir, clip_region))
 
-      if (class(clip_region)[1] == "sf") {
-        sf::st_write(clip_region, clip_region_path, append = FALSE, quiet = TRUE
+        #if (is.na(terra::crs(clip_region)) | is.null(terra::crs(clip_region))) {
+        #  stop("clip_region crs() is NULL or NA. Apply projection before continuing")
+        #}
+
+        whitebox::wbt_reclass(
+          input = file.path(hydroweight_dir, clip_region),
+          output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.tif")),
+          reclass_vals = "1,min,max"
         )
+
+        whitebox::wbt_raster_to_vector_polygons(
+          input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.tif")),
+          output = clip_region_path
+        )
+
+        clip_region <- sf::st_read(clip_region_path, quiet = TRUE)
+        sf::st_crs(clip_region) <- sf::st_crs(dem_crs)
+        sf::st_write(clip_region, clip_region_path, append = FALSE, quiet = TRUE)
       }
+    }
 
-      if (class(clip_region)[1] == "character") {
-        if (!grepl(".shp", clip_region) & !grepl(".tif", clip_region)) {
-          stop("If clip_region is character, target_O should be a .shp or .tif")
-        }
-
-        if (grepl(".shp", clip_region)) {
-          clip_region <- sf::st_read(file.path(hydroweight_dir, clip_region))
-          sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
-          )
-        } else if (grepl(".tif", clip_region)) {
-          #clip_region <- terra::rast(file.path(hydroweight_dir, clip_region))
-
-          #if (is.na(terra::crs(clip_region)) | is.null(terra::crs(clip_region))) {
-          #  stop("clip_region crs() is NULL or NA. Apply projection before continuing")
-          #}
-
-          whitebox::wbt_reclass(
-            input = file.path(hydroweight_dir, clip_region),
-            output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.tif")),
-            reclass_vals = "1,min,max"
-          )
-
-          whitebox::wbt_raster_to_vector_polygons(
-            input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.tif")),
-            output = clip_region_path
-          )
-
-          clip_region <- sf::st_read(clip_region_path, quiet = TRUE)
-          sf::st_crs(clip_region) <- sf::st_crs(dem_crs)
-          sf::st_write(clip_region, clip_region_path, append = FALSE, quiet = TRUE)
-        }
-      }
-    
 
   }
 
@@ -163,22 +163,22 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   dem_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif"))
 
-  
- dem_clip<-terra::crop(
+
+  dem_clip<-terra::crop(
     x=terra::rast(file.path(hydroweight_dir, dem)),
     y=terra::vect(clip_region_path)
   )
- terra::crs(dem_clip)<-dem_crs
- terra::writeRaster(dem_clip,
+  terra::crs(dem_clip)<-dem_crs
+  terra::writeRaster(dem_clip,
                      dem_clip_path,
                      overwrite=T)
-    # whitebox::wbt_clip_raster_to_polygon( #PS I think is is very slow for large rasters
-    #   input = file.path(hydroweight_dir, dem),
-    #   polygons = clip_region_path,
-    #   output = dem_clip_path,
-    #   verbose_mode = FALSE
-    # )
-  
+  # whitebox::wbt_clip_raster_to_polygon( #PS I think is is very slow for large rasters
+  #   input = file.path(hydroweight_dir, dem),
+  #   polygons = clip_region_path,
+  #   output = dem_clip_path,
+  #   verbose_mode = FALSE
+  # )
+
 
   dem_clip <- terra::rast(dem_clip_path)
   terra::crs(dem_clip) <- dem_crs
@@ -249,7 +249,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (class(target_O)[1] %in% c("SpatRaster","RasterLayer")) {
     if (class(target_O)[1] %in% c("RasterLayer")) target_O_r <- terra::rast(target_O)
     if (class(target_O)[1] %in% c("SpatRaster")) target_O_r <- target_O
-    
+
     target_O_r <- terra::project(target_O_r, dem_clip, method = "near")
     terra::writeRaster(target_O_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                        overwrite = TRUE
@@ -362,24 +362,31 @@ hydroweight <- function(hydroweight_dir = NULL,
   message("Running distance-weighting @ ", Sys.time())
 
   if ("lumped" %in% weighting_scheme) {
-    whitebox::wbt_reclass(
-      input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")),
-      output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")),
-      reclass_vals = "1,min,1000000"
-    ) # because max sometimes misses max values?
+    # whitebox::wbt_reclass(
+    #   input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")),
+    #   output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")),
+    #   reclass_vals = "1,min,1000000"
+    # ) # because max sometimes misses max values?
 
-    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")))
-    terra::crs(lumped_inv) <- dem_crs
-    lumped_inv <- terra::setValues(terra::rast(lumped_inv), lumped_inv[])
+    # lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-lumped.tif")))
+    # terra::crs(lumped_inv) <- dem_crs
+    # lumped_inv <- terra::setValues(terra::rast(lumped_inv), lumped_inv[])
+
+    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")))
+    lumped_inv[!is.na(lumped_inv)]<-1
   }
 
   ## iEucO, Euclidean distance to target_O ----
   if ("iEucO" %in% weighting_scheme) {
-    whitebox::wbt_reclass(
-      input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")),
-      output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
-      reclass_vals = "1,min,1000000"
-    ) # because max sometimes misses max values?
+    # whitebox::wbt_reclass(
+    #   input = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")),
+    #   output = file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),
+    #   reclass_vals = "1,min,1000000"
+    # ) # because max sometimes misses max values?
+
+    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")))
+    lumped_inv[!is.na(lumped_inv)]<-1
+    writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")))
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
@@ -627,7 +634,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     flow_accum_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif"))
 
-    
+
     flow_accum_clip<-terra::crop(
       x=terra::rast(file.path(hydroweight_dir, flow_accum)),
       y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
@@ -637,7 +644,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     terra::writeRaster(flow_accum_clip,
                        flow_accum_clip_path,
                        overwrite=T)
-    
+
 
     # whitebox::wbt_clip_raster_to_polygon( #PS I think this is slower than terra
     #   input = file.path(hydroweight_dir, flow_accum),
@@ -761,7 +768,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   weighting_scheme_inv <- paste0(weighting_scheme, "_inv")
 
   dist_list <- lapply(weighting_scheme_inv, function(x) {
-    get(x)
+    get(x) #I think this can cause problems
   })
   names(dist_list) <- weighting_scheme
 
