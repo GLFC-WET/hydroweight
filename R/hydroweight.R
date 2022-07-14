@@ -321,8 +321,8 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## write target_S and adjust to clip_region if RasterLayer
   if (class(target_S)[1] %in% c("SpatRaster","RasterLayer")) {
-    if (class(target_O)[1] %in% c("RasterLayer")) target_S_r <- terra::rast(target_S)
-    if (class(target_O)[1] %in% c("SpatRaster")) target_S_r <- target_S
+    if (class(target_S)[1] %in% c("RasterLayer")) target_S_r <- terra::rast(target_S)
+    if (class(target_S)[1] %in% c("SpatRaster")) target_S_r <- target_S
     target_S_r <- terra::project(target_S_r, dem_clip, method = "near")
     terra::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
                        overwrite = TRUE
