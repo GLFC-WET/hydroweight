@@ -109,9 +109,7 @@ hydroweight <- function(hydroweight_dir = NULL,
           clip_region <- sf::st_read(file.path(hydroweight_dir, clip_region))
           sf::st_write(clip_region, clip_region_path,append = FALSE, quiet = TRUE
           )
-        }
-
-        if (grepl(".tif", clip_region)) {
+        } else if (grepl(".tif", clip_region)) {
           #clip_region <- terra::rast(file.path(hydroweight_dir, clip_region))
 
           #if (is.na(terra::crs(clip_region)) | is.null(terra::crs(clip_region))) {
@@ -212,9 +210,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       sf::st_write(target_O, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O.shp")),
                    append = FALSE, quiet = TRUE
       )
-    }
-
-    if (grepl(".tif", target_O)) {
+    } else if (grepl(".tif", target_O)) {
       target_O <- terra::rast(file.path(hydroweight_dir, target_O))
     }
   }
@@ -286,9 +282,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       sf::st_write(target_S, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S.shp")),
                    append = FALSE, quiet = TRUE
       )
-    }
-
-    if (grepl(".tif", target_S)) {
+    } else if (grepl(".tif", target_S)) {
       target_S <- terra::rast(file.path(hydroweight_dir, target_S))
     }
   }
