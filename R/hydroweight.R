@@ -168,6 +168,13 @@ hydroweight <- function(hydroweight_dir = NULL,
     x=terra::rast(file.path(hydroweight_dir, dem)),
     y=terra::vect(clip_region_path)
   )
+
+  dem_clip<-terra::mask(
+    x=dem_clip,
+    mask=terra::vect(clip_region_path),
+    touches=T
+  )
+
   terra::crs(dem_clip)<-dem_crs
   terra::writeRaster(dem_clip,
                      dem_clip_path,
@@ -384,7 +391,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     #   reclass_vals = "1,min,1000000"
     # ) # because max sometimes misses max values?
 
-    lumped_inv <- terra::rast(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif")))
+    lumped_inv <- dem_clip
     lumped_inv[!is.na(lumped_inv)]<-1
     writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")))
 
