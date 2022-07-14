@@ -42,7 +42,6 @@
 #' @param dem character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
-#' @param restart logical. Should the function attempt to restart using intermediate files in working directory?
 #' @param inv_function function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
 #' @return Named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
 #' @export
@@ -56,7 +55,6 @@ hydroweight <- function(hydroweight_dir = NULL,
                         dem = NULL,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
-                        restart=F,
                         inv_function = function(x) {
                           (x * 0.001 + 1)^-1
                         }) {
@@ -169,22 +167,22 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   dem_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-dem_clip.tif"))
 
-  if (!restart & !file.exists(dem_clip_path)) {
-    dem_clip<-terra::crop(
-      x=terra::rast(file.path(hydroweight_dir, dem)),
-      y=terra::vect(clip_region_path)
-    )
-    terra::crs(dem_clip)<-dem_crs
-    terra::writeRaster(dem_clip,
-                       dem_clip_path,
-                       overwrite=T)
+  
+ dem_clip<-terra::crop(
+    x=terra::rast(file.path(hydroweight_dir, dem)),
+    y=terra::vect(clip_region_path)
+  )
+ terra::crs(dem_clip)<-dem_crs
+ terra::writeRaster(dem_clip,
+                     dem_clip_path,
+                     overwrite=T)
     # whitebox::wbt_clip_raster_to_polygon( #PS I think is is very slow for large rasters
     #   input = file.path(hydroweight_dir, dem),
     #   polygons = clip_region_path,
     #   output = dem_clip_path,
     #   verbose_mode = FALSE
     # )
-  }
+  
 
   dem_clip <- terra::rast(dem_clip_path)
   terra::crs(dem_clip) <- dem_crs
@@ -253,7 +251,9 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## write target_O and adjust to clip_region if RasterLayer
   if (class(target_O)[1] %in% c("SpatRaster","RasterLayer")) {
-    target_O_r <- terra::rast(target_O)
+    if (class(target_O)[1] %in% c("RasterLayer")) target_O_r <- terra::rast(target_O)
+    if (class(target_O)[1] %in% c("SpatRaster")) target_O_r <- target_O
+    
     target_O_r <- terra::project(target_O_r, dem_clip, method = "near")
     terra::writeRaster(target_O_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                        overwrite = TRUE
@@ -325,7 +325,8 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   ## write target_S and adjust to clip_region if RasterLayer
   if (class(target_S)[1] %in% c("SpatRaster","RasterLayer")) {
-    target_S_r <- terra::rast(target_S)
+    if (class(target_O)[1] %in% c("RasterLayer")) target_S_r <- terra::rast(target_S)
+    if (class(target_O)[1] %in% c("SpatRaster")) target_S_r <- target_S
     target_S_r <- terra::project(target_S_r, dem_clip, method = "near")
     terra::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
                        overwrite = TRUE
@@ -630,19 +631,17 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     flow_accum_clip_path<-file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif"))
 
-    if (!restart & !file.exists(flow_accum_clip_path)){
-      flow_accum_clip<-terra::crop(
-        x=terra::rast(file.path(hydroweight_dir, flow_accum)),
-        y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
-      )
-      terra::crs(flow_accum_clip)<-dem_crs
-
-      flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near")
-
-      terra::writeRaster(flow_accum_clip,
-                         flow_accum_clip_path,
-                         overwrite=T)
-    }
+    
+    flow_accum_clip<-terra::crop(
+      x=terra::rast(file.path(hydroweight_dir, flow_accum)),
+      y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
+    )
+    terra::crs(flow_accum_clip)<-dem_crs
+    flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near")
+    terra::writeRaster(flow_accum_clip,
+                       flow_accum_clip_path,
+                       overwrite=T)
+    
 
     # whitebox::wbt_clip_raster_to_polygon( #PS I think this is slower than terra
     #   input = file.path(hydroweight_dir, flow_accum),
