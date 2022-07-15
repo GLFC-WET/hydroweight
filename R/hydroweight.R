@@ -65,7 +65,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## SET UP ----
 
   ## Set up raster temp file for out-of-memory raster files
-  terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())))
+  terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())), verbose=F)
   #terra::rastTmpFile(prefix = paste0(target_uid,"_hydroweight_")) #PS: this isn't an option in terra
 
   ## Set whitebox verbose_mode to FALSE
@@ -257,7 +257,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     if (class(target_O)[1] %in% c("RasterLayer")) target_O_r <- terra::rast(target_O)
     if (class(target_O)[1] %in% c("SpatRaster")) target_O_r <- target_O
 
-    target_O_r <- terra::project(target_O_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")))
+    target_O_r <- terra::project(target_O_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip1.tif")))
     terra::writeRaster(target_O_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                        overwrite = TRUE
     )
@@ -330,7 +330,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (class(target_S)[1] %in% c("SpatRaster","RasterLayer")) {
     if (class(target_S)[1] %in% c("RasterLayer")) target_S_r <- terra::rast(target_S)
     if (class(target_S)[1] %in% c("SpatRaster")) target_S_r <- target_S
-    target_S_r <- terra::project(target_S_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")))
+    target_S_r <- terra::project(target_S_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip1.tif")))
     terra::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
                        overwrite = TRUE
     )
@@ -647,7 +647,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       y=terra::vect(file.path(hydroweight_dir, paste0(target_uid,"_TEMP-clip_region.shp")))
     )
     terra::crs(flow_accum_clip)<-dem_crs
-    flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip.tif")))
+    flow_accum_clip<-terra::project(flow_accum_clip,dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flow_accum_clip1.tif")))
     terra::writeRaster(flow_accum_clip,
                        flow_accum_clip_path,
                        overwrite=T)
@@ -664,7 +664,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     # accum_clip <- accum_clip + 1 # PS: I don't know if this is necessary anymore
     terra::crs(accum_clip) <- dem_crs
 
-    accum_clip<-terra::project(accum_clip,dem_clip,method="near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO.tif")))
+    accum_clip<-terra::project(accum_clip,dem_clip,method="near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-flowdist-iFLO1.tif")))
 
     if ("HAiFLO" %in% weighting_scheme) {
 
