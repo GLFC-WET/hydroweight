@@ -330,7 +330,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (class(target_S)[1] %in% c("SpatRaster","RasterLayer")) {
     if (class(target_S)[1] %in% c("RasterLayer")) target_S_r <- terra::rast(target_S)
     if (class(target_S)[1] %in% c("SpatRaster")) target_S_r <- target_S
-    target_S_r <- terra::project(target_S_r, dem_clip, method = "near",filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")))
+    target_S_r <- terra::project(target_S_r, dem_clip, method = "near",overwrite = TRUE,filename=file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")))
     terra::writeRaster(target_S_r, file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_S_clip.tif")),
                        overwrite = TRUE
     )
