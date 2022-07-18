@@ -38,8 +38,7 @@ hydroweight_attributes <- function(loi,
                                    remove_region=NULL,
                                    return_products = TRUE) {
 
-  hydroweight_dir<-tempdir()
-  if (!dir.exists(hydroweight_dir)) dir.create(hydroweight_dir)
+  if (!dir.exists(hydroweight_dir)) dir.create(tempdir())
 
   if (inherits(loi,"character")){
     if (grepl("\\.shp$",loi)) {
@@ -138,7 +137,7 @@ hydroweight_attributes <- function(loi,
       y = distance_weights[[1]],
       method = loi_resample,
       overwrite = TRUE,
-      filename=file.path(paste0(tempfile(),".tif"))
+      filename=file.path(paste0(tempfile(),"_TEMP.tif"))
     )
   }
 
@@ -188,7 +187,7 @@ hydroweight_attributes <- function(loi,
       y = distance_weights[[1]],
       method = loi_resample,
       overwrite = TRUE,
-      filename=file.path(paste0(tempfile(),".tif"))
+      filename=file.path(paste0(tempfile(),"_TEMP.tif"))
     )
   }
 
@@ -292,7 +291,7 @@ hydroweight_attributes <- function(loi,
       ## Construct brick if "RasterLayer"
       if (inherits(loi_r, "SpatRaster")) {
 
-        if (nlyr(loi_r)>1) {
+        if (terra::nlyr(loi_r)>1) {
           brick_list<-terra::split(loi_r,names(loi_r))
           names(brick_list)<-names(loi_r)
         } else {
@@ -428,6 +427,8 @@ hydroweight_attributes <- function(loi,
   } else {
     return_list <- attribute_frames_return
   }
+
+  file.remove(list.files(tempdir(),pattern="_TEMP.tif"))
 
   return(return_list)
 }
