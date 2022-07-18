@@ -3,6 +3,9 @@ title: "hydroweight: Inverse distance-weighted rasters and landscape attributes"
 output: 
   github_document:
     pandoc_args: --webtex
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -18,100 +21,130 @@ knitr::opts_chunk$set(
 
 [![DOI](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
 
-## Contents 
-* [1.0 Introduction](#10-introduction)
-* [2.0 System setup and installation](#20-system-setup-and-installation)
-* [3.0 Inverse distance-weighted rasters using `hydroweight()`](#30-inverse-distance-weighted-rasters-using-hydroweight)
-  + [3.1 Generate toy terrain dataset](#31-generate-toy-terrain-dataset)
-  + [3.2 Generate targets](#32-generate-targets)
-  + [3.3 Run `hydroweight()`](#33-run-hydroweight)
-  + [3.4 Run `hydroweight()` across a set of sites](#34-run-hydroweight-across-a-set-of-sites)
-  + [3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
-* [4.0 Inverse distance-weighted rasters using `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
-  + [4.1 Using a numeric raster layer of interest](#41-using-a-numeric-raster-layer-of-interest)
-  + [4.2 Using a categorical raster layer of interest](#42-using-a-categorical-raster-layer-of-interest)
-  + [4.3 Using a polygon layer of interest with numeric data in the column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
-  + [4.4 Using a polygon layer of interest with categorical data in the column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
-* [5.0 Inverse distance-weighted rasters and attributes across multiple layers and sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers) 
-  + [5.1 Run hydroweight across sites](#51-Run-hydroweight-across-sites)
-  + [5.2 Generate `loi` lists populated with `hydroweight_attributes()` parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
-  + [5.3 Run `hydroweight_attributes()` across sites and layers](#53-run-hydroweight_attributes-across-sites-and-layers)
-  + [5.4 Extract and adjust results data frames](#54-extract-and-adjust-results-data-frames)
-* [6.0 Future plans](#60-future-plans)
-* [7.0 Acknowledgements](#70-acknowledgements) 
-* [8.0 References](#80-references)
-* [9.0 Copyright](#90-copyright)
+## Contents
 
-  
+-   [1.0 Introduction](#10-introduction)
+-   [2.0 System setup and
+    installation](#20-system-setup-and-installation)
+-   [3.0 Inverse distance-weighted rasters using
+    `hydroweight()`](#30-inverse-distance-weighted-rasters-using-hydroweight)
+    -   [3.1 Generate toy terrain
+        dataset](#31-generate-toy-terrain-dataset)
+    -   [3.2 Generate targets](#32-generate-targets)
+    -   [3.3 Run `hydroweight()`](#33-run-hydroweight)
+    -   [3.4 Run `hydroweight()` across a set of
+        sites](#34-run-hydroweight-across-a-set-of-sites)
+    -   [3.5 Using `iFLO` output as catchment boundaries for
+        `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
+-   [4.0 Inverse distance-weighted rasters using
+    `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
+    -   [4.1 Using a numeric raster layer of
+        interest](#41-using-a-numeric-raster-layer-of-interest)
+    -   [4.2 Using a categorical raster layer of
+        interest](#42-using-a-categorical-raster-layer-of-interest)
+    -   [4.3 Using a polygon layer of interest with numeric data in the
+        column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
+    -   [4.4 Using a polygon layer of interest with categorical data in
+        the
+        column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
+-   [5.0 Inverse distance-weighted rasters and attributes across
+    multiple layers and
+    sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers)
+    -   [5.1 Run hydroweight across
+        sites](#51-Run-hydroweight-across-sites)
+    -   [5.2 Generate `loi` lists populated with
+        `hydroweight_attributes()`
+        parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
+    -   [5.3 Run `hydroweight_attributes()` across sites and
+        layers](#53-run-hydroweight_attributes-across-sites-and-layers)
+    -   [5.4 Extract and adjust results data
+        frames](#54-extract-and-adjust-results-data-frames)
+-   [6.0 Future plans](#60-future-plans)
+-   [7.0 Acknowledgements](#70-acknowledgements)
+-   [8.0 References](#80-references)
+-   [9.0 Copyright](#90-copyright)
+
 ## 1.0 Introduction
 
 ```{r pressure, echo=FALSE, out.width = '75%', fig.align = 'center'}
 knitr::include_graphics("man/figures/README-unnamed-chunk-6-1.png")
 ```
 
-Environmental scientists often want to calculate landscape statistics within 
-upstream topographic contributing areas (i.e., catchments) to examine their potential 
-effects on a target (e.g., stream network point or waterbody). When calculating 
-landscape statistics like the proportion of upstream urban cover, practitioners 
-typically use a "lumped" approach; this approach gives equal weighting to areas nearby 
-and far away from the target (Peterson et al. 2011). 
+Environmental scientists often want to calculate landscape statistics
+within upstream topographic contributing areas (i.e., catchments) to
+examine their potential effects on a target (e.g., stream network point
+or waterbody). When calculating landscape statistics like the proportion
+of upstream urban cover, practitioners typically use a "lumped"
+approach; this approach gives equal weighting to areas nearby and far
+away from the target (Peterson et al. 2011).
 
-A more spatially explicit approach could be to generate buffers of successive 
-distances away from the target and calculate the lumped statistics. For example, 
-one could calculate the proportion of urban cover in a 250 m buffer and a 1000 m 
-buffer from the target (Kielstra et al. 2019).
+A more spatially explicit approach could be to generate buffers of
+successive distances away from the target and calculate the lumped
+statistics. For example, one could calculate the proportion of urban
+cover in a 250 m buffer and a 1000 m buffer from the target (Kielstra et
+al. 2019).
 
-Another approach is to calculate landscape statistics based on distances to the 
-target where areas nearby have more weight than those farther away (i.e., inverse 
-distance-weighting). A set of inverse distance weighting scenarios for stream 
-survey sites was described in Peterson *et al.* (2011) that included various 
-types of Euclidean and flow-path distances to targets. Tools are implemented 
-as *IDW-Plus* in *ArcGIS* (Peterson et al. 2017) as well as in *rdwplus* in *R* 
-through *GRASS GIS* (Pearse et al. 2019).
+Another approach is to calculate landscape statistics based on distances
+to the target where areas nearby have more weight than those farther
+away (i.e., inverse distance-weighting). A set of inverse distance
+weighting scenarios for stream survey sites was described in Peterson
+*et al.* (2011) that included various types of Euclidean and flow-path
+distances to targets. Tools are implemented as *IDW-Plus* in *ArcGIS*
+(Peterson et al. 2017) as well as in *rdwplus* in *R* through *GRASS
+GIS* (Pearse et al. 2019).
 
-***hydroweight*** replicates the above approaches but also provides a set of simple and 
-flexible functions to accommodate a wider set of scenarios and statistics 
-(e.g., numerical and categorical rasters and polygons). It also
-uses the speedy WhiteboxTools (Lindsay 2016, Wu 2020). 
+***hydroweight*** replicates the above approaches but also provides a
+set of simple and flexible functions to accommodate a wider set of
+scenarios and statistics (e.g., numerical and categorical rasters and
+polygons). It also uses the speedy WhiteboxTools (Lindsay 2016, Wu
+2020).
 
-There are two functions: 
+There are two functions:
 
-* `hydroweight()` generates distance-weighted rasters for targets
-on a digital elevation model raster. Examples of targets include single points,
-areas such as lakes, or linear features such as streams. The function outputs
-a list of `length(weighting_scheme)` and an accompanying `*.rds` file
-of distance-weighted rasters for targets (`target_O` is a point/area target as
-in iFLO and `target_S` is a linear feature target as in iFLS in
-Peterson *et al.* 2011). IMPORTANTLY, this function acts on a single set of targets 
-but can produce multiple weights. The distance-weighted rasters can be used 
-for generating distance-weighted attributes with `hydroweight_attributes()` (e.g., % urban
-cover weighted by flow distance to a point). See `?hydroweight`.
+-   `hydroweight()` generates distance-weighted rasters for targets on a
+    digital elevation model raster. Examples of targets include single
+    points, areas such as lakes, or linear features such as streams. The
+    function outputs a list of `length(weighting_scheme)` and an
+    accompanying `*.rds` file of distance-weighted rasters for targets
+    (`target_O` is a point/area target as in iFLO and `target_S` is a
+    linear feature target as in iFLS in Peterson *et al.* 2011).
+    IMPORTANTLY, this function acts on a single set of targets but can
+    produce multiple weights. The distance-weighted rasters can be used
+    for generating distance-weighted attributes with
+    `hydroweight_attributes()` (e.g., % urban cover weighted by flow
+    distance to a point). See `?hydroweight`.
 
-* `hydroweight_attributes()` calculates distance-weighted attributes using 
-distance-weighted rasters generated in `hydroweight()`, an attribute layer (`loi`, 
-e.g., land use raster/polygon), and a region of interest (`roi`, e.g., a catchment
-polygon). The function outputs an attribute summary table or a list 
-that includes the summary table and layers used for calculation. Summary statistics 
-are calculated as in Peterson *et al.* (2011). IMPORTANTLY, this function only 
-produces one instance of the `loi` x `distance_weights` summary statistics (i.e., one `loi`, one `roi`, and one set of `distance_weights`). See `?hydroweight_attributes`.
+-   `hydroweight_attributes()` calculates distance-weighted attributes
+    using distance-weighted rasters generated in `hydroweight()`, an
+    attribute layer (`loi`, e.g., land use raster/polygon), and a region
+    of interest (`roi`, e.g., a catchment polygon). The function outputs
+    an attribute summary table or a list that includes the summary table
+    and layers used for calculation. Summary statistics are calculated
+    as in Peterson *et al.* (2011). IMPORTANTLY, this function only
+    produces one instance of the `loi` x `distance_weights` summary
+    statistics (i.e., one `loi`, one `roi`, and one set of
+    `distance_weights`). See `?hydroweight_attributes`.
 
-Workflows are provided below to run these functions across multiple sites and layers. 
+Workflows are provided below to run these functions across multiple
+sites and layers.
 
-Distance weights defined by Peterson *et al.* (2011) are: 
+Distance weights defined by Peterson *et al.* (2011) are:
 
-|Distance weight|Definition|Input layers required|
-|---------------|----------|---------------------|
-|lumped|all weights = 1|`dem`, `target_O`/`target_S`|
-|iEucO| weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)|`dem`, `target_O`|
-|iEucS| weighted inverse Euclidean distance to `target_S` (i.e., streams)|`dem`, `target_S`|
-|iFLO| weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`| |iFLS| weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`| |HAiFLO| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_O` using d8 flow direction|`dem`, `target_O`, `accum`| 
-|HAiFLS| hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction|`dem`, `target_S`, `accum`| 
+| Distance weight | Definition                                                                                                                          | Input layers required        |
+|-----------------------|------------------|--------------------------------|
+| lumped          | all weights = 1                                                                                                                     | `dem`, `target_O`/`target_S` |
+| iEucO           | weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)                                                             | `dem`, `target_O`            |
+| iEucS           | weighted inverse Euclidean distance to `target_S` (i.e., streams)                                                                   | `dem`, `target_S`            |
+| iFLO            | weighted inverse flow-path distance to `target_O` using d8 flow direction                                                           | `dem`, `target_O`            |
+| HAiFLS          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction | `dem`, `target_S`, `accum`   |
 
 [Back to top](#contents)
 
 ## 2.0 System setup and installation
 
-*WhiteboxTools* and *whitebox* are required for ***hydroweight***. See [whiteboxR](https://github.com/giswqs/whiteboxR) or below for installation.
+*WhiteboxTools* and *whitebox* are required for ***hydroweight***. See
+[whiteboxR](https://github.com/giswqs/whiteboxR) or below for
+installation.
 
 ```{r, eval = FALSE}
 ## Follow instructions for whitebox installation accordingly
@@ -150,14 +183,15 @@ devtools::install_github("bkielstr/hydroweight@main")
 
 ### 3.1 Generate toy terrain dataset
 
-We begin by bringing in our toy digital elevation model and using it to generate terrain products.
+We begin by bringing in our toy digital elevation model and using it to
+generate terrain products.
 
 ```{r, message = FALSE, error = FALSE, warning = FALSE}
 ## Load libraries
 library(dplyr)
 library(foreach)
 library(hydroweight)
-library(raster)
+library(terra)
 library(sf)
 library(viridis)
 library(whitebox)
@@ -165,8 +199,8 @@ library(whitebox)
 ## Import toy_dem from whitebox package
 toy_file<-sample_dem_data()
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
-toy_dem <- raster(x = toy_file, values = TRUE)
-crs(toy_dem) <- "+init=epsg:3161"
+toy_dem <- rast(x = toy_file)
+crs(toy_dem) <- "epsg:3161"
 
 ## Generate hydroweight_dir as a temporary directory
 hydroweight_dir <- tempdir()
@@ -208,16 +242,19 @@ wbt_extract_streams(
 
 ### 3.2 Generate toy targets
 
-Next we generate a few targets below. Users can provide their 
-own vector or raster type targets (see `?hydroweight`). Targets are often 
-called *pour points* in the literature; here, targets can be a group of raster cells, polygons, polylines, or points.
+Next we generate a few targets below. Users can provide their own vector
+or raster type targets (see `?hydroweight`). Targets are often called
+*pour points* in the literature; here, targets can be a group of raster
+cells, polygons, polylines, or points.
 
-Our first target is a low lying area we will call a lake (`tg_O`). 
-All cells <220 m elevation are assigned `TRUE` or `1` and those >220 m are assigned `NA`. 
-We also generate its catchment (`tg_O_catchment`) using `whitebox::wbt_watershed()`. 
-Our target streams (`tg_S`) are loaded from the `whitebox::wbt_extract_streams()` output. 
-Finally, we do some manipulation to the stream network raster to generate three points along the 
-stream network (`tg_O_multi`) and their catchments (`tg_O_multi_catchment`).
+Our first target is a low lying area we will call a lake (`tg_O`). All
+cells \<220 m elevation are assigned `TRUE` or `1` and those \>220 m are
+assigned `NA`. We also generate its catchment (`tg_O_catchment`) using
+`whitebox::wbt_watershed()`. Our target streams (`tg_S`) are loaded from
+the `whitebox::wbt_extract_streams()` output. Finally, we do some
+manipulation to the stream network raster to generate three points along
+the stream network (`tg_O_multi`) and their catchments
+(`tg_O_multi_catchment`).
 
 ```{r, fig.width = 5, fig.height = 5, message = FALSE, error = FALSE, warning = FALSE}
 ## For hydroweight, there are target_O and target_S
@@ -226,9 +263,9 @@ stream network (`tg_O_multi`) and their catchments (`tg_O_multi_catchment`).
 
 ## Generate target_O, tg_O, representing a lake.
 tg_O <- toy_dem < 220
-tg_O[tg_O@data@values != 1] <- NA
+tg_O[tg_O != 1] <- NA
 writeRaster(tg_O, file.path(hydroweight_dir, "tg_O.tif"), overwrite = TRUE)
-tg_O <- rasterToPolygons(tg_O, dissolve = TRUE)
+tg_O <- as.polygons(tg_O, dissolve = TRUE)
 tg_O <- st_as_sf(tg_O)
 
 ## Generate catchment for tg_O
@@ -238,16 +275,17 @@ wbt_watershed(
   output = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
 
-tg_O_catchment <- raster(file.path(hydroweight_dir, "tg_O_catchment.tif"))
-tg_O_catchment <- rasterToPolygons(tg_O_catchment, dissolve = TRUE)
+tg_O_catchment <- rast(file.path(hydroweight_dir, "tg_O_catchment.tif"))
+tg_O_catchment <- as.polygons(tg_O_catchment, dissolve = TRUE)
 tg_O_catchment <- st_as_sf(tg_O_catchment)
+names(tg_O_catchment)[1]<-"Lake"
 
 ## Generate target_S, tg_S, representing the stream network
-tg_S <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif"))
+tg_S <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
 
 ## Generate target_O, tg_O, representing several points along stream network, and their catchments
-tg_O_multi <- raster(file.path(hydroweight_dir, "toy_dem_streams.tif"))
-tg_O_multi <- rasterToPoints(tg_O_multi, spatial = TRUE)
+tg_O_multi <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
+tg_O_multi <- as.points(tg_O_multi)
 tg_O_multi <- st_as_sf(tg_O_multi)
 tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[, 1] < 675000, ] # selects single network
 tg_O_multi <- tg_O_multi[c(10, 50, 100), ]
@@ -269,8 +307,8 @@ tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass"
   )
 
   ## Load catchment and convert to polygon with Site code.
-  sel_catchment_r <- raster(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif"))
-  sel_catchment_r <- rasterToPolygons(sel_catchment_r, dissolve = TRUE)
+  sel_catchment_r <- rast(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif"))
+  sel_catchment_r <- as.polygons(sel_catchment_r, dissolve = TRUE)
   sel_catchment_r$Site <- sel$Site
   sel_catchment_r <- st_as_sf(sel_catchment_r)
 
@@ -292,20 +330,25 @@ legend("bottom", legend = c("target_O sites", "target_S"), fill = c("red", "grey
 
 ### 3.3 Run `hydroweight()`
 
-Below, `hydroweight()` is run using our lake as `target_O` for iEucO, iFLO, and HAiFLO,
-and using our streams as `target_S` for iEucS, iFLS, and HAiFLS. For export of
-the distance-weighted rasters, we use "Lake"; the .rds exported from `hydroweight()`
-to `hydroweight_dir` will now be called "Lake_inv_distances.rds". Since our DEM
-is small, we decide to not clip our region (i.e., `clip_region = NULL`). Using
-`OS_combine = TRUE`, we indicate that distances to the nearest water feature will be
-either the lake or stream. Furthermore, for HAiFLO or HAiFLS, both the lake and
-streams will be set to NoData for their calculation as these represent areas 
-of concentrated flow rather than areas of direct terrestrial-aquatic interaction 
-(see Peterson *et al.* 2011). Our `dem` and `flow_accum` are assigned using character strings with the `.tif` files located in `hydroweight_dir`. Weighting schemes and the inverse function are indicated.
+Below, `hydroweight()` is run using our lake as `target_O` for iEucO,
+iFLO, and HAiFLO, and using our streams as `target_S` for iEucS, iFLS,
+and HAiFLS. For export of the distance-weighted rasters, we use "Lake";
+the .rds exported from `hydroweight()` to `hydroweight_dir` will now be
+called "Lake_inv_distances.rds". Since our DEM is small, we decide to
+not clip our region (i.e., `clip_region = NULL`). Using
+`OS_combine = TRUE`, we indicate that distances to the nearest water
+feature will be either the lake or stream. Furthermore, for HAiFLO or
+HAiFLS, both the lake and streams will be set to NoData for their
+calculation as these represent areas of concentrated flow rather than
+areas of direct terrestrial-aquatic interaction (see Peterson *et al.*
+2011). Our `dem` and `flow_accum` are assigned using character strings
+with the `.tif` files located in `hydroweight_dir`. Weighting schemes
+and the inverse function are indicated.
 
-Note that these distance-weighted rasters will eventually be clipped to an `roi` - a region
-of interest like a site's catchment - in `hydroweight_attributes()`. The value
-for `clipped_region` is really meant to decrease processing time of large rasters.
+Note that these distance-weighted rasters will eventually be clipped to
+an `roi` - a region of interest like a site's catchment - in
+`hydroweight_attributes()`. The value for `clipped_region` is really
+meant to decrease processing time of large rasters.
 
 See `?hydroweight` for more details.
 
@@ -338,8 +381,11 @@ hw_test_1 <- hydroweight::hydroweight(
     "lumped", "iEucO", "iFLO", "HAiFLO",
     "iEucS", "iFLS", "HAiFLS"
   ),
-  inv_function = myinv
+  inv_function = myinv,
+  clean_tempfiles=F
 )
+
+hw_test_1<-lapply(hw_test_1,rast)
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
@@ -372,13 +418,20 @@ plot(log(hw_test_1[[7]]), main = "HAiFLS", axes = F, legend = F, box = FALSE, co
 
 Important things to note from this plot:
 
-* Lumped is equal weighting where all values = 1.
-* iEucO and iEucS distances extend outward to the extent of the DEM.
-* For iFLO/HAiFLO/iFLS/HAiFLS, only distances in cells contributing to the areas of interest are included.
-* For iFLS/HAiFLS, all regions draining to *any* streams are included (i.e., the streams to the east). These would be removed depending on catchment boundaries of interest when using `hydroweight::hydroweight_attributes()`  
-* As in Peterson *et al.* (2011), for HAiFLS, the targets are set to NoData (i.e., NA) since they likely represent concentrated flow areas.
+-   Lumped is equal weighting where all values = 1.
+-   iEucO and iEucS distances extend outward to the extent of the DEM.
+-   For iFLO/HAiFLO/iFLS/HAiFLS, only distances in cells contributing to
+    the areas of interest are included.
+-   For iFLS/HAiFLS, all regions draining to *any* streams are included
+    (i.e., the streams to the east). These would be removed depending on
+    catchment boundaries of interest when using
+    `hydroweight::hydroweight_attributes()`  
+-   As in Peterson *et al.* (2011), for HAiFLS, the targets are set to
+    NoData (i.e., NA) since they likely represent concentrated flow
+    areas.
 
-These temporary files are made per instance of `hydroweight::hydroweight()`:
+These temporary files are made per instance of
+`hydroweight::hydroweight()`:
 
 ```{r}
 list.files(hydroweight_dir)[grep("TEMP-", list.files(hydroweight_dir))]
@@ -398,6 +451,8 @@ hw_test_2 <- hydroweight::hydroweight(
   weighting_scheme = c("lumped", "iEucS", "iFLS", "HAiFLS"),
   inv_function = myinv
 )
+
+hw_test_2<-lapply(hw_test_2,rast)
 ## Resultant structure:
 # length(hw_test_3) ## 1 set of targets and 4 distance-weighted rasters
 # hw_test_2[[1]] ## lumped
@@ -415,6 +470,9 @@ hw_test_3 <- hydroweight::hydroweight(
   weighting_scheme = c("lumped", "iEucO", "iFLO", "HAiFLO"),
   inv_function = myinv
 )
+
+hw_test_3<-lapply(hw_test_3,rast)
+
 # length(hw_test_3) ## 1 set of targets and 4 distance-weighted rasters
 # hw_test_3[[1]] ## lumped
 # hw_test_3[[2]] ## iEucO
@@ -438,6 +496,8 @@ hw_test_4 <- hydroweight::hydroweight(
   inv_function = myinv
 )
 
+hw_test_4<-lapply(hw_test_4,rast)
+
 ## Plot
 par(mfrow = c(1, 1), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
@@ -448,18 +508,21 @@ plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col 
 
 ### 3.4 Run `hydroweight()` across a set of sites
 
-We wanted users to access intermediate products and also anticipated that
-layers and/or errors may be very case-specific. For these reasons, we don't *yet*
-provide an all-in-one solution for multiple sites and/or layers of interest but provide workflows instead.
+We wanted users to access intermediate products and also anticipated
+that layers and/or errors may be very case-specific. For these reasons,
+we don't *yet* provide an all-in-one solution for multiple sites and/or
+layers of interest but provide workflows instead.
 
-We advocate using `foreach` since it is `lapply`-like but passes along errors to allow for
-later fixing. Linking `foreach` with `doParallel` allows for parallel processing.
-(e.g., `foreach(...) %dopar%`). We have not tested `whitebox` using parallel
-processing. However `hydroweight_attributes()` can be run in parallel.
+We advocate using `foreach` since it is `lapply`-like but passes along
+errors to allow for later fixing. Linking `foreach` with `doParallel`
+allows for parallel processing. (e.g., `foreach(...) %dopar%`). We have
+not tested `whitebox` using parallel processing. However
+`hydroweight_attributes()` can be run in parallel.
 
-Since `hydroweight()` exports an `.rds` of its result to `hydroweight_dir`, it
-allows users to assign the results of `hydroweight()` to an object in the current
-environment or to run `hydroweight()` alone and upload the `.rds` afterwards.
+Since `hydroweight()` exports an `.rds` of its result to
+`hydroweight_dir`, it allows users to assign the results of
+`hydroweight()` to an object in the current environment or to run
+`hydroweight()` alone and upload the `.rds` afterwards.
 
 ```{r, message = TRUE, error = FALSE, warning = FALSE, fig.height = 3.5, fig.width = 7}
 ## Run hydroweight across sites found in stream points tg_O_multi/tg_O_multi_catchment
@@ -485,6 +548,7 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   return(hw_test_xx)
 }
 
+hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## Resultant structure:
 ## length(hw_test_5) # 3 sites
 ## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site
@@ -503,7 +567,8 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 ## Loading up data as if it were not originally assigned to object hw_test_5
 inv_distance_collect <- file.path(hydroweight_dir, paste0(tg_O_multi$Site, "_inv_distances.rds"))
 hw_test_5 <- lapply(inv_distance_collect, function(x) {
-  readRDS(x)
+  out<-readRDS(x)
+  lapply(out,rast)
 })
 
 ## Resultant structure:
@@ -533,21 +598,23 @@ plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101),
 
 [Back to top](#contents)
 
-### 3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()` 
+### 3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`
 
-An advantage of using `hydroweight()` is that an iFLO-derived product can be used as a catchment 
-boundary in subsequent operations. iFLO uses `whitebox::wbt_downslope_distance_to_stream` 
-that uses a D8 flow-routing algorithm to trace the flow path. 
-Converting all non-`NA` iFLO distances will yield a catchment boundary analogous to 
-`whitebox::wbt_watershed()`. However, we have noticed minor inconsistencies when comparing 
-catchments derived from the two procedures when catchment boundaries fall along DEM edges.
-The procedure for deriving the catchment boundary for Site 3 is below. 
+An advantage of using `hydroweight()` is that an iFLO-derived product
+can be used as a catchment boundary in subsequent operations. iFLO uses
+`whitebox::wbt_downslope_distance_to_stream` that uses a D8 flow-routing
+algorithm to trace the flow path. Converting all non-`NA` iFLO distances
+will yield a catchment boundary analogous to
+`whitebox::wbt_watershed()`. However, we have noticed minor
+inconsistencies when comparing catchments derived from the two
+procedures when catchment boundaries fall along DEM edges. The procedure
+for deriving the catchment boundary for Site 3 is below.
 
 ```{r, message = TRUE, error = FALSE, warning = FALSE, fig.height = 3.5, fig.width = 7}
 ## Pull out iFLO from Site 3, convert non-NA values to 1, then to polygons, then to sf
 site3_catchment <- hw_test_5[[3]][["iFLO"]]
 site3_catchment[!is.na(site3_catchment)] <- 1
-site3_catchment <- rasterToPolygons(site3_catchment, dissolve = T)
+site3_catchment <- as.polygons(site3_catchment, dissolve = T)
 site3_catchment <- st_as_sf(site3_catchment)
 
 ## Compare
@@ -568,10 +635,16 @@ plot(st_geometry(tg_O_multi_catchment[3, ]), col = adjustcolor("red", alpha.f = 
 
 ## 4.0 Inverse distance-weighted attributes using `hydroweight_attributes()`
 
-`hydroweight_attributes()` uses `hydroweight()` output and layers of interest (`loi`) to calculate distance-weighted attributes within a region of interest (`roi`). Inputs can be numeric rasters, categorical rasters, and polygon data with either numeric or categorical data in the columns. Internally, all layers are projected to or rasterized to the spatial resolution of the `hydroweight()` output (i.e., the original DEM).
+`hydroweight_attributes()` uses `hydroweight()` output and layers of
+interest (`loi`) to calculate distance-weighted attributes within a
+region of interest (`roi`). Inputs can be numeric rasters, categorical
+rasters, and polygon data with either numeric or categorical data in the
+columns. Internally, all layers are projected to or rasterized to the
+spatial resolution of the `hydroweight()` output (i.e., the original
+DEM).
 
-For numeric inputs, the distance-weighted mean and standard deviation for each `roi`:`loi` combination 
-are calculated using
+For numeric inputs, the distance-weighted mean and standard deviation
+for each `roi`:`loi` combination are calculated using
 
 <p align="center">
   <img width="150" height="75" src="./man/figures/WeightedAvg.svg">
@@ -581,30 +654,46 @@ are calculated using
   <img width="225" height="113" src="./man/figures/WeightedStd.svg">
 </p>
 
-where $n$ is the number of cells, $w_i$ are the cell weights, and $x_i$ are `loi` cell values, $m$ is the number or non-zero weights, and $\bar{x}^*$ is the weighted mean. For categorical inputs, the proportion for each `roi`:`loi` combination is calculated using
+where $n$ is the number of cells, $w_i$ are the cell weights, and $x_i$
+are `loi` cell values, $m$ is the number or non-zero weights, and
+$\bar{x}^*$ is the weighted mean. For categorical inputs, the proportion
+for each `roi`:`loi` combination is calculated using
 
 <p align="center">
   <img width="150" height="75" src="./man/figures/WeightedProp.svg">
 </p>
 
-where $I(k_i)=1$ when category $k$ is present in a cell or $I(k_i)=0$ when not. 
+where $I(k_i)=1$ when category $k$ is present in a cell or $I(k_i)=0$
+when not.
 
-Finally, `loi` `NA` values are handled differently depending on `loi` type. For numeric, `NA` cells are excluded from all calculations. If `cell_count` is specified in `loi_statistics` (see below), count of non-`NA` cells and `NA` cells are returned in the attribute table. For categorical, `NA` cells are considered a category and are included in the calculated proportions. A `prop_NA` column is included in the attribute table. The `lumped_"loi"_prop_NA` would be the true proportion of `NA` cells whereas other columns would be their respective distance-weighted `NA` proportions. This could allow the user to re-calculate proportions using non-`NA` values only. 
+Finally, `loi` `NA` values are handled differently depending on `loi`
+type. For numeric, `NA` cells are excluded from all calculations. If
+`cell_count` is specified in `loi_statistics` (see below), count of
+non-`NA` cells and `NA` cells are returned in the attribute table. For
+categorical, `NA` cells are considered a category and are included in
+the calculated proportions. A `prop_NA` column is included in the
+attribute table. The `lumped_"loi"_prop_NA` would be the true proportion
+of `NA` cells whereas other columns would be their respective
+distance-weighted `NA` proportions. This could allow the user to
+re-calculate proportions using non-`NA` values only.
 
 ### 4.1 Using a numeric raster layer of interest
 
-Using the results of `hydroweight()` (i.e., a list of distance-weighted rasters), we generate
-distance-weighted attributes for a single site across the weighting schemes.
+Using the results of `hydroweight()` (i.e., a list of distance-weighted
+rasters), we generate distance-weighted attributes for a single site
+across the weighting schemes.
 
-First, we generate a numeric raster layer of interest `loi = ndvi` and then summarize those cells
-falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
-raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how results are returned.
+First, we generate a numeric raster layer of interest `loi = ndvi` and
+then summarize those cells falling within the region of interest,
+`roi = tg_O_catchment`, for each distance-weighted raster in `tw_test_1`
+(all weighting schemes, see above). See `?hydroweight_attributes` for
+`loi_`- and `roi_`-specific information indicating type of data and how
+results are returned.
 
 ```{r, fig.width = 6, fig.height = 6, message = FALSE, error = FALSE, warning = FALSE}
 ## Construct continuous dataset
 ndvi <- toy_dem
-values(ndvi) <- runif(n = (ndvi@ncols * ndvi@nrows), min = 0, max = 1)
+values(ndvi) <- runif(n = (dim(ndvi)[1] * dim(ndvi)[2]), min = 0, max = 1)
 names(ndvi) <- "ndvi"
 
 hwa_test_numeric <- hydroweight_attributes(
@@ -620,6 +709,8 @@ hwa_test_numeric <- hydroweight_attributes(
   return_products = TRUE
 )
 names(hwa_test_numeric$attribute_table)
+
+hwa_test_numeric$return_products<-lapply(hwa_test_numeric$return_products,function(x) lapply(x,rast))
 
 ## Resultant structure
 ## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
@@ -672,10 +763,12 @@ plot(hwa_test_numeric$return_products$iFLS$`loi_Raster*_bounded` * hwa_test_nume
 
 ### 4.2 Using a categorical raster layer of interest
 
-Here, we generate a categorical raster layer of interest `loi = lulc` and then summarize those cells
-falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
-raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how results are returned.
+Here, we generate a categorical raster layer of interest `loi = lulc`
+and then summarize those cells falling within the region of interest,
+`roi = tg_O_catchment`, for each distance-weighted raster in `tw_test_1`
+(all weighting schemes, see above). See `?hydroweight_attributes` for
+`loi_`- and `roi_`-specific information indicating type of data and how
+results are returned.
 
 ```{r, fig.width=6, fig.height=6, message = FALSE, error = FALSE, warning = FALSE}
 ## Construct categorical dataset by reclassify elevation values into categories
@@ -683,7 +776,7 @@ raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attr
 lulc <- toy_dem
 m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4) 
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
-lulc <- reclassify(lulc, rclmat)
+lulc <- classify(lulc, rclmat)
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
 hwa_test_categorical <- hydroweight_attributes(
@@ -698,6 +791,8 @@ hwa_test_categorical <- hydroweight_attributes(
   return_products = TRUE
 )
 names(hwa_test_categorical$attribute_table)
+
+hwa_test_categorical$return_products<-lapply(hwa_test_categorical$return_products,function(x) lapply(x,rast))
 
 ## Resultant structure
 ## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
@@ -795,20 +890,23 @@ axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
 
 ### 4.3 Using a polygon layer of interest with numeric data in the column
 
-Here, we use `lulc` and polygonize the raster to `lulc_p`. We then generate some numeric data in the polygon
-layer called `var_1` and `var_2`. We then spatially summarize the numeric data in those
-two columns using `hydroweight_attributes()`.
+Here, we use `lulc` and polygonize the raster to `lulc_p`. We then
+generate some numeric data in the polygon layer called `var_1` and
+`var_2`. We then spatially summarize the numeric data in those two
+columns using `hydroweight_attributes()`.
 
-Internally, the `lulc` polygons are rasterized using `distance_weights` as the template.
-This basically treats the columns as if they were individual numeric raster layers.
-Landscape statistics are calculated accordingly (e.g., distance-weighted mean).
-Those cells falling within the region of interest, `roi = tg_O_catchment`, for each distance-weighted
-raster in `tw_test_1` (all weighting schemes, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how results are returned.
+Internally, the `lulc` polygons are rasterized using `distance_weights`
+as the template. This basically treats the columns as if they were
+individual numeric raster layers. Landscape statistics are calculated
+accordingly (e.g., distance-weighted mean). Those cells falling within
+the region of interest, `roi = tg_O_catchment`, for each
+distance-weighted raster in `tw_test_1` (all weighting schemes, see
+above). See `?hydroweight_attributes` for `loi_`- and `roi_`-specific
+information indicating type of data and how results are returned.
 
 ```{r, fig.height = 7, fig.width = 14, message = FALSE, error = FALSE}
 ## Construct polygons with numeric data by converting lulc to polygons and assigning values to columns
-lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
+lulc_p <- as.polygons(lulc, dissolve = T, na.rm = T)
 lulc_p <- st_as_sf(lulc_p)
 
 set.seed(123)
@@ -831,6 +929,7 @@ hwa_test_numeric_polygon <- hydroweight_attributes(
   return_products = TRUE
 )
 names(hwa_test_numeric_polygon$attribute_table)
+hwa_test_numeric_polygon$return_products<-lapply(hwa_test_numeric_polygon$return_products,function(x) lapply(x,rast))
 
 ## Resultant structure
 ## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
@@ -849,13 +948,14 @@ names(hwa_test_numeric_polygon$attribute_table)
 
 ### 4.4 Using a polygon layer of interest with categorical data in the column
 
-Here, we continue to use `lulc_p` but specify `loi_numeric = FALSE` indicating
-the data are categorical rather than numeric. Note the final number in the column
-names of the summary table is the "category" that was summarized.
+Here, we continue to use `lulc_p` but specify `loi_numeric = FALSE`
+indicating the data are categorical rather than numeric. Note the final
+number in the column names of the summary table is the "category" that
+was summarized.
 
 ```{r, message = FALSE, error = FALSE}
 ## Construct polygons with categorical data by converting lulc to polygons and assigning values to columns
-lulc_p <- rasterToPolygons(lulc, dissolve = T, na.rm = T)
+lulc_p <- as.polygons(lulc, dissolve = T, na.rm = T)
 lulc_p <- st_as_sf(lulc_p)
 
 set.seed(123)
@@ -895,16 +995,18 @@ names(hwa_test_categorical_polygon$attribute_table)
 
 ## 5.0 Inverse distance-weighted rasters and attributes across multiple sites and layers
 
-Now that we are familiar with the results structure of `hydroweight()` and
-`hydroweight_attributes()`, we use our stream points to demonstrate how to chain
-an analysis together across sites, distances weights, and layers of interest. 
+Now that we are familiar with the results structure of `hydroweight()`
+and `hydroweight_attributes()`, we use our stream points to demonstrate
+how to chain an analysis together across sites, distances weights, and
+layers of interest.
 
 The basic chain looks like this this:
 
-* For each site: Run `hydroweight()`
-  + For each layer of interest: Run `hydroweight_attributes()` 
-    
-Here, we try to make the code easier to troubleshoot rather than make it look pretty: 
+-   For each site: Run `hydroweight()`
+    -   For each layer of interest: Run `hydroweight_attributes()`
+
+Here, we try to make the code easier to troubleshoot rather than make it
+look pretty:
 
 ### 5.1 Run `hydroweight()` across sites
 
@@ -1037,7 +1139,7 @@ names(sites_attributes_products[[1]][[1]]$return_products) ## Return products fo
 
 ### 5.4 Extract and adjust results data frames
 
-```{r, warning = FALSE, error = FALSE, message = FALSE} 
+```{r, warning = FALSE, error = FALSE, message = FALSE}
 sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do% {
 
   ## Selects an individual site
@@ -1066,57 +1168,79 @@ sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_a
 colnames(sites_attributes_df)
 ```
 
-Now - like any good environmental scientist - you have more variables and/or metrics than sites.
+Now - like any good environmental scientist - you have more variables
+and/or metrics than sites.
 
 [Back to top](#contents)
 
 ## 6.0 Future plans
 
-This package was implemented to mostly serve our purposes and is functional enough.
-There is probably lots of room for improvement that we don't see yet.
+This package was implemented to mostly serve our purposes and is
+functional enough. There is probably lots of room for improvement that
+we don't see yet.
 
 The core functions should stay the same but we would like to:
 
-1. Optimize for speed based on user/my own feedback.
-2. Potentially use less in-memory `raster` functions in favour of `WhiteboxTools` functions.
-3. Work on moving multi-site/multi-layer capability into their own functions based on feedback.
-4. Implement tidier data handling and results structures.
-5. ... as things come up.
+1.  Optimize for speed based on user/my own feedback.
+2.  Potentially use less in-memory `raster` functions in favour of
+    `WhiteboxTools` functions.
+3.  Work on moving multi-site/multi-layer capability into their own
+    functions based on feedback.
+4.  Implement tidier data handling and results structures.
+5.  ... as things come up.
 
 [Back to top](#contents)
 
-## 7.0 Acknowledgements 
+## 7.0 Acknowledgements
 
-Thank you to for early review/testing (alphabetical order): 
+Thank you to for early review/testing (alphabetical order):
 
 Darren McCormick, Courtney Mondoux, Emily Smenderovac
 
-We acknowledge the funding support of Natural Resources Canada, the Ontario Ministry of Natural Resources, 
-and a Natural Sciences and Engineering Research Council of Canada Strategic Partnership Grant (STPGP 521405-2018).
+We acknowledge the funding support of Natural Resources Canada, the
+Ontario Ministry of Natural Resources, and a Natural Sciences and
+Engineering Research Council of Canada Strategic Partnership Grant
+(STPGP 521405-2018).
 
 [Back to top](#contents)
 
 ## 8.0 References
 
-Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring function and structure of urban headwater streams with citizen scientists. Ecosphere, 10(4):e02720. https://doi.org/10.1002/ecs2.2720
+Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring
+function and structure of urban headwater streams with citizen
+scientists. Ecosphere, 10(4):e02720. <https://doi.org/10.1002/ecs2.2720>
 
-Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric analysis. Computers & Geosciences, 95: 75-84. https://doi.org/10.1016/j.cageo.2016.07.003
+Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
+analysis. Computers & Geosciences, 95: 75-84.
+<https://doi.org/10.1016/j.cageo.2016.07.003>
 
-Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D. (2011). A comparison of spatially explicit landscape representation methods and their relationship to stream condition. Freshwater Biology, 56(3), 590–610. https://doi.org/10.1111/j.1365-2427.2010.02507.x
+Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D.
+(2011). A comparison of spatially explicit landscape representation
+methods and their relationship to stream condition. Freshwater Biology,
+56(3), 590–610. <https://doi.org/10.1111/j.1365-2427.2010.02507.x>
 
-Peterson, E. E. & Pearse, A. R. (2017). IDW‐Plus: An ArcGIS Toolset for calculating spatially explicit watershed attributes for survey sites.
-Journal of the American Water Resources Association, 53(5): 1241–1249. https://doi.org/10.1111/1752-1688.12558
+Peterson, E. E. & Pearse, A. R. (2017). IDW‐Plus: An ArcGIS Toolset for
+calculating spatially explicit watershed attributes for survey sites.
+Journal of the American Water Resources Association, 53(5): 1241–1249.
+<https://doi.org/10.1111/1752-1688.12558>
 
-Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation of IDW-PLUS. R package version 0.1.0. https://CRAN.R-project.org/package=rdwplus
+Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation
+of IDW-PLUS. R package version 0.1.0.
+<https://CRAN.R-project.org/package=rdwplus>
 
-R Core Team (2021). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. https://www.R-project.org/
+R Core Team (2021). R: A language and environment for statistical
+computing. R Foundation for Statistical Computing, Vienna, Austria.
+<https://www.R-project.org/>
 
-Wickham, H., Bryan, J. (2021). R Packages. 2nd edition. https://r-pkgs.org/.
+Wickham, H., Bryan, J. (2021). R Packages. 2nd edition.
+<https://r-pkgs.org/>.
 
-Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version 1.4.0. https://github.com/giswqs/whiteboxR
+Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version
+1.4.0. <https://github.com/giswqs/whiteboxR>
 
 [Back to top](#contents)
 
-## 9.0 Copyright 
+## 9.0 Copyright
 
-Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada
+Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as
+represented by the Minister of Natural Resources Canada

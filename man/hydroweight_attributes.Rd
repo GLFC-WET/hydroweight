@@ -5,21 +5,21 @@
 \title{Generate inverse distance-weighted attributes}
 \usage{
 hydroweight_attributes(
-  loi = NULL,
+  loi,
   loi_attr_col = NULL,
   loi_columns = NULL,
   loi_numeric = NULL,
   loi_numeric_stats = NULL,
-  roi = NULL,
-  roi_uid = NULL,
-  roi_uid_col = NULL,
-  distance_weights = NULL,
+  roi,
+  roi_uid,
+  roi_uid_col,
+  distance_weights,
   remove_region = NULL,
   return_products = TRUE
 )
 }
 \arguments{
-\item{loi}{\code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
+\item{loi}{character (with extension, e.g., "lu.shp"), \code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
 
 \item{loi_attr_col}{character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)}
 
@@ -29,13 +29,13 @@ hydroweight_attributes(
 
 \item{loi_numeric_stats}{character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.}
 
-\item{roi}{\code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
+\item{roi}{character (with extension, e.g., "roi.shp"), \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
 
 \item{roi_uid}{character. Unique identifier value for the roi.}
 
 \item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
 
-\item{distance_weights}{\code{list}. The distance-weighted rasters output from \code{hydroweight}.}
+\item{distance_weights}{character (with extension, e.g., "idw.rds"), \code{list}. The distance-weighted rasters output from \code{hydroweight}.}
 
 \item{remove_region}{\code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
 

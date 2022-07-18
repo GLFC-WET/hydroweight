@@ -43,6 +43,7 @@
 #' @param flow_accum  character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
 #' @param inv_function function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
+#' @param clean_tempfiles logical. Should temporary files be removed?
 #' @return Named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
 #' @export
 #'
@@ -57,7 +58,8 @@ hydroweight <- function(hydroweight_dir = NULL,
                         weighting_scheme = NULL,
                         inv_function = function(x) {
                           (x * 0.001 + 1)^-1
-                        }) {
+                        },
+                        clean_tempfiles=T) {
   # TODO: Add checks to make sure all raster inputs are SpatRaster NOT RasterLayer
   # TODO: class(___)[1] should be changed to inherits()
 
@@ -219,7 +221,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## write target_O and adjust to clip_region if sf
   if (class(target_O)[1] == "sf") {
     if (any(sf::st_is(target_O, c("POLYGON", "MULTIPOLYGON")))) {
-      target_O_r <- terra::rasterize(sf::as_Spatial(target_O),
+      target_O_r <- terra::rasterize(x=terra::vect(target_O),
                                      y = dem_clip,
                                      filename = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                                      field = 1,
@@ -234,7 +236,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       target_O_int <- sf::st_intersects(target_O, dem_clip_extent)
       target_O_int <- target_O[lengths(target_O_int) > 0, ]
 
-      target_O_r <- terra::rasterize(sf::as_Spatial(target_O_int),
+      target_O_r <- terra::rasterize(terra::vect(target_O_int),
                                      y = dem_clip,
                                      filename = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
                                      field = 1,
@@ -348,11 +350,11 @@ hydroweight <- function(hydroweight_dir = NULL,
     target_S_OS[target_S_OS > 0] <- 1
     target_O_OS[target_O_OS > 0] <- 1
 
-    mosaic_list <- list(target_O_OS, target_S_OS)
-    mosaic_list$fun <- sum
-    mosaic_list$na.rm <- TRUE
+    # mosaic_list$x <- terra::rast(list(target_O_OS, target_S_OS))
+    # mosaic_list$fun <- sum
+    # mosaic_list$na.rm <- TRUE
 
-    OS_combine_r <- do.call(terra::mosaic, mosaic_list)
+    OS_combine_r <- terra::mosaic(x=terra::sprc(list(target_O_OS, target_S_OS)), fun="sum")
     OS_combine_r[OS_combine_r > 0] <- 1
     OS_combine_r[OS_combine_r == 0] <- NA
 
@@ -393,7 +395,7 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     lumped_inv <- dem_clip
     lumped_inv[!is.na(lumped_inv)]<-1
-    terra::writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif"),overwrite=T))
+    terra::writeRaster(lumped_inv,file.path(hydroweight_dir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T)
 
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, paste0(target_uid,"_TEMP-target_O_clip.tif")),
@@ -775,7 +777,9 @@ hydroweight <- function(hydroweight_dir = NULL,
   weighting_scheme_inv <- paste0(weighting_scheme, "_inv")
 
   dist_list <- lapply(weighting_scheme_inv, function(x) {
-    get(x) #I think this can cause problems
+    out<-get(x) #I think this can cause problems
+    names(out)<-gsub("_inv","",x)
+    return(out)
   })
   names(dist_list) <- weighting_scheme
 
@@ -787,13 +791,15 @@ hydroweight <- function(hydroweight_dir = NULL,
   ))
 
   ## CLEAN UP ----
-  temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"_hydroweight_"),
-                             full.names = TRUE)
-  file.remove(temp_rasters)
+  if (clean_tempfiles){
+    temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"_hydroweight_"),
+                               full.names = TRUE)
+    file.remove(temp_rasters)
 
-  temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"_TEMP-"),
-                             full.names = TRUE)
-  file.remove(temp_rasters)
+    temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"_TEMP-"),
+                               full.names = TRUE)
+    file.remove(temp_rasters)
+  }
 
   return(dist_list)
 }
