@@ -38,7 +38,7 @@ hydroweight_attributes <- function(loi,
                                    remove_region=NULL,
                                    return_products = TRUE) {
 
-  if (!dir.exists(hydroweight_dir)) dir.create(tempdir())
+  if (!dir.exists(tempdir())) dir.create(tempdir())
 
   if (inherits(loi,"character")){
     if (grepl("\\.shp$",loi)) {
