@@ -53,6 +53,12 @@ hydroweight_attributes <- function(loi,
   if (inherits(loi,"RasterLayer")){
     loi<-terra::rast(loi)
   }
+  if (inherits(loi,"PackedSpatRaster")){
+    loi<-terra::rast(loi)
+  }
+  if (inherits(loi,"PackedSpatVector")){
+    loi<-terra::vect(loi)
+  }
   if (inherits(loi,"sf")){
     loi<-terra::vect(loi)
   }
@@ -68,6 +74,12 @@ hydroweight_attributes <- function(loi,
   }
   if (inherits(roi,"RasterLayer")){
     roi<-terra::rast(roi)
+  }
+  if (inherits(roi,"PackedSpatRaster")){
+    roi<-terra::rast(roi)
+  }
+  if (inherits(roi,"PackedSpatVector")){
+    roi<-terra::vect(roi)
   }
   if (inherits(roi,"sf")){
     roi<-terra::vect(roi)
@@ -88,6 +100,12 @@ hydroweight_attributes <- function(loi,
   }
   if (inherits(remove_region,"RasterLayer")){
     remove_region<-terra::rast(remove_region)
+  }
+  if (inherits(remove_region,"PackedSpatRaster")){
+    remove_region<-terra::rast(remove_region)
+  }
+  if (inherits(remove_region,"PackedSpatVector")){
+    remove_region<-terra::vect(remove_region)
   }
   if (inherits(remove_region,"sf")){
     remove_region<-terra::vect(remove_region)
