@@ -302,7 +302,7 @@ hydroweight_attributes <- function(loi,
           uv <- unlist(terra::unique(brick_list[[y]]))
 
           out<-lapply(uv,function(x) {
-            repl<-values(brick_list[[y]])
+            repl<-terra::values(brick_list[[y]])
             repl[repl!=x]<-NA
             repl[!is.na(repl)]<-1
             out<-terra::setValues(brick_list[[y]],repl)
