@@ -784,8 +784,11 @@ hydroweight <- function(hydroweight_dir = NULL,
   names(dist_list) <- weighting_scheme
 
   dist_list_out<-lapply(dist_list,function(x) {
-    terra::writeRaster(x,file.path(hydroweight_dir,target_uid,"_",paste0(names(x),".tif")),overwrite=T)
-    return(file.path(hydroweight_dir,paste0(names(x),".tif")))
+    fl<-file.path(tempdir(),basename(tempfile()))
+    dir.create(fl)
+    fl<-file.path(fl,paste0(paste0(names(x),".tif")))
+    terra::writeRaster(x,fl,overwrite=T)
+    return(fl)
   })
 
   out_file<-file.path(hydroweight_dir,paste0(target_uid, "_inv_distances.zip"))
@@ -795,7 +798,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   }
   zip(out_file,
       unlist(dist_list_out),
-      flags = '-r9Xj'
+      flags = '-r9Xjq'
   )
 
   dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is too slow for large rasters
@@ -814,6 +817,8 @@ hydroweight <- function(hydroweight_dir = NULL,
     temp_rasters <- list.files(path = hydroweight_dir, pattern = paste0(target_uid,"_TEMP-"),
                                full.names = TRUE)
     file.remove(temp_rasters)
+
+    file.remove(unlist(dist_list_out))
   }
 
   return(dist_list)
