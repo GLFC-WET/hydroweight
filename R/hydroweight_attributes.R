@@ -114,7 +114,12 @@ hydroweight_attributes <- function(loi,
     if (grepl("\\.rds$",distance_weights)) {
       distance_weights<-readRDS(distance_weights)
     } else {
-      stop("'distance_weights' must be specified as .rds file")
+      if (grepl("\\.zip$",distance_weights)) {
+        fls<-unzip(distance_weights,list=T)
+        fls<-file.path("/vsizip",distance_weights,fls$Name)
+        distance_weights<-lapply(fls,terra::rast)
+        names(distance_weights)<-sapply(distance_weights,names)
+      } else stop("'distance_weights' must be specified as .rds or .zip file")
     }
   }
 

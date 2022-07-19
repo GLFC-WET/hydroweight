@@ -368,7 +368,7 @@ text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
 
 ```{r, fig.width = 6, fig.height = 4, message = TRUE, error = FALSE, warning = FALSE }
 ## Run hydroweight::hydroweight()
-hw_test_1 <- hydroweight::hydroweight(
+hw_test_1 <- hydroweight(
   hydroweight_dir = hydroweight_dir,
   target_O = tg_O,
   target_S = tg_S,
@@ -385,7 +385,7 @@ hw_test_1 <- hydroweight::hydroweight(
   clean_tempfiles=F
 )
 
-hw_test_1<-lapply(hw_test_1,rast)
+# hw_test_1<-lapply(hw_test_1,rast)
 
 ## Resultant structure:
 # length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters

@@ -783,12 +783,27 @@ hydroweight <- function(hydroweight_dir = NULL,
   })
   names(dist_list) <- weighting_scheme
 
-  dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50
+  dist_list_out<-lapply(dist_list,function(x) {
+    terra::writeRaster(x,file.path(hydroweight_dir,paste0(names(x),".tif")),overwrite=T)
+    return(file.path(hydroweight_dir,paste0(names(x),".tif")))
+  })
 
-  saveRDS(dist_list, file = file.path(
-    hydroweight_dir,
-    paste0(target_uid, "_inv_distances.rds")
-  ))
+  out_file<-file.path(hydroweight_dir,paste0(target_uid, "_inv_distances.zip"))
+  if (file.exists(out_file)) {
+    out_file<-file.path(hydroweight_dir,paste0(target_uid,"_",basename(tempfile()), "_inv_distances.zip"))
+    warning(paste0("Target .zip file already exists. Saving as: ",out_file))
+  }
+  zip(out_file,
+      unlist(dist_list_out),
+      flags = '-r9Xj'
+  )
+
+  dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is too slow for large rasters
+
+  # saveRDS(dist_list, file = file.path(
+  #   hydroweight_dir,
+  #   paste0(target_uid, "_inv_distances.rds")
+  # ))
 
   ## CLEAN UP ----
   if (clean_tempfiles){
