@@ -784,7 +784,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   names(dist_list) <- weighting_scheme
 
   dist_list_out<-lapply(dist_list,function(x) {
-    terra::writeRaster(x,file.path(hydroweight_dir,paste0(names(x),".tif")),overwrite=T)
+    terra::writeRaster(x,file.path(hydroweight_dir,target_uid,"_",paste0(names(x),".tif")),overwrite=T)
     return(file.path(hydroweight_dir,paste0(names(x),".tif")))
   })
 
