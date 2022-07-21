@@ -2,3 +2,4 @@
 
 export(hydroweight)
 export(hydroweight_attributes)
+export(process_input)
