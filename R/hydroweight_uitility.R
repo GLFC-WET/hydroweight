@@ -143,7 +143,8 @@ process_input<-function(input=NULL,
     output<-terra::crop(
       x=output,
       y=clip_region,
-      mask=T
+      mask=T,
+      overwrite=T
     )
   }
 
