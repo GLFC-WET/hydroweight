@@ -1167,7 +1167,7 @@ Processing large volumes of data (both in number of predictor variables and site
 
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
 
-# Comming soon
+# Coming soon
 
 ```
 

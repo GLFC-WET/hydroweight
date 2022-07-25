@@ -9,6 +9,10 @@ process_input<-function(input=NULL,
                         clip_region=NULL,
                         resample_type=c("bilinear","near"),
                         ...){
+
+  tdir<-file.path(tempfile())
+  if (!dir.exists(tdir)) dir.create(tdir)
+
   require(terra)
   require(sf)
 
@@ -90,11 +94,17 @@ process_input<-function(input=NULL,
 
         if (resample_type=="near"){ # For categorical vector inputs
           output_split<-lapply(setNames(variable_names,variable_names), function(x) {
-            output %>%
+            out<-output %>%
               st_as_sf() %>%
               select(any_of(x)) %>%
               split(.[[x]]) %>%
-              lapply(vect)
+              lapply(terra::vect)
+
+            fl<-lapply(out,file.path(tdir,paste0(basename(tempfile()),".tif")))
+            sv<-lapply(names(out),function(x) terra::writeVector(out[[x]],filename=fl[[x]],overwrite=T))
+
+            out<-lapply(fl,terra::rast)
+            return(out)
           })
 
           output_split_nms<-sapply(names(output_split),function(x) paste0(x,"_",names(output_split[[x]])))
@@ -103,12 +113,15 @@ process_input<-function(input=NULL,
           names(output_split)<-output_split_nms
 
           output <- lapply(output_split, function(x) {
-            terra::rasterize(x=x,
-                             y=target,
-                             field = "",
-                             overwrite=T,
-                             ...
+            fl<-file.path(tdir,paste0(basename(tempfile()),".tif"))
+            out<-terra::rasterize(x=x,
+                                  y=target,
+                                  field = "",
+                                  overwrite=T,
+                                  ...
             )
+            sv<-terra::writeRaster(out,filename=fl,overwrite=T)
+            return(terra::rast(fl))
           })
 
           output<-lapply(setNames(names(output),names(output)),function(x){
