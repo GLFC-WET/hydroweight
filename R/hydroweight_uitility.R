@@ -163,6 +163,8 @@ process_input<-function(input=NULL,
       }
     }
 
+
+    # Reprojecting to mathc target --------------------------------------------
     if (inherits(output,"SpatRaster")) {
       need_reproj<-terra::compareGeom(
         x = output,
@@ -202,6 +204,8 @@ process_input<-function(input=NULL,
 
   }
 
+  # Clip and mask to clip_region --------------------------------------------
+
   if (!is.null(clip_region) & !is.null(target)){
     output<-terra::crop(
       x=output,
@@ -211,6 +215,8 @@ process_input<-function(input=NULL,
     )
   }
 
+
+  # Separate output raster into separate layers if multiple numerical values present ------
   if (resample_type=="near") {
     if (terra::nlyr(output)>1) {
       brick_list<-terra::split(output,names(output))
@@ -225,19 +231,23 @@ process_input<-function(input=NULL,
       uv <- uv[!sapply(uv,is.na)]
       uv <- uv[!sapply(uv,is.infinite)]
 
-      out<-lapply(uv,function(x) {
-        repl<-terra::values(brick_list[[y]])
-        repl[repl!=x]<-NA
-        repl[!is.na(repl)]<-1
-        out<-terra::setValues(brick_list[[y]],repl)
-        if (length(uv)>1) names(out)<-paste0(y,"_",x)
-        if (length(uv)==1) names(out)<-y
-        return(out)
-      })
+      if (length(uv)>1) {
+        out<-lapply(uv,function(x) {
+          repl<-terra::values(brick_list[[y]])
+          repl[repl!=x]<-NA
+          repl[!is.na(repl)]<-1
+          out<-terra::setValues(brick_list[[y]],repl)
+          if (length(uv)>1) names(out)<-paste0(y,"_",x)
+          if (length(uv)==1) names(out)<-y
+          return(out)
+        })
 
-      nms<-sapply(out,names)
-      out <- terra::rast(out)
-      names(out) <- nms
+        nms<-sapply(out,names)
+        out <- terra::rast(out)
+        names(out) <- nms
+      } else {
+        out<-brick_list[[y]]
+      }
       return(out)
     })
 
