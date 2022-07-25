@@ -55,11 +55,33 @@ process_input<-function(input=NULL,
     if (inherits(output,"SpatRaster")) output<-terra::subset(output,variable_names)
   }
 
+
   if (!is.null(target)){
     target<-process_input(input=target)
 
     if (is.na(terra::crs(target)) | is.null(terra::crs(target))) {
       stop("'target' crs() is NULL or NA. Apply projection before continuing")
+    }
+
+    # Process Clip Region -----------------------------------------------------
+    if (!is.null(clip_region)){
+      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=crs(target)))
+
+      if (inherits(output,"SpatVector")) {
+        output<-terra::crop(
+          x=output,
+          y=terra::ext(clip_region)
+        )
+      }
+
+      if (inherits(output,"SpatRaster")) {
+        output<-terra::crop(
+          x=output,
+          y=terra::ext(clip_region),
+          mask=F,
+          overwrite=T
+        )
+      }
     }
 
     # If target is raster -----------------------------------------------------
@@ -141,8 +163,6 @@ process_input<-function(input=NULL,
   }
 
   if (!is.null(clip_region) & !is.null(target)){
-    clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=crs(target)))
-
     output<-terra::crop(
       x=output,
       y=clip_region,

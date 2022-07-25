@@ -1160,7 +1160,20 @@ and/or metrics than sites.
 
 [Back to top](#contents)
 
-## 6.0 Future plans
+
+## 6.0 Processing high volumes of data
+
+Processing large volumes of data (both in number of predictor variables and sites) can be challenging. The fastest method depends on the size of the region, the spatial resolution, and numbers of predictors and sites.  
+
+```{r, warning = FALSE, error = FALSE, message = FALSE}
+
+# Comming soon
+
+```
+
+[Back to top](#contents)
+
+## 7.0 Future plans
 
 This package was implemented to mostly serve our purposes and is
 functional enough. There is probably lots of room for improvement that
@@ -1178,7 +1191,7 @@ functions based on feedback.
 
 [Back to top](#contents)
 
-## 7.0 Acknowledgements
+## 8.0 Acknowledgements
 
 Thank you to for early review/testing (alphabetical order):
 
@@ -1191,7 +1204,7 @@ Engineering Research Council of Canada Strategic Partnership Grant
 
 [Back to top](#contents)
 
-## 8.0 References
+## 9.0 References
 
 Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring
 function and structure of urban headwater streams with citizen
@@ -1227,7 +1240,7 @@ Wu, Q. (2020). whitebox: 'WhiteboxTools' R Frontend. R package version
 
 [Back to top](#contents)
 
-## 9.0 Copyright
+## 10.0 Copyright
 
 Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as
 represented by the Minister of Natural Resources Canada
