@@ -100,7 +100,7 @@ process_input<-function(input=NULL,
               split(.[[x]]) %>%
               lapply(terra::vect)
 
-            fl<-lapply(out,file.path(tdir,paste0(basename(tempfile()),".tif")))
+            fl<-lapply(out, function(x) file.path(tdir,paste0(basename(tempfile()),".shp")))
             sv<-lapply(names(out),function(x) terra::writeVector(out[[x]],filename=fl[[x]],overwrite=T))
 
             out<-lapply(fl,terra::rast)
