@@ -103,7 +103,7 @@ process_input<-function(input=NULL,
             fl<-lapply(out, function(x) file.path(tdir,paste0(basename(tempfile()),".shp")))
             sv<-lapply(names(out),function(x) terra::writeVector(out[[x]],filename=fl[[x]],overwrite=T))
 
-            out<-lapply(fl,terra::rast)
+            out<-lapply(fl,terra::vect)
             return(out)
           })
 
