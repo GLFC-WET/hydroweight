@@ -138,12 +138,15 @@ process_input<-function(input=NULL,
         }
         if (resample_type=="bilinear"){ # For numeric vector inputs
           output <- lapply(variable_names, function(x) {
-            terra::rasterize(x=output,
-                             y=target,
-                             field = x,
-                             overwrite=T,
-                             ...
+            fl<-file.path(tdir,paste0(basename(tempfile()),".tif"))
+            out<-terra::rasterize(x=output,
+                                  y=target,
+                                  field = x,
+                                  overwrite=T,
+                                  ...
             )
+            sv<-terra::writeRaster(out,filename=fl,overwrite=T)
+            return(terra::rast(fl))
           })
         }
 
@@ -161,14 +164,32 @@ process_input<-function(input=NULL,
     }
 
     if (inherits(output,"SpatRaster")) {
-      if (length(resample_type)>1) stop("'resample_type' must be one of: 'bilinear','near'")
-      output <- terra::project(
+      need_reproj<-terra::compareGeom(
         x = output,
         y = target,
-        method = resample_type,
-        overwrite = TRUE,
-        ...
+        lyrs=F,
+        crs=T,
+        ext=T,
+        rowcol=T,
+        res=T,
+        warncrs=F,
+        stopOnError=F,
+        messages=F
       )
+      need_reproj<-!need_reproj # take inverse
+
+      if (need_reproj) {
+        if (length(resample_type)>1) stop("'resample_type' must be one of: 'bilinear','near'")
+
+        output <- terra::project(
+          x = output,
+          y = target,
+          method = resample_type,
+          overwrite = TRUE,
+          ...
+        )
+      }
+
     }
 
     if (inherits(output,"SpatVector")) {
