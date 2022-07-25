@@ -88,6 +88,12 @@ process_input<-function(input=NULL,
                              ...
             )
           })
+
+          output<-lapply(setNames(names(output),names(output)),function(x){
+            out<-output[[x]]
+            names(out)<-x
+            return(out)
+          })
         }
         if (resample_type=="bilinear"){ # For numeric vector inputs
           output <- lapply(variable_names, function(x) {

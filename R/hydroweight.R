@@ -66,8 +66,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
 
   ## Set up raster temp file for out-of-memory raster files
-  terra::terraOptions(tempdir = file.path(tempdir(),basename(tempfile())), verbose=F)
-  #terra::rastTmpFile(prefix = paste0(target_uid,"_hydroweight_")) #PS: this isn't an option in terra
+  terra::terraOptions(tempdir = own_tempdir, verbose=F)
 
   ## Set whitebox verbose_mode to FALSE
   whitebox::wbt_options(verbose = FALSE)
