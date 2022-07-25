@@ -104,6 +104,12 @@ process_input<-function(input=NULL,
             sv<-lapply(names(out),function(x) terra::writeVector(out[[x]],filename=fl[[x]],overwrite=T))
 
             out<-lapply(fl,terra::vect)
+
+            out<-lapply(out,function(y) {
+              names(y)<-paste0(x,"_",unlist(y[[1]]))
+              return(y)
+            })
+
             return(out)
           })
 
