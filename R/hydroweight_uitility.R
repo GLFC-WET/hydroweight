@@ -39,10 +39,7 @@ process_input<-function(input=NULL,
   if (inherits(input,"sf")){
     output<-terra::vect(input)
   }
-  if (inherits(input,"SpatRaster")){
-    output<-input
-  }
-  if (inherits(input,"SpatVector")){
+  if (inherits(input,c("SpatRaster","SpatVector"))){
     output<-input
   }
 
@@ -54,7 +51,7 @@ process_input<-function(input=NULL,
   if (any(!variable_names %in% names(output))) stop("some 'variable_names' not in input")
 
   if (length(variable_names)>0) {
-    if (inherits(output,"SpatVector")) output<-output[names(output) %in% variable_names]
+    if (inherits(output,"SpatVector")) output<-output[,variable_names]
     if (inherits(output,"SpatRaster")) output<-terra::subset(output,variable_names)
   }
 
