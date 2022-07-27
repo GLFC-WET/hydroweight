@@ -31,7 +31,7 @@ hydroweight_attributes <- function(loi,
                                    loi_columns = NULL,
                                    loi_numeric,
                                    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"),
-                                   roi,
+                                   roi=NULL,
                                    roi_uid,
                                    roi_uid_col="ID",
                                    distance_weights,
@@ -67,14 +67,20 @@ hydroweight_attributes <- function(loi,
 
   distance_weights<-lapply(distance_weights,function(x) if (inherits(x,"PackedSpatRaster")) terra::rast(x) else x)
 
-  # Prepare input data ------------------------------------------------------
-  roi<-process_input(input = roi,
-                     input_name="roi",
-                     target = distance_weights[[1]],
-                     clip_region=distance_weights[[1]],
-                     resample_type="near")
-  roi<-roi[[1]]
-  names(roi)<-"roi"
+  # Prepare roi data ------------------------------------------------------
+  if (is.null(roi)) {
+    roi<-distance_weights[[1]]
+    roi[!is.na(roi)]<-1
+    names(roi)<-"roi"
+  } else {
+    roi<-process_input(input = roi,
+                       input_name="roi",
+                       target = distance_weights[[1]],
+                       clip_region=distance_weights[[1]],
+                       resample_type="near")
+    roi<-roi[[1]]
+    names(roi)<-"roi"
+  }
 
   remove_region<-process_input(input = remove_region,
                                input_name="remove_region",
@@ -89,14 +95,20 @@ hydroweight_attributes <- function(loi,
     roi <- terra::mask(x=roi, mask = remove_region, inverse = TRUE)
   }
 
+  # roi<-process_input(input = roi, # this converts ROI to polygon
+  #                    input_name="roi",
+  #                    target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs( distance_weights[[1]])),
+  #                    resample_type="near")
+
+  # Prepare loi -------------------------------------------------------------
   loi<-process_input(input = loi,
                      input_name="loi",
                      variable_names=loi_columns,
-                     target = roi,
+                     target = distance_weights[[1]],
                      clip_region=roi,
                      resample_type=loi_resample)
 
-  distance_weights<-lapply(distance_weights,process_input,target=roi,clip_region=roi,resample_type="bilinear")
+  distance_weights<-lapply(distance_weights,process_input,target=distance_weights[[1]],clip_region=roi,resample_type="bilinear")
 
   loi_stats <- list(setNames(roi_uid,roi_uid_col) %>% unlist())
   names(loi_stats)<-roi_uid_col

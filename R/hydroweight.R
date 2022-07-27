@@ -78,6 +78,10 @@ hydroweight <- function(hydroweight_dir = NULL,
   dem<-process_input(input = dem,input_name="dem")
   dem_crs<-terra::crs(dem)
 
+  # dem_poly<-dem
+  # dem_poly[!is.na(dem_poly)]<-1
+  # dem_poly<-terra::as.polygons(dem_poly)
+
   # Process clip_region Input --------------------------------------------------
   clip_region<-process_input(input = clip_region,
                              target = dem,
@@ -140,30 +144,42 @@ hydroweight <- function(hydroweight_dir = NULL,
     OS_combine_r
   )
 
-  names(rast_list)<-c(
+  rast_list_nms<-c(
     paste0(target_uid,"_TEMP_dem_clip.tif"),
     paste0(target_uid,"_TEMP_flow_accum_clip.tif"),
     paste0(target_uid,"_TEMP_clip_region.tif"),
     paste0(target_uid,"_TEMP_target_O_clip.tif"),
     paste0(target_uid,"_TEMP_target_S_clip.tif"),
     paste0(target_uid,"_TEMP_OS_combine.tif")
-
   )
+  names(rast_list)<-rast_list_nms
+
+  rast_list_nms<-lapply(rast_list_nms,function(x){
+    if (inherits(rast_list[[x]],"SpatVector")) {
+      out<-gsub("\\.tif","\\.shp",x)
+    } else {
+      out<-x
+    }
+    return(out)
+  })
+  names(rast_list)<-rast_list_nms
 
 
   # Write temporary rasters -------------------------------------------------
   for (i in names(rast_list)){
     if (!is.null(rast_list[[i]])){
-      writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
+      if (inherits(rast_list[[i]],"SpatVector")) {
+        writeVector(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
+      } else {
+        writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
+      }
     }
   }
 
 
-  if ("lumped" %in% weighting_scheme) {
-    lumped_inv <- dem
-    lumped_inv[!is.na(lumped_inv)]<-1
-    terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T)
-  }
+  lumped_inv <- dem
+  lumped_inv[!is.na(lumped_inv)]<-1
+  terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T)
 
   ## iEucO, Euclidean distance to target_O ----
   if ("iEucO" %in% weighting_scheme) {
@@ -196,8 +212,8 @@ hydroweight <- function(hydroweight_dir = NULL,
       iEucO_inv <- terra::app(iEucO, fun = inv_function)
 
     }
-
     terra::crs(iEucO_inv) <- dem_crs
+    iEucO_inv<-terra::mask(iEucO_inv,lumped_inv)
     terra::writeRaster(iEucO_inv,
                        file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucO.tif")),
                        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -239,6 +255,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       terra::crs(iEucS_inv) <- dem_crs
+      iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
       terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -278,6 +295,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       }
 
       terra::crs(iEucS_inv) <- dem_crs
+      iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
       terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),

@@ -69,7 +69,7 @@ process_input<-function(input=NULL,
 
     # Process Clip Region -----------------------------------------------------
     if (!is.null(clip_region)){
-      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=crs(target)))
+      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target)))
 
       if (inherits(output,"SpatVector")) {
         output<-terra::crop(
@@ -106,7 +106,7 @@ process_input<-function(input=NULL,
             out<-lapply(fl,terra::vect)
 
             out<-lapply(out,function(y) {
-              names(y)<-paste0(x,"_",unlist(y[[1]]))
+              names(y)<-paste0(x,"_",unlist(y[[1]])[[1]])
               return(y)
             })
 
@@ -188,6 +188,7 @@ process_input<-function(input=NULL,
           y = target,
           method = resample_type,
           overwrite = TRUE,
+          filename = paste0(tempfile(),".tif"),
           ...
         )
       }
@@ -207,51 +208,61 @@ process_input<-function(input=NULL,
   # Clip and mask to clip_region --------------------------------------------
 
   if (!is.null(clip_region) & !is.null(target)){
-    output<-terra::crop(
-      x=output,
-      y=clip_region,
-      mask=T,
-      overwrite=T
-    )
+    if (inherits(output,"SpatVector")) {
+      output<-terra::crop(
+        x=output,
+        y=clip_region
+      )
+    }
+    if (inherits(output,"SpatRaster")) {
+      output<-terra::crop(
+        x=output,
+        y=clip_region,
+        mask=T,
+        overwrite=T
+      )
+    }
   }
 
 
   # Separate output raster into separate layers if multiple numerical values present ------
-  if (resample_type=="near") {
-    if (terra::nlyr(output)>1) {
-      brick_list<-terra::split(output,names(output))
-      names(brick_list)<-names(output)
-    } else {
-      brick_list<-output
-    }
-
-    brick_list<-lapply(names(brick_list),function(y){
-      uv <- unlist(terra::unique(brick_list[[y]]))
-      uv <- uv[!sapply(uv,is.nan)]
-      uv <- uv[!sapply(uv,is.na)]
-      uv <- uv[!sapply(uv,is.infinite)]
-
-      if (length(uv)>1) {
-        out<-lapply(uv,function(x) {
-          repl<-terra::values(brick_list[[y]])
-          repl[repl!=x]<-NA
-          repl[!is.na(repl)]<-1
-          out<-terra::setValues(brick_list[[y]],repl)
-          if (length(uv)>1) names(out)<-paste0(y,"_",x)
-          if (length(uv)==1) names(out)<-y
-          return(out)
-        })
-
-        nms<-sapply(out,names)
-        out <- terra::rast(out)
-        names(out) <- nms
+  if (inherits(output,"SpatRaster")) {
+    if (resample_type=="near") {
+      if (terra::nlyr(output)>1) {
+        brick_list<-terra::split(output,names(output))
+        names(brick_list)<-names(output)
       } else {
-        out<-brick_list[[y]]
+        brick_list<-output
       }
-      return(out)
-    })
 
-    output <- terra::rast(brick_list)
+      brick_list<-lapply(names(brick_list),function(y){
+        uv <- unlist(terra::unique(brick_list[[y]]))
+        uv <- uv[!sapply(uv,is.nan)]
+        uv <- uv[!sapply(uv,is.na)]
+        uv <- uv[!sapply(uv,is.infinite)]
+
+        if (length(uv)>1) {
+          out<-lapply(uv,function(x) {
+            repl<-terra::values(brick_list[[y]])
+            repl[repl!=x]<-NA
+            repl[!is.na(repl)]<-1
+            out<-terra::setValues(brick_list[[y]],repl)
+            if (length(uv)>1) names(out)<-paste0(y,"_",x)
+            if (length(uv)==1) names(out)<-y
+            return(out)
+          })
+
+          nms<-sapply(out,names)
+          out <- terra::rast(out)
+          names(out) <- nms
+        } else {
+          out<-brick_list[[y]]
+        }
+        return(out)
+      })
+
+      output <- terra::rast(brick_list)
+    }
   }
 
   return(output)

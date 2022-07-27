@@ -24,45 +24,28 @@ knitr::opts_chunk$set(
 ## Contents
 
 -   [1.0 Introduction](#10-introduction)
--   [2.0 System setup and
-installation](#20-system-setup-and-installation)
--   [3.0 Inverse distance-weighted rasters using
-`hydroweight()`](#30-inverse-distance-weighted-rasters-using-hydroweight)
--   [3.1 Generate toy terrain
-dataset](#31-generate-toy-terrain-dataset)
+-   [2.0 System setup and installation](#20-system-setup-and-installation)
+-   [3.0 Inverse distance-weighted rasters using `hydroweight()`](#30-inverse-distance-weighted-rasters-using-hydroweight)
+-   [3.1 Generate toy terrain dataset](#31-generate-toy-terrain-dataset)
 -   [3.2 Generate targets](#32-generate-targets)
 -   [3.3 Run `hydroweight()`](#33-run-hydroweight)
--   [3.4 Run `hydroweight()` across a set of
-sites](#34-run-hydroweight-across-a-set-of-sites)
--   [3.5 Using `iFLO` output as catchment boundaries for
-`hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
--   [4.0 Inverse distance-weighted rasters using
-`hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
--   [4.1 Using a numeric raster layer of
-interest](#41-using-a-numeric-raster-layer-of-interest)
--   [4.2 Using a categorical raster layer of
-interest](#42-using-a-categorical-raster-layer-of-interest)
--   [4.3 Using a polygon layer of interest with numeric data in the
-column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
--   [4.4 Using a polygon layer of interest with categorical data in
-the
-column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
--   [5.0 Inverse distance-weighted rasters and attributes across
-multiple layers and
-sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers)
--   [5.1 Run hydroweight across
-sites](#51-Run-hydroweight-across-sites)
--   [5.2 Generate `loi` lists populated with
-`hydroweight_attributes()`
-parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
--   [5.3 Run `hydroweight_attributes()` across sites and
-layers](#53-run-hydroweight_attributes-across-sites-and-layers)
--   [5.4 Extract and adjust results data
-frames](#54-extract-and-adjust-results-data-frames)
--   [6.0 Future plans](#60-future-plans)
--   [7.0 Acknowledgements](#70-acknowledgements)
--   [8.0 References](#80-references)
--   [9.0 Copyright](#90-copyright)
+-   [3.4 Run `hydroweight()` across a set of sites](#34-run-hydroweight-across-a-set-of-sites)
+-   [3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
+-   [4.0 Inverse distance-weighted rasters using `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
+-   [4.1 Using a numeric raster layer of interest](#41-using-a-numeric-raster-layer-of-interest)
+-   [4.2 Using a categorical raster layer of interest](#42-using-a-categorical-raster-layer-of-interest)
+-   [4.3 Using a polygon layer of interest with numeric data in the column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
+-   [4.4 Using a polygon layer of interest with categorical data in the column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
+-   [5.0 Inverse distance-weighted rasters and attributes across multiple layers and sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers)
+-   [5.1 Run hydroweight across sites](#51-Run-hydroweight-across-sites)
+-   [5.2 Generate `loi` lists populated with `hydroweight_attributes()` parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
+-   [5.3 Run `hydroweight_attributes()` across sites and layers](#53-run-hydroweight_attributes-across-sites-and-layers)
+-   [5.4 Extract and adjust results data frames](#54-extract-and-adjust-results-data-frames)
+-   [6.0 Processing large amounts of data](#60-Processing-large-amounts-of-data)
+-   [7.0 Future plans](#70-future-plans)
+-   [8.0 Acknowledgements](#80-acknowledgements)
+-   [9.0 References](#90-references)
+-   [10.0 Copyright](#100-copyright)
 
 ## 1.0 Introduction
 
@@ -265,8 +248,8 @@ the stream network (`tg_O_multi`) and their catchments
 tg_O <- toy_dem < 220
 tg_O[tg_O != 1] <- NA
 writeRaster(tg_O, file.path(hydroweight_dir, "tg_O.tif"), overwrite = TRUE)
-tg_O <- as.polygons(tg_O, dissolve = TRUE)
-tg_O <- st_as_sf(tg_O)
+tg_O <- terra::as.polygons(tg_O, dissolve = TRUE)
+tg_O <- sf::st_as_sf(tg_O)
 
 ## Generate catchment for tg_O
 wbt_watershed(
@@ -410,7 +393,7 @@ plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, box = FALSE, col = v
 plot(hw_test_1[[2]], main = "iEucO", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(hw_test_1[[3]], main = "iFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(log(hw_test_1[[4]]), main = "HAiFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
-plot.new()
+#plot.new()
 plot(hw_test_1[[5]], main = "iEucS", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(hw_test_1[[6]], main = "iFLS", axes = F, legend = F, box = FALSE, col = viridis(101))
 plot(log(hw_test_1[[7]]), main = "HAiFLS", axes = F, legend = F, box = FALSE, col = viridis(101))
@@ -773,7 +756,6 @@ m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4)
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 lulc <- classify(lulc, rclmat)
 
-# PICKUP FROM HERE
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
 hwa_test_categorical <- hydroweight_attributes(
   loi = rast(list(setNames(lulc,"lulc1"),setNames(lulc,"lulc2"))),
@@ -1161,13 +1143,13 @@ and/or metrics than sites.
 [Back to top](#contents)
 
 
-## 6.0 Processing high volumes of data
+## 6.0 Processing large amounts of data
 
-Processing large volumes of data (both in number of predictor variables and sites) can be challenging. The fastest method depends on the size of the region, the spatial resolution, and numbers of predictors and sites.  
+Processing large amounts of data (both in number of predictor variables and sites) can be challenging. The fastest method depends on the size of the region, the spatial resolution, numbers of predictors and sites, and available memory.  
 
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
 
-# Coming soon
+# Coming soon!!!
 
 ```
 
