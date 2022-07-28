@@ -133,10 +133,10 @@ installation.
 ## Follow instructions for whitebox installation accordingly
 ## devtools::install_github("giswqs/whiteboxR") # For development version
 ## whitebox is now available on CRAN
-install.packages("whitebox")
+#install.packages("whitebox")
 
-library(whitebox)
-install_whitebox()
+#library(whitebox)
+#install_whitebox()
 ## Possible warning message:
 ## ------------------------------------------------------------------------
 ## Could not find WhiteboxTools!
@@ -157,7 +157,7 @@ install_whitebox()
 
 
 ## Install current version of hydroweight
-devtools::install_github("bkielstr/hydroweight@main")
+#devtools::install_github("bkielstr/hydroweight@main")
 ```
 
 [Back to top](#contents)
@@ -356,7 +356,7 @@ hw_test_1 <- hydroweight(
   target_O = tg_O,
   target_S = tg_S,
   target_uid = "Lake",
-  clip_region = tg_O_multi_catchment[1,],
+  clip_region = tg_O_multi_catchment[1,1],
   OS_combine = TRUE,
   dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
   flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),

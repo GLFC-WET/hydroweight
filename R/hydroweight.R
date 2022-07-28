@@ -75,7 +75,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   if (is.null(target_uid)) stop("target_uid must be specified")
 
   # Process DEM Input ----------------------------------------------------------
-  dem<-process_input(input = dem,input_name="dem")
+  dem<-process_input(input = dem,input_name="dem",working_dir=own_tempdir)
   dem_crs<-terra::crs(dem)
 
   # dem_poly<-dem
@@ -86,33 +86,38 @@ hydroweight <- function(hydroweight_dir = NULL,
   clip_region<-process_input(input = clip_region,
                              target = dem,
                              clip_region = dem,
-                             input_name="clip_region")
+                             input_name="clip_region",
+                             working_dir=own_tempdir)
 
   dem<-process_input(input = dem,
                      target = dem,
                      clip_region=clip_region,
                      resample_type="bilinear",
-                     input_name="dem")
+                     input_name="dem",
+                     working_dir=own_tempdir)
 
   # Process flow_accum Input ---------------------------------------------------
   flow_accum<-process_input(input = flow_accum,
                             target = dem,
                             clip_region=clip_region,
                             resample_type = "bilinear",
-                            input_name="flow_accum")
+                            input_name="flow_accum",
+                            working_dir=own_tempdir)
 
   # Process target_O Input -----------------------------------------------------
   target_O<-process_input(input = target_O,
                           target = dem,
                           clip_region=clip_region,
-                          input_name="target_O")
+                          input_name="target_O",
+                          working_dir=own_tempdir)
   target_O<-target_O[[1]]
 
   # Process target_S Input -----------------------------------------------------
   target_S<-process_input(input = target_S,
                           target = dem,
                           clip_region=clip_region,
-                          input_name="target_S")
+                          input_name="target_S",
+                          working_dir=own_tempdir)
   target_S<-target_S[[1]]
 
 
@@ -570,9 +575,18 @@ hydroweight <- function(hydroweight_dir = NULL,
 
     temp_rasters <- list.files(path = own_tempdir, pattern = paste0(target_uid,"_TEMP_"),
                                full.names = TRUE)
-    file.remove(temp_rasters)
+    r1<-file.remove(temp_rasters)
 
-    file.remove(unlist(dist_list_out))
+    r2<-file.remove(unlist(dist_list_out))
+
+    list_obj<-ls()
+    list_obj<-list_obj[!list_obj %in% c("own_tempdir","dist_list")]
+    rm(list=list_obj)
+
+    fls_to_remove<-unlink(own_tempdir,recursive=T,force =T)
+
+    terra::tmpFiles(current = T,orphan=T,old=T,remove = T)
+
   }
 
   return(dist_list)

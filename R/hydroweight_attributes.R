@@ -51,6 +51,7 @@ hydroweight_attributes <- function(loi,
   # Read in distance weights ------------------------------------------------
   own_tempdir<-tempfile()
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
+  terra::terraOptions(tempdir = own_tempdir, verbose=F)
 
   if (inherits(distance_weights,"character")){
     if (grepl("\\.rds$",distance_weights)) {
@@ -77,7 +78,8 @@ hydroweight_attributes <- function(loi,
                        input_name="roi",
                        target = distance_weights[[1]],
                        clip_region=distance_weights[[1]],
-                       resample_type="near")
+                       resample_type="near",
+                       working_dir=own_tempdir)
     roi<-roi[[1]]
     names(roi)<-"roi"
   }
@@ -86,7 +88,8 @@ hydroweight_attributes <- function(loi,
                                input_name="remove_region",
                                target = distance_weights[[1]],
                                clip_region=distance_weights[[1]],
-                               resample_type="near")
+                               resample_type="near",
+                               working_dir=own_tempdir)
 
   if (!is.null(remove_region)) {
     remove_region<-remove_region[[1]]
@@ -106,9 +109,10 @@ hydroweight_attributes <- function(loi,
                      variable_names=loi_columns,
                      target = distance_weights[[1]],
                      clip_region=roi,
-                     resample_type=loi_resample)
+                     resample_type=loi_resample,
+                     working_dir=own_tempdir)
 
-  distance_weights<-lapply(distance_weights,process_input,target=distance_weights[[1]],clip_region=roi,resample_type="bilinear")
+  distance_weights<-lapply(distance_weights,process_input,target=distance_weights[[1]],clip_region=roi,resample_type="bilinear",working_dir=own_tempdir)
 
   loi_stats <- list(setNames(roi_uid,roi_uid_col) %>% unlist())
   names(loi_stats)<-roi_uid_col
@@ -264,7 +268,14 @@ hydroweight_attributes <- function(loi,
   }
 
 
-  file.remove(list.files(tempdir(),pattern="_TEMP.tif"))
+  # Cleanup -----------------------------------------------------------------
+  list_obj<-ls()
+  list_obj<-list_obj[!list_obj %in% c("own_tempdir","return_list")]
+  rm(list_obj)
+
+  file.remove(list.files(own_tempdir,pattern="_TEMP.tif"))
+  fls_to_remove<-unlink(own_tempdir,recursive=T,force =T)
+  terra::tmpFiles(current = T,orphan=T,old=F,remove = T)
 
   return(return_list)
 }

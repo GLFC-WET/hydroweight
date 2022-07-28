@@ -8,13 +8,19 @@ process_input<-function(input=NULL,
                         target=NULL,
                         clip_region=NULL,
                         resample_type=c("bilinear","near"),
+                        working_dir=NULL,
                         ...){
-
-  tdir<-file.path(tempfile())
-  if (!dir.exists(tdir)) dir.create(tdir)
-
   require(terra)
   require(sf)
+
+  if (is.null(working_dir)) {
+    tdir<-file.path(tempfile())
+  } else {
+    tdir<-file.path(working_dir,basename(tempfile()))
+  }
+  if (!dir.exists(tdir)) dir.create(tdir)
+
+  terra::terraOptions(tempdir = tdir, verbose=F)
 
   if (is.null(input)) return(input)
   output<-NULL
@@ -69,7 +75,8 @@ process_input<-function(input=NULL,
 
     # Process Clip Region -----------------------------------------------------
     if (!is.null(clip_region)){
-      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target)))
+      #clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target))) clipping by polygon is slower than by raster
+      clip_region<-process_input(clip_region,target=target)
 
       if (inherits(output,"SpatVector")) {
         output<-terra::crop(
@@ -188,7 +195,7 @@ process_input<-function(input=NULL,
           y = target,
           method = resample_type,
           overwrite = TRUE,
-          filename = paste0(tempfile(),".tif"),
+          #filename = file.path(tdir,paste0(basename(tempfile()),".tif")),
           ...
         )
       }
@@ -264,6 +271,27 @@ process_input<-function(input=NULL,
       output <- terra::rast(brick_list)
     }
   }
+
+  if (inherits(output,"SpatRaster")){
+    final_temp<-paste0(tempfile(),".tif")
+    terra::writeRaster(output,final_temp,overwrite=T)
+  }
+  if (inherits(output,"SpatVector")){
+    final_temp<-paste0(tempfile(),".shp")
+    terra::writeVector(output,final_temp,overwrite=T)
+  }
+
+  # fls_to_remove<-list.files(tdir,recursive=T,full.names=T)
+  # fls_to_remove<-fls_to_remove[!grepl(gsub("\\.tif$|\\.shp$","",final_temp),fls_to_remove)]
+
+  # list_obj<-ls()
+  # list_obj<-list_obj[!list_obj %in% c("tdir","output")]
+  #
+  # rm(list=list_obj)
+  # fls_to_remove<-unlink(tdir,recursive=T,force =T)
+  # fls_to_remove<-file.remove(fls_to_remove)
+
+  # terra::tmpFiles(current = F,orphan=T,old=F,remove = T)
 
   return(output)
 }
