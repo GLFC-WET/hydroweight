@@ -75,8 +75,8 @@ process_input<-function(input=NULL,
 
     # Process Clip Region -----------------------------------------------------
     if (!is.null(clip_region)){
-      #clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target))) clipping by polygon is slower than by raster
-      clip_region<-process_input(clip_region,target=target)
+      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target))) #clipping by polygon is slower than by raster
+      #clip_region<-process_input(clip_region,target=target)
 
       if (inherits(output,"SpatVector")) {
         output<-terra::crop(
