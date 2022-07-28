@@ -85,7 +85,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   # Process clip_region Input --------------------------------------------------
   clip_region<-process_input(input = clip_region,
                              target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=dem_crs),
-                             clip_region = terra::as.polygons(terra::ext(dem),crs=terra::crs(dem)),
+                             #clip_region = terra::as.polygons(terra::ext(dem),crs=terra::crs(dem)),
                              input_name="clip_region",
                              working_dir=own_tempdir)
 
