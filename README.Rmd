@@ -135,8 +135,8 @@ installation.
 ## whitebox is now available on CRAN
 #install.packages("whitebox")
 
-#library(whitebox)
-#install_whitebox()
+library(whitebox)
+install_whitebox()
 ## Possible warning message:
 ## ------------------------------------------------------------------------
 ## Could not find WhiteboxTools!
@@ -384,19 +384,19 @@ hw_test_1<-lapply(hw_test_1,rast)
 # hw_test_1[["iEucO"]] etc.
 
 ## Plot different weighting schemes; where purple --> yellow == low --> high weight
-par(mfrow = c(2, 4), mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0, 0, 0, 0))
+par(mfrow = c(2, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 layout(matrix(c(
   1, 2, 3, 4,
   1, 5, 6, 7
 ), nrow = 2, byrow = TRUE))
-plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, box = FALSE, col = viridis(101)[101])
-plot(hw_test_1[[2]], main = "iEucO", axes = F, legend = F, box = FALSE, col = viridis(101))
-plot(hw_test_1[[3]], main = "iFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
-plot(log(hw_test_1[[4]]), main = "HAiFLO", axes = F, legend = F, box = FALSE, col = viridis(101))
+plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, col = viridis(101)[101],mar=NA)
+plot(hw_test_1[[2]], main = "iEucO", axes = F, legend = F,  col = viridis(101),mar=NA)
+plot(hw_test_1[[3]], main = "iFLO", axes = F, legend = F,  col = viridis(101),mar=NA)
+plot(log(hw_test_1[[4]]), main = "HAiFLO", axes = F, legend = F,  col = viridis(101),mar=NA)
 #plot.new()
-plot(hw_test_1[[5]], main = "iEucS", axes = F, legend = F, box = FALSE, col = viridis(101))
-plot(hw_test_1[[6]], main = "iFLS", axes = F, legend = F, box = FALSE, col = viridis(101))
-plot(log(hw_test_1[[7]]), main = "HAiFLS", axes = F, legend = F, box = FALSE, col = viridis(101))
+plot(hw_test_1[[5]], main = "iEucS", axes = F, legend = F,  col = viridis(101),mar=NA)
+plot(hw_test_1[[6]], main = "iFLS", axes = F, legend = F,  col = viridis(101),mar=NA)
+plot(log(hw_test_1[[7]]), main = "HAiFLS", axes = F, legend = F, col = viridis(101),mar=NA)
 ```
 
 Important things to note from this plot:
@@ -473,8 +473,8 @@ hw_test_4<-lapply(hw_test_4,rast)
 
 ## Plot
 par(mfrow = c(1, 1), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
-plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, box = FALSE, col = viridis(101))
+plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, col = viridis(101))
+plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, col = viridis(101))
 ```
 
 [Back to top](#contents)
@@ -565,11 +565,11 @@ inv_distance_collect <- lapply(inv_distance_collect, function(x) {
 ## Plot sites, their catchments, and their respective distance-weighted iFLO rasters
 par(mfrow = c(1, 3), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 1 - iFLO")
-plot(hw_test_5[[1]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
+plot(hw_test_5[[1]][[3]], axes = F, legend = F, col = viridis(101), add = T)
 plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 2 - iFLO")
-plot(hw_test_5[[2]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
+plot(hw_test_5[[2]][[3]], axes = F, legend = F, col = viridis(101), add = T)
 plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 3 - iFLO")
-plot(hw_test_5[[3]][[3]], axes = F, legend = F, box = FALSE, col = viridis(101), add = T)
+plot(hw_test_5[[3]][[3]], axes = F, legend = F, col = viridis(101), add = T)
 ```
 
 [Back to top](#contents)
@@ -704,7 +704,7 @@ hwa_test_numeric$return_products<-lapply(hwa_test_numeric$return_products,functi
 
 ## Plot
 par(mfrow = c(1, 1))
-plot(ndvi, axes = F, legend = F, box = FALSE, col = viridis(101), main = "Toy NDVI")
+plot(ndvi, axes = F, legend = F, col = viridis(101), main = "Toy NDVI")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(st_geometry(tg_O), col = "red", add = T)
 plot(tg_S, col = "blue", add = T, legend = FALSE)
@@ -720,21 +720,21 @@ par(mfrow = c(3, 2), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 
 ## Lumped
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights")
-plot(hw_test_1$lumped, axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE)
+plot(hw_test_1$lumped, axes = F, legend = F, col = "yellow", add = TRUE)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]], axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]], axes = F, legend = F, col = viridis(101), add = TRUE)
 
 ## iEucO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights")
-plot(hw_test_1$iEucO, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hw_test_1$iEucO, axes = F, legend = F, col = viridis(101), add = TRUE)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iEucO$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_numeric$return_products$iEucO$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
 
 ## iFLS
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights")
-plot(hw_test_1$iFLS, axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hw_test_1$iFLS, axes = F, legend = F, col = viridis(101), add = TRUE)
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iFLS$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE)
+plot(hwa_test_numeric$return_products$iFLS$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
 ```
 
 [Back to top](#contents)
@@ -786,7 +786,7 @@ hwa_test_categorical$return_products<-lapply(hwa_test_categorical$return_product
 
 ## Plot
 par(mfrow = c(1, 1))
-plot(lulc, axes = F, legend = F, box = FALSE, col = viridis(4), main = "Toy LULC")
+plot(lulc, axes = F, legend = F, col = viridis(4), main = "Toy LULC")
 plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
 plot(tg_O, col = "red", add = T, legend = FALSE)
 plot(tg_S, col = "blue", add = T, legend = FALSE)
@@ -803,55 +803,55 @@ par(mfrow = c(3, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0), cex = 0.75)
 ## Lumped
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped")
 plot(hw_test_1$lumped,
-     axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+     axes = F, legend = F, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 
 ## iEucO
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO")
 plot(hw_test_1$iEucO,
-     axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+     axes = F, legend = F, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 
 ## iFLS
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS")
 plot(hw_test_1$iFLS,
-     axes = F, legend = F, box = FALSE, col = "yellow", add = TRUE
+     axes = F, legend = F, col = "yellow", add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 4)")
 plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 3)")
 plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 2)")
 plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, box = FALSE, col = viridis(101), add = TRUE
+     axes = F, legend = F, col = viridis(101), add = TRUE
 )
 ```
 
