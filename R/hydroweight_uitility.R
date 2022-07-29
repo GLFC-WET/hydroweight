@@ -10,20 +10,20 @@ process_input<-function(input=NULL,
                         resample_type=c("bilinear","near"),
                         working_dir=NULL,
                         ...){
+  if (is.null(input)) return(input)
+  output<-NULL
+
   require(terra)
   require(sf)
 
   if (is.null(working_dir)) {
-    tdir<-file.path(tempfile())
+    tdir<-file.path(gsub("file","",tempfile()))
   } else {
-    tdir<-file.path(working_dir,basename(tempfile()))
+    tdir<-file.path(working_dir,basename(gsub("file","",tempfile())))
   }
   if (!dir.exists(tdir)) dir.create(tdir)
 
   terra::terraOptions(tempdir = tdir, verbose=F)
-
-  if (is.null(input)) return(input)
-  output<-NULL
 
   resample_type<-match.arg(resample_type)
 
@@ -67,32 +67,11 @@ process_input<-function(input=NULL,
 
 
   if (!is.null(target)){
-    target<-process_input(input=target)
+    target<-process_input(input=target,working_dir=tdir)
+    clip_region<-process_input(clip_region,target=target,working_dir=tdir)
 
     if (is.na(terra::crs(target)) | is.null(terra::crs(target))) {
       stop("'target' crs() is NULL or NA. Apply projection before continuing")
-    }
-
-    # Process Clip Region -----------------------------------------------------
-    if (!is.null(clip_region)){
-      clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target))) #clipping by polygon is slower than by raster
-      #clip_region<-process_input(clip_region,target=target)
-
-      if (inherits(output,"SpatVector")) {
-        output<-terra::crop(
-          x=output,
-          y=terra::ext(clip_region)
-        )
-      }
-
-      if (inherits(output,"SpatRaster")) {
-        output<-terra::crop(
-          x=output,
-          y=terra::ext(clip_region),
-          mask=F,
-          overwrite=T
-        )
-      }
     }
 
     # If target is raster -----------------------------------------------------
@@ -228,6 +207,12 @@ process_input<-function(input=NULL,
         mask=T,
         overwrite=T
       )
+
+      output<-terra::mask(
+        x=output,
+        mask=clip_region,
+        overwrite=T
+      )
     }
   }
 
@@ -273,11 +258,11 @@ process_input<-function(input=NULL,
   }
 
   if (inherits(output,"SpatRaster")){
-    final_temp<-paste0(tempfile(),".tif")
+    final_temp<-file.path(working_dir,paste0(basename(tempfile()),".tif"))
     terra::writeRaster(output,final_temp,overwrite=T)
   }
   if (inherits(output,"SpatVector")){
-    final_temp<-paste0(tempfile(),".shp")
+    final_temp<-file.path(working_dir,paste0(basename(tempfile()),".shp"))
     terra::writeVector(output,final_temp,overwrite=T)
   }
 

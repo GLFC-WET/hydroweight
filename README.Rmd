@@ -384,19 +384,12 @@ hw_test_1<-lapply(hw_test_1,rast)
 # hw_test_1[["iEucO"]] etc.
 
 ## Plot different weighting schemes; where purple --> yellow == low --> high weight
-par(mfrow = c(2, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-layout(matrix(c(
-  1, 2, 3, 4,
-  1, 5, 6, 7
-), nrow = 2, byrow = TRUE))
-plot(hw_test_1[[1]], main = "Lumped", axes = F, legend = F, col = viridis(101)[101],mar=NA)
-plot(hw_test_1[[2]], main = "iEucO", axes = F, legend = F,  col = viridis(101),mar=NA)
-plot(hw_test_1[[3]], main = "iFLO", axes = F, legend = F,  col = viridis(101),mar=NA)
-plot(log(hw_test_1[[4]]), main = "HAiFLO", axes = F, legend = F,  col = viridis(101),mar=NA)
-#plot.new()
-plot(hw_test_1[[5]], main = "iEucS", axes = F, legend = F,  col = viridis(101),mar=NA)
-plot(hw_test_1[[6]], main = "iFLS", axes = F, legend = F,  col = viridis(101),mar=NA)
-plot(log(hw_test_1[[7]]), main = "HAiFLS", axes = F, legend = F, col = viridis(101),mar=NA)
+hw_test_1$HAiFLO<-log(hw_test_1$HAiFLO) # These two weighting schemes can get vary high weights due to flow accumulation,
+hw_test_1$HAiFLS<-log(hw_test_1$HAiFLS) #  log transformation improves visualization
+
+plot(rast(c(hw_test_1[1:4],hw_test_1$lumped,hw_test_1[5:7])),
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+
 ```
 
 Important things to note from this plot:
@@ -472,9 +465,12 @@ hw_test_4 <- hydroweight(
 hw_test_4<-lapply(hw_test_4,rast)
 
 ## Plot
-par(mfrow = c(1, 1), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-plot(hw_test_1[[1]], main = "iEucO - 8000 m clip", axes = FALSE, legend = FALSE, col = viridis(101))
-plot(hw_test_4[[2]], add = TRUE, axes = FALSE, legend = FALSE, col = viridis(101))
+hw_test_4$HAiFLO<-log(hw_test_4$HAiFLO) # These two weighting schemes can get vary high weights due to flow accumulation,
+hw_test_4$HAiFLS<-log(hw_test_4$HAiFLS) #  log transformation improves visualization
+
+plot(rast(c(hw_test_4[1:4],hw_test_4$lumped,hw_test_4[5:7])),
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+
 ```
 
 [Back to top](#contents)
@@ -563,6 +559,7 @@ inv_distance_collect <- lapply(inv_distance_collect, function(x) {
 ## hw_test_5[[3]][[7]] # site 3, HAiFLS
 
 ## Plot sites, their catchments, and their respective distance-weighted iFLO rasters
+
 par(mfrow = c(1, 3), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 1 - iFLO")
 plot(hw_test_5[[1]][[3]], axes = F, legend = F, col = viridis(101), add = T)

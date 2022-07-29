@@ -49,7 +49,7 @@ hydroweight_attributes <- function(loi,
   }
 
   # Read in distance weights ------------------------------------------------
-  own_tempdir<-tempfile()
+  own_tempdir<-gsub("file","",tempfile())
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
   terra::terraOptions(tempdir = own_tempdir, verbose=F)
 

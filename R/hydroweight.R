@@ -47,13 +47,13 @@
 #' @return Named list of \code{PackedSpatRaster} distance-weighted rasters and accompanying \code{*.zip} in \code{hydroweight_dir}
 #' @export
 #'
-hydroweight <- function(hydroweight_dir = NULL,
+hydroweight <- function(hydroweight_dir,
                         target_O = NULL,
                         target_S = NULL,
                         target_uid = NULL,
                         OS_combine = NULL,
                         clip_region = NULL,
-                        dem = NULL,
+                        dem,
                         flow_accum = NULL,
                         weighting_scheme = NULL,
                         inv_function = function(x) {
@@ -62,7 +62,7 @@ hydroweight <- function(hydroweight_dir = NULL,
                         clean_tempfiles=T) {
   require(terra)
 
-  own_tempdir<-tempfile()
+  own_tempdir<-gsub("file","",tempfile())
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
 
   ## Set up raster temp file for out-of-memory raster files
@@ -78,13 +78,11 @@ hydroweight <- function(hydroweight_dir = NULL,
   dem<-process_input(input = dem,input_name="dem",working_dir=own_tempdir)
   dem_crs<-terra::crs(dem)
 
-  # dem_poly<-dem
-  # dem_poly[!is.na(dem_poly)]<-1
-  # dem_poly<-terra::as.polygons(dem_poly)
-
   # Process clip_region Input --------------------------------------------------
   clip_region<-process_input(input = clip_region,
-                             target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=dem_crs),
+                             target=dem,
+                             clip_region=dem,
+                             #target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=dem_crs),
                              #clip_region = terra::as.polygons(terra::ext(dem),crs=terra::crs(dem)),
                              input_name="clip_region",
                              working_dir=own_tempdir)
@@ -126,7 +124,7 @@ hydroweight <- function(hydroweight_dir = NULL,
     OS_combine <- FALSE
   }
 
-  if (OS_combine == TRUE) {
+  if (OS_combine == TRUE & !is.null(target_O) & !is.null(target_S)) {
     (target_S_OS <- target_S)
     (target_O_OS <- target_O)
 
