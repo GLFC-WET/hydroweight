@@ -71,7 +71,7 @@ process_input<-function(input=NULL,
 
   if (!is.null(target)){
     target<-process_input(input=target,working_dir=tdir)
-    clip_region<-process_input(clip_region,target=target,working_dir=tdir)
+    clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target)),working_dir=tdir)
 
     if (is.na(terra::crs(target)) | is.null(terra::crs(target))) {
       stop("'target' crs() is NULL or NA. Apply projection before continuing")
