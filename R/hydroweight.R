@@ -113,6 +113,7 @@ hydroweight <- function(hydroweight_dir,
                           input_name="target_O",
                           working_dir=own_tempdir)
   target_O<-target_O[[1]]
+  target_O[!is.na(target_O)]<-1
 
   # Process target_S Input -----------------------------------------------------
   target_S<-process_input(input = target_S,
@@ -121,7 +122,8 @@ hydroweight <- function(hydroweight_dir,
                           input_name="target_S",
                           working_dir=own_tempdir)
   target_S<-target_S[[1]]
-
+  target_S[!is.na(target_S)]<-1
+  
   # Setup OS combined -------------------------------------------------------
   if (is.null(OS_combine)) {
     OS_combine <- FALSE
