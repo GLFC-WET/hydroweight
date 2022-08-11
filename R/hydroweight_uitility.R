@@ -128,7 +128,7 @@ process_input<-function(input=NULL,
         if (resample_type=="bilinear"){ # For numeric vector inputs
           output <- lapply(variable_names, function(x) {
             fl<-file.path(tdir,paste0(basename(tempfile()),".tif"))
-            out<-terra::rasterize(x=output,
+            out<-terra::rasterize(x=output, #PS: Development version of terra gives a warning here, may cause problems in the future
                                   y=target,
                                   field = x,
                                   overwrite=T,

@@ -586,7 +586,7 @@ hydroweight <- function(hydroweight_dir,
 
     fls_to_remove<-unlink(own_tempdir,recursive=T,force =T)
 
-    terra::tmpFiles(current = T,orphan=T,old=T,remove = T)
+    suppressWarnings(terra::tmpFiles(current = T,orphan=T,old=T,remove = T))
 
   }
 
