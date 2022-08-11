@@ -76,16 +76,19 @@ hydroweight <- function(hydroweight_dir,
 
   # Process DEM Input ----------------------------------------------------------
   dem<-process_input(input = dem,input_name="dem",working_dir=own_tempdir)
+  dem<-dem[[1]]
+
   dem_crs<-terra::crs(dem)
 
   # Process clip_region Input --------------------------------------------------
   clip_region<-process_input(input = clip_region,
-                             target=dem,
-                             clip_region=dem,
-                             #target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=dem_crs),
-                             #clip_region = terra::as.polygons(terra::ext(dem),crs=terra::crs(dem)),
+                             #target=dem,
+                             #clip_region=dem,
+                             target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=dem_crs),
+                             clip_region = terra::as.polygons(terra::ext(dem),crs=terra::crs(dem)),
                              input_name="clip_region",
                              working_dir=own_tempdir)
+  clip_region<-clip_region[,1]
 
   dem<-process_input(input = dem,
                      target = dem,
@@ -101,6 +104,7 @@ hydroweight <- function(hydroweight_dir,
                             resample_type = "bilinear",
                             input_name="flow_accum",
                             working_dir=own_tempdir)
+  flow_accum<-flow_accum[[1]]
 
   # Process target_O Input -----------------------------------------------------
   target_O<-process_input(input = target_O,
@@ -117,7 +121,6 @@ hydroweight <- function(hydroweight_dir,
                           input_name="target_S",
                           working_dir=own_tempdir)
   target_S<-target_S[[1]]
-
 
   # Setup OS combined -------------------------------------------------------
   if (is.null(OS_combine)) {
@@ -174,7 +177,7 @@ hydroweight <- function(hydroweight_dir,
       if (inherits(rast_list[[i]],"SpatVector")) {
         writeVector(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
       } else {
-        writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
+        writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T,gdal="COMPRESS=NONE")
       }
     }
   }
@@ -182,7 +185,7 @@ hydroweight <- function(hydroweight_dir,
 
   lumped_inv <- dem
   lumped_inv[!is.na(lumped_inv)]<-1
-  terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T)
+  terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T,gdal="COMPRESS=NONE")
 
   ## iEucO, Euclidean distance to target_O ----
   if ("iEucO" %in% weighting_scheme) {
@@ -549,7 +552,7 @@ hydroweight <- function(hydroweight_dir,
 
   dist_list_out<-lapply(dist_list,function(x) {
     fl<-file.path(own_tempdir,paste0(paste0(names(x),".tif")))
-    terra::writeRaster(x,fl,overwrite=T)
+    terra::writeRaster(x,fl,overwrite=T,gdal="COMPRESS=NONE")
     return(fl)
   })
 

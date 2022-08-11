@@ -18,6 +18,7 @@ process_input<-function(input=NULL,
 
   if (is.null(working_dir)) {
     tdir<-file.path(gsub("file","",tempfile()))
+    working_dir<-tdir
   } else {
     tdir<-file.path(working_dir,basename(gsub("file","",tempfile())))
   }
@@ -56,6 +57,8 @@ process_input<-function(input=NULL,
   if (is.na(terra::crs(output)) | is.null(terra::crs(output))) {
     stop("'output' crs() is NULL or NA. Apply projection before continuing")
   }
+
+  orig_output<-output
 
   if (is.null(variable_names)) variable_names<-names(output)
   if (any(!variable_names %in% names(output))) stop("some 'variable_names' not in input")
@@ -112,7 +115,7 @@ process_input<-function(input=NULL,
                                   overwrite=T,
                                   ...
             )
-            sv<-terra::writeRaster(out,filename=fl,overwrite=T)
+            sv<-terra::writeRaster(out,filename=fl,overwrite=T,gdal="COMPRESS=NONE")
             return(terra::rast(fl))
           })
 
@@ -131,7 +134,7 @@ process_input<-function(input=NULL,
                                   overwrite=T,
                                   ...
             )
-            sv<-terra::writeRaster(out,filename=fl,overwrite=T)
+            sv<-terra::writeRaster(out,filename=fl,overwrite=T,gdal="COMPRESS=NONE")
             return(terra::rast(fl))
           })
         }
@@ -258,8 +261,30 @@ process_input<-function(input=NULL,
   }
 
   if (inherits(output,"SpatRaster")){
-    final_temp<-file.path(working_dir,paste0(basename(tempfile()),".tif"))
-    terra::writeRaster(output,final_temp,overwrite=T)
+
+    if (!inherits(orig_output,"SpatVector")){
+      need_save<-terra::compareGeom(
+        x = output,
+        y = orig_output,
+        lyrs=T,
+        crs=T,
+        ext=T,
+        rowcol=T,
+        res=T,
+        warncrs=F,
+        stopOnError=F,
+        messages=F
+      )
+      need_save<-!need_save # take inverse
+    } else {
+      need_save<-TRUE
+    }
+
+    if (need_save) {
+      final_temp<-file.path(working_dir,paste0(basename(tempfile()),".tif"))
+      terra::writeRaster(output,final_temp,overwrite=T,gdal="COMPRESS=NONE")
+    }
+
   }
   if (inherits(output,"SpatVector")){
     final_temp<-file.path(working_dir,paste0(basename(tempfile()),".shp"))

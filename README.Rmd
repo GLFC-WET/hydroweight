@@ -136,25 +136,27 @@ installation.
 #install.packages("whitebox")
 
 library(whitebox)
-install_whitebox()
-## Possible warning message:
-## ------------------------------------------------------------------------
-## Could not find WhiteboxTools!
-## ------------------------------------------------------------------------
-## 
-## Your next step is to download and install the WhiteboxTools binary:
-##     > whitebox::install_whitebox()
-##
-## If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`': 
-##    > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
-##
-## For whitebox package documentation, ask for help:
-##    > ??whitebox
-##
-## For more information visit https://giswqs.github.io/whiteboxR/
-##
-## ------------------------------------------------------------------------
 
+if (F){
+  install_whitebox()
+  # Possible warning message:
+  # ------------------------------------------------------------------------
+  # Could not find WhiteboxTools!
+  # ------------------------------------------------------------------------
+  #
+  # Your next step is to download and install the WhiteboxTools binary:
+  #     > whitebox::install_whitebox()
+  #
+  # If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`':
+  #    > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
+  #
+  # For whitebox package documentation, ask for help:
+  #    > ??whitebox
+  #
+  # For more information visit https://giswqs.github.io/whiteboxR/
+  #
+  # ------------------------------------------------------------------------
+}
 
 ## Install current version of hydroweight
 #devtools::install_github("bkielstr/hydroweight@main")
@@ -182,7 +184,7 @@ library(whitebox)
 ## Import toy_dem from whitebox package
 toy_file<-sample_dem_data()
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
-toy_dem <- rast(x = toy_file)
+toy_dem <- rast(raster::raster(x = toy_file)) # reading the file from terra directly sometimes crashes R for some reason
 crs(toy_dem) <- "epsg:3161"
 
 ## Generate hydroweight_dir as a temporary directory
@@ -981,22 +983,32 @@ look pretty:
 # tg_O_multi ## sites
 # tg_O_multi_catchment ## catchments
 
-sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+cl <- parallel::makeCluster(3)
+doParallel::registerDoParallel(cl)
+
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% {
+  #when running in with foreach parallel, must specify libraries in function call
+  require(sf)
+  require(terra)
+  require(hydroweight)
   
   ## Distance-weighted raster component
   message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
   
   ## Select individual sites and catchments
   sel <- tg_O_multi[xx, ]
+  write_sf(sel,file.path(hydroweight_dir,paste0("Site_",sel$Site,".shp"))) #parallel execution is best done with file paths rather than objects
+  
   sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
+  write_sf(sel_roi,file.path(hydroweight_dir,paste0("ROI_",sel$Site,".shp"))) #parallel execution is best done with file paths rather than objects
   
   ## Run hydroweight
   site_weights <- hydroweight(
     hydroweight_dir = hydroweight_dir,
-    target_O = sel, ## Important to change
-    target_S = tg_S,
+    target_O = file.path(hydroweight_dir,paste0("Site_",sel$Site,".shp")), ## Important to change
+    target_S = file.path(hydroweight_dir, "toy_dem_streams.tif"),
     target_uid = sel$Site[xx], ## Important to change
-    clip_region = NULL,
+    clip_region =file.path(hydroweight_dir,paste0("ROI_",sel$Site,".shp")),
     OS_combine = TRUE,
     dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
     flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
@@ -1007,6 +1019,9 @@ sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% 
     inv_function = myinv
   )
 }
+
+parallel::stopCluster(cl)
+
 names(sites_weights) <- tg_O_multi$Site
 
 ## Resultant structure:
@@ -1061,8 +1076,10 @@ loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
 ### 5.3 Run `hydroweight_attributes()` across sites and layers
 
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
+
+
 sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
-  
+
   ## Distance-weighted raster component
   message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
   
@@ -1095,6 +1112,8 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
   
   return(sel_layers_hwa)
 }
+
+
 
 length(sites_attributes_products) ## List of results; one list per site
 length(sites_attributes_products[[1]]) ## List of results for site 1; one list of results per loi

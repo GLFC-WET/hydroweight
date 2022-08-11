@@ -84,7 +84,7 @@ hydroweight_attributes <- function(loi,
     names(roi)<-"roi"
   }
 
-  remove_region<-process_input(input = remove_region,
+  remove_region<-process_input(input = remove_region, #PS: I'm debating if this is necessary in this function, wouldn't the workflow make more sense to do this external to the function, and feed your desired region into hydroweight()?
                                input_name="remove_region",
                                target = distance_weights[[1]],
                                clip_region=distance_weights[[1]],
@@ -98,10 +98,10 @@ hydroweight_attributes <- function(loi,
     roi <- terra::mask(x=roi, mask = remove_region, inverse = TRUE)
   }
 
-  # roi<-process_input(input = roi, # this converts ROI to polygon
-  #                    input_name="roi",
-  #                    target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs( distance_weights[[1]])),
-  #                    resample_type="near")
+  roi<-process_input(input = roi, # this converts ROI to polygon
+                     input_name="roi",
+                     target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs( distance_weights[[1]])),
+                     resample_type="near")
 
   # Prepare loi -------------------------------------------------------------
   loi<-process_input(input = loi,
