@@ -5,13 +5,13 @@
 \title{Generate inverse distance-weighted rasters}
 \usage{
 hydroweight(
-  hydroweight_dir = NULL,
+  hydroweight_dir,
   target_O = NULL,
   target_S = NULL,
   target_uid = NULL,
   OS_combine = NULL,
   clip_region = NULL,
-  dem = NULL,
+  dem,
   flow_accum = NULL,
   weighting_scheme = NULL,
   inv_function = function(x) {

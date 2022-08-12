@@ -1,7 +1,26 @@
 #' Process Input GIS files into target format and clip
 #'
-#' @export
+#' \code{hydroweight::process_input()} processes any input GIS data files into type \code{SpatVector} or \code{SpatRaster} depending on `target`.
 #'
+#' `input` data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of `target`.
+#' If `resample_type` == \code{bilinear}, and `target` is of class \code{SpatRaster}, `input` is
+#' coerced to class \code{SpatRaster}, reasterizing and/or reprojecting as necessary. If `resample_type` == \code{near},
+#' `target` is of class \code{SpatRaster}, and `input` is of class \code{SpatRaster}, unique values of `input` are coerced
+#' into separate layers of a \code{SpatRaster}, with 1 indicating the value is present; if input` is of class \code{SpatVector},
+#' unique values of `variable_names` are each coerced into separate layers in a \code{SpatRaster}, with 1 indicating the value is present.
+#'
+#'
+#' @param input character. (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input GIS data.
+#' @param input_name \code{NULL} or character. A name that is used only in error or warning messages.
+#' @param variable_names \code{NULL} or character. The names if input that should be included in the coerced output. If \code{NULL} all variables in `input` are used.
+#' @param target \code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/target.tif"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Target for intput to be coerced into. If \code{NULL} all variables in `input` are returned as \code{SpatVector} or \code{SpatRaster}.
+#' @param clip_region \code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input with be clipped and masked to this region. Internally converted to  \code{SpatVector}. If \code{NULL}, full extent of `input` is returned.
+#' @param resample_type character. If \code{bilinear} (default), the `variable_names` being coerced are numeric, if \code{'near'}, the `variable_names` being coerced are categorical, for the purposes of resampling/projecting if `target` is \code{SpatRaster}.
+#' @param working_dir \code{NULL} or character. Folder path for temporary file storage. If \code{NULL}, assigned internally.
+#' @param ... other variables passed to various \code{terra} functions.
+#' @return an object of class \code{SpatVector} or \code{SpatRaster} depending on `target`
+#' @export
+
 process_input<-function(input=NULL,
                         input_name=NULL,
                         variable_names=NULL,

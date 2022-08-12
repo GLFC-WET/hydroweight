@@ -1175,7 +1175,7 @@ sites_attributes_df<-map_dfr(sites_attributes_products, #rbind sites
 )
 
 ## If a raster category was missing in a site's catchment but was present in another site's,
-## that record would be filled with NA according to left_join Need to fix this.
+## that record would be filled with NA according to left_join. Need to fix this.
 ## This is only true for columns containing "prop".
 
 sites_attributes_df <- sites_attributes_df %>% 
