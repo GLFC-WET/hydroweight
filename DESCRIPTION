@@ -42,17 +42,11 @@ Depends:
 Imports:
     devtools,
     dplyr,
-    doParallel,
-    fasterize,
-    foreach,
-    raster,
-    rgdal,
-    rgeos,
     sf,
     stringr,
     tidyr,
+    tidyselect,
     terra,
-    viridis,
     whitebox
 Suggests: 
     knitr, 

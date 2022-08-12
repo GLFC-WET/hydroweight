@@ -15,6 +15,7 @@ process_input<-function(input=NULL,
 
   require(terra)
   require(sf)
+  require(dplyr)
 
   if (is.null(working_dir)) {
     tdir<-file.path(gsub("file","",tempfile()))
@@ -84,8 +85,8 @@ process_input<-function(input=NULL,
         if (resample_type=="near"){ # For categorical vector inputs
           output_split<-lapply(setNames(variable_names,variable_names), function(x) {
             out<-output %>%
-              st_as_sf() %>%
-              select(any_of(x)) %>%
+              sf::st_as_sf() %>%
+              dplyr::select(tidyselect::any_of(x)) %>%
               split(.[[x]]) %>%
               lapply(terra::vect)
 

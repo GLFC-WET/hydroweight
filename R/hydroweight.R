@@ -123,7 +123,7 @@ hydroweight <- function(hydroweight_dir,
                           working_dir=own_tempdir)
   target_S<-target_S[[1]]
   target_S[!is.na(target_S)]<-1
-  
+
   # Setup OS combined -------------------------------------------------------
   if (is.null(OS_combine)) {
     OS_combine <- FALSE
@@ -172,6 +172,8 @@ hydroweight <- function(hydroweight_dir,
   })
   names(rast_list)<-rast_list_nms
 
+  rast_list<-rast_list[!sapply(rast_list,is.null)]
+  rast_list<-rast_list[sapply(rast_list,length)>0]
 
   # Write temporary rasters -------------------------------------------------
   for (i in names(rast_list)){

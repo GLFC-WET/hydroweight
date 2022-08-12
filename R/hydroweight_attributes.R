@@ -37,6 +37,7 @@ hydroweight_attributes <- function(loi,
                                    distance_weights,
                                    remove_region=NULL,
                                    return_products = TRUE) {
+  require(terra)
 
   loi_numeric_stats<-match.arg(loi_numeric_stats,several.ok = T)
 

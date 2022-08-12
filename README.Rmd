@@ -175,6 +175,7 @@ generate terrain products.
 ## Load libraries
 library(dplyr)
 library(foreach)
+library(future.apply)
 library(hydroweight)
 library(terra)
 library(sf)
@@ -275,6 +276,7 @@ tg_O_multi <- st_as_sf(tg_O_multi)
 tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[, 1] < 675000, ] # selects single network
 tg_O_multi <- tg_O_multi[c(10, 50, 100), ]
 tg_O_multi$Site <- c(1, 2, 3)
+tg_O_multi<-tg_O_multi[,-c(1)]
 
 tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   
@@ -535,7 +537,7 @@ hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## ...
 ## hw_test_5[[3]][[7]] # site 3, HAiFLS
 
-## Loading up data as if it were not originally assigned to object hw_test_5
+## Loading up data from .zip file
 inv_distance_collect <- file.path(hydroweight_dir, paste0(tg_O_multi$Site, "_inv_distances.zip"))
 inv_distance_collect <- lapply(inv_distance_collect, function(x) {
   fls<-unzip(x,list=T)
@@ -754,6 +756,7 @@ lulc <- toy_dem
 m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4) 
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 lulc <- classify(lulc, rclmat)
+names(lulc)<-"lulc"
 
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
 hwa_test_categorical <- hydroweight_attributes(
@@ -986,7 +989,7 @@ look pretty:
 cl <- parallel::makeCluster(3)
 doParallel::registerDoParallel(cl)
 
-sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% {
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { #note other parallel backends work as well (i.e., future.apply)
   #when running in with foreach parallel, must specify libraries in function call
   require(sf)
   require(terra)
@@ -1071,53 +1074,91 @@ loi_lulc_p_c <- list(
 
 ## These are combined into a list of lists
 loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
+
+
+# To save processing time, convert all inputs into rasters matching DEM
+## Numeric Rasters
+numeric_rasts<-loi_variable[sapply(loi_variable,function(x) x$loi_numeric)]
+numeric_rasts<-lapply(numeric_rasts,function(x) 
+  process_input(input=x$loi,
+                target=file.path(hydroweight_dir,"toy_dem_breached.tif"),
+                variable_names=x$loi_columns,
+                resample_type="bilinear"))
+numeric_rasts<-rast(numeric_rasts)
+writeRaster(numeric_rasts,file.path(hydroweight_dir,"numeric_rasters.tif"),overwrite=T)
+
+## Categorical Rasters
+cat_rasts<-loi_variable[sapply(loi_variable,function(x) !x$loi_numeric)]
+cat_rasts<-lapply(cat_rasts,function(x) 
+  process_input(input=x$loi,
+                target=file.path(hydroweight_dir,"toy_dem_breached.tif"),
+                variable_names=x$loi_columns,
+                resample_type="near"))
+cat_rasts<-rast(cat_rasts)
+writeRaster(cat_rasts,file.path(hydroweight_dir,"cat_rasters.tif"),overwrite=T)
+
+# Combine into final loi variables
+## loi is specified as a file path to allow parallel processing
+## to pass loi as an in memory raster for parallel processing, use terra::wrap() (note this can be inefficient for large raster)
+## if not using parallel processing, loi can be given as an in memory raster object (terra or raster)
+loi_variable_final<-list(
+  numeric=list(
+    loi = file.path(hydroweight_dir,"numeric_rasters.tif"),
+    loi_attr_col = names(numeric_rasts),
+    loi_numeric = TRUE,
+    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max")
+  ),
+  categorical=list(
+    loi = file.path(hydroweight_dir,"cat_rasters.tif"),
+    loi_attr_col = names(cat_rasts),
+    loi_numeric = FALSE
+  )
+)
 ```
 
 ### 5.3 Run `hydroweight_attributes()` across sites and layers
 
+For efficiency, combine all numerical layers and all categorical layers together
+
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
 
+library(future.apply)
 
-sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+availableCores()
 
-  ## Distance-weighted raster component
-  message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
+plan(list( #nested loop - note can be memory intensive
+  tweak(multisession, workers = 3)), # split site processing across 3 cores
+  tweak(multisession, workers = 2) # split loi processing across 2 cores
+)
+
+sites_attributes_products<-future_lapply(split(tg_O_multi_catchment,tg_O_multi_catchment$Site), function(xx){
   
-  ## Select individual sites, catchments, and weights
-  sel <- tg_O_multi[xx, ]
-  sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
-  sel_weights <- sites_weights[[sel$Site]]
-  
+  write_sf(xx,file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")))
+
   ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
   loi_consist <- list(
-    roi = sel_roi,
-    distance_weights = sel_weights,
+    roi = file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")),
+    distance_weights = file.path(hydroweight_dir,paste0(xx$Site,"_inv_distances.zip")),
     remove_region = NULL,
-    return_products = TRUE,
-    roi_uid = sel$Site,
+    return_products = TRUE, #set this to FALSE to decrease memory and space requirement
+    roi_uid = xx$Site,
     roi_uid_col = "Site"
   )
   
-  ## For each loi,
-  sel_layers_hwa <- foreach(yy = 1:length(loi_variable), .errorhandling = "pass") %do% {
-    
+  future_lapply(loi_variable_final, function(yy) {
     ## Combine loi_variable[[y]] with loi_consist
-    loi_combined <- c(loi_variable[[yy]], loi_consist)
+    loi_combined <- c(yy, loi_consist)
     
     ## Run hydroweight_attributes using arguments in loi_combined
-    loi_output <- do.call(hydroweight_attributes, loi_combined)
-    
-    return(loi_output)
-  }
+    do.call(hydroweight_attributes, loi_combined)
+  })
   
-  return(sel_layers_hwa)
-}
+})
 
 
-
-length(sites_attributes_products) ## List of results; one list per site
-length(sites_attributes_products[[1]]) ## List of results for site 1; one list of results per loi
-length(sites_attributes_products[[1]][[1]]) ## List of results for site 1 and loi 1
+names(sites_attributes_products) ## List of results; one list per site
+names(sites_attributes_products[[1]]) ## List of results for site 1; one list of results per loi
+names(sites_attributes_products[[1]][[1]]) ## List of results for site 1 and loi 1
 names(sites_attributes_products[[1]][[1]]$attribute_table) ## Attribute table for site 1 and loi 1
 names(sites_attributes_products[[1]][[1]]$return_products) ## Return products for site 1 and loi 1 per distance-weighted raster
 ```
@@ -1125,29 +1166,20 @@ names(sites_attributes_products[[1]][[1]]$return_products) ## Return products fo
 ### 5.4 Extract and adjust results data frames
 
 ```{r, warning = FALSE, error = FALSE, message = FALSE}
-sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do% {
-  
-  ## Selects an individual site
-  sel_site <- sites_attributes_products[[xx]]
-  
-  ## Selects distance-weighted raster results set
-  site_stats <- foreach(yy = 1:length(sel_site), .errorhandling = "pass") %do% {
-    sel_site[[yy]]$attribute_table
-  }
-  
-  ## Merges the distance-weighted raster-specific datasets
-  site_stats <- Reduce(merge, site_stats)
-  
-  return(site_stats)
-}
 
-## Bind rows
-sites_attributes_df <- bind_rows(sites_attributes_list)
+require(tidyverse)
+
+sites_attributes_df<-map_dfr(sites_attributes_products, #rbind sites
+                             ~map(.,~as_tibble(.$attribute_table)) %>% 
+                               reduce(left_join) # join numeric and categorical summaries
+)
 
 ## If a raster category was missing in a site's catchment but was present in another site's,
-## that record would be filled with NA according to bind_rows. Need to fix this.
+## that record would be filled with NA according to left_join Need to fix this.
 ## This is only true for columns containing "prop".
-sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[, grep("prop", colnames(sites_attributes_df))])] <- 0
+
+sites_attributes_df <- sites_attributes_df %>% 
+  mutate(across(ends_with("_prop"),~if_else(is.na(.),0,.)))
 
 ## Final data frame
 colnames(sites_attributes_df)
