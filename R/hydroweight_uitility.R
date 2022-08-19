@@ -301,13 +301,13 @@ process_input<-function(input=NULL,
     }
 
     if (need_save) {
-      final_temp<-file.path(working_dir,paste0(basename(tempfile()),".tif"))
+      final_temp<-file.path(tdir,paste0(basename(tempfile()),".tif"))
       terra::writeRaster(output,final_temp,overwrite=T,gdal="COMPRESS=NONE")
     }
 
   }
   if (inherits(output,"SpatVector")){
-    final_temp<-file.path(working_dir,paste0(basename(tempfile()),".shp"))
+    final_temp<-file.path(tdir,paste0(basename(tempfile()),".shp"))
     terra::writeVector(output,final_temp,overwrite=T)
   }
 
