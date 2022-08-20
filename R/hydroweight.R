@@ -55,11 +55,15 @@ hydroweight <- function(hydroweight_dir,
                         clip_region = NULL,
                         dem,
                         flow_accum = NULL,
-                        weighting_scheme = NULL,
+                        weighting_scheme = c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
                         inv_function = function(x) {
                           (x * 0.001 + 1)^-1
                         },
+                        return_products = T,
                         clean_tempfiles=T) {
+
+  weighting_scheme<-match.arg(weighting_scheme,several.ok = T)
+
   require(terra)
 
   own_tempdir<-gsub("file","",tempfile())
@@ -570,7 +574,11 @@ hydroweight <- function(hydroweight_dir,
       flags = '-r9Xjq'
   )
 
-  dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is slow for large rasters
+  if (return_products){
+    dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is slow for large rasters
+  } else {
+    dist_list<-out_file
+  }
 
   ## CLEAN UP ----
   if (clean_tempfiles){
