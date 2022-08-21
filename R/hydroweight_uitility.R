@@ -67,7 +67,7 @@ process_input<-function(input=NULL,
   if (inherits(input,"PackedSpatVector")){
     output<-terra::vect(input)
   }
-  if (inherits(input,"sf")){
+  if (inherits(input,c("sf","sfc"))){
     output<-terra::vect(input)
   }
   if (inherits(input,c("SpatRaster","SpatVector"))){
