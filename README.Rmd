@@ -181,6 +181,7 @@ library(terra)
 library(sf)
 library(viridis)
 library(whitebox)
+library(mapview)
 
 ## Import toy_dem from whitebox package
 toy_file<-sample_dem_data()
