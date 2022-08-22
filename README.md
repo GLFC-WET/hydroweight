@@ -523,9 +523,9 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2022-08-21 20:41:58
-#> Running hydroweight for site 2 at 2022-08-21 20:42:00
-#> Running hydroweight for site 3 at 2022-08-21 20:42:03
+#> Running hydroweight for site 1 at 2022-08-22 09:07:15
+#> Running hydroweight for site 2 at 2022-08-22 09:07:18
+#> Running hydroweight for site 3 at 2022-08-22 09:07:21
 
 hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## Resultant structure:
@@ -640,16 +640,12 @@ for each `roi`:`loi` combination are calculated using
 <img width="225" height="113" src="./man/figures/WeightedStd.svg">
 </p>
 
-where
-![n](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;n "n")
-is the number of cells,
-![w_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;w_i "w_i")
-are the cell weights, and
-![x_i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;x_i "x_i")
-are `loi` cell values,
-![m](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;m "m")
+where ![n](https://latex.codecogs.com/png.latex?n "n") is the number of
+cells, ![w_i](https://latex.codecogs.com/png.latex?w_i "w_i") are the
+cell weights, and ![x_i](https://latex.codecogs.com/png.latex?x_i "x_i")
+are `loi` cell values, ![m](https://latex.codecogs.com/png.latex?m "m")
 is the number or non-zero weights, and
-![\bar{x}^\*](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cbar%7Bx%7D%5E%2A "\bar{x}^*")
+![\bar{x}^\*](https://latex.codecogs.com/png.latex?%5Cbar%7Bx%7D%5E%2A "\bar{x}^*")
 is the weighted mean. For categorical inputs, the proportion for each
 `roi`:`loi` combination is calculated using
 
@@ -658,11 +654,10 @@ is the weighted mean. For categorical inputs, the proportion for each
 </p>
 
 where
-![I(k_i)=1](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;I%28k_i%29%3D1 "I(k_i)=1")
-when category
-![k](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;k "k")
-is present in a cell or
-![I(k_i)=0](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;I%28k_i%29%3D0 "I(k_i)=0")
+![I(k_i)=1](https://latex.codecogs.com/png.latex?I%28k_i%29%3D1 "I(k_i)=1")
+when category ![k](https://latex.codecogs.com/png.latex?k "k") is
+present in a cell or
+![I(k_i)=0](https://latex.codecogs.com/png.latex?I%28k_i%29%3D0 "I(k_i)=0")
 when not.
 
 Finally, `loi` `NA` values are handled differently depending on `loi`
