@@ -13,7 +13,6 @@
 #' Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS).
 #'
 #' @param loi character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Layer of interest (e.g., land use layer).
-#' @param loi_attr_col character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.) (Depreciated, names taken from loi_columns now)
 #' @param loi_columns character. The column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the `loi_columns` being summarized are numeric. If \code{FALSE}, the `loi_columns` being summarized are categorical.
 #' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.
@@ -27,7 +26,6 @@
 #' @export
 
 hydroweight_attributes <- function(loi,
-                                   loi_attr_col = NULL,
                                    loi_columns = NULL,
                                    loi_numeric,
                                    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"),

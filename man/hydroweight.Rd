@@ -13,10 +13,11 @@ hydroweight(
   clip_region = NULL,
   dem,
   flow_accum = NULL,
-  weighting_scheme = NULL,
+  weighting_scheme = c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
   inv_function = function(x) {
      (x * 0.001 + 1)^-1
  },
+  return_products = T,
   clean_tempfiles = T
 )
 }

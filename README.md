@@ -523,9 +523,9 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2022-08-17 13:19:33
-#> Running hydroweight for site 2 at 2022-08-17 13:19:36
-#> Running hydroweight for site 3 at 2022-08-17 13:19:40
+#> Running hydroweight for site 1 at 2022-08-21 20:41:58
+#> Running hydroweight for site 2 at 2022-08-21 20:42:00
+#> Running hydroweight for site 3 at 2022-08-21 20:42:03
 
 hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## Resultant structure:
@@ -699,7 +699,6 @@ hwa_test_numeric <- hydroweight_attributes(
   #loi = ndvi,
   loi = rast(list(setNames(ndvi,"ndvi1"),setNames(ndvi,"ndvi2"))),
   loi_columns=c("ndvi1","ndvi2"),
-  loi_attr_col = "ndvi",
   loi_numeric = TRUE,
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "cell_count"),
   roi = tg_O_catchment,
@@ -808,7 +807,6 @@ names(lulc)<-"lulc"
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
 hwa_test_categorical <- hydroweight_attributes(
   loi = rast(list(setNames(lulc,"lulc1"),setNames(lulc,"lulc2"))),
-  loi_attr_col = c("lulc1","lulc2"),
   loi_numeric = FALSE,
   roi = tg_O_catchment,
   roi_uid = "1",
@@ -958,7 +956,6 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
 hwa_test_numeric_polygon <- hydroweight_attributes(
   loi = lulc_p,
-  loi_attr_col = "lulc",
   loi_columns = c("var_1", "var_2"),
   loi_numeric = TRUE,
   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count"),
@@ -1028,7 +1025,6 @@ lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
 ## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
 hwa_test_categorical_polygon <- hydroweight_attributes(
   loi = lulc_p,
-  loi_attr_col = "lulc",
   loi_columns = c("var_1", "var_2"),
   loi_numeric = FALSE,
   roi = tg_O_catchment,
@@ -1210,13 +1206,11 @@ writeRaster(cat_rasts,file.path(hydroweight_dir,"cat_rasters.tif"),overwrite=T)
 loi_variable_final<-list(
   numeric=list(
     loi = file.path(hydroweight_dir,"numeric_rasters.tif"),
-    loi_attr_col = names(numeric_rasts),
     loi_numeric = TRUE,
     loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max")
   ),
   categorical=list(
     loi = file.path(hydroweight_dir,"cat_rasters.tif"),
-    loi_attr_col = names(cat_rasts),
     loi_numeric = FALSE
   )
 )
