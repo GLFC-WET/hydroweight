@@ -197,18 +197,27 @@ hydroweight_attributes <- function(loi,
       if (loi_numeric == TRUE) {
 
         ## Weighted mean
-        loi_distwtd_mean <- unlist(loi_sum) / unlist(distance_weights_sum)
-        names(loi_distwtd_mean)<-paste0(names(loi),"_",names(dw),"_distwtd_mean")
+        if (any(loi_numeric_stats %in% c("distwtd_mean","distwtd_sd"))){
+          loi_distwtd_mean <- unlist(loi_sum) / unlist(distance_weights_sum)
+          names(loi_distwtd_mean)<-paste0(names(loi),"_",names(dw),"_distwtd_mean")
+        } else {
+          loi_distwtd_mean<-NULL
+        }
 
-        ## Weighted standard deviation
-        ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
-        term1 <- terra::global((dw * (loi - unlist(loi_distwtd_mean))^2), fun = "sum", na.rm = TRUE)
-        M <- terra::global(dw != 0, fun="sum", na.rm = T)
-        term2 <- ((M - 1) / M) * distance_weights_sum
+        if (any(loi_numeric_stats %in% "distwtd_sd")){
+          ## Weighted standard deviation
+          ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
+          term1 <- terra::global((dw * (loi - unlist(loi_distwtd_mean))^2), fun = "sum", na.rm = TRUE)
+          M <- terra::global(dw != 0, fun="sum", na.rm = T)
+          term2 <- ((M - 1) / M) * distance_weights_sum
 
-        loi_distwtd_sd <- sqrt(unlist(term1) / unlist(term2))
-        names(loi_distwtd_sd)<-paste0(names(loi),"_",names(dw),"_distwtd_sd")
+          loi_distwtd_sd <- sqrt(unlist(term1) / unlist(term2))
+          names(loi_distwtd_sd)<-paste0(names(loi),"_",names(dw),"_distwtd_sd")
+        }else  {
+          loi_distwtd_sd<-NULL
+        }
 
+        if (!any(loi_numeric_stats %in% c("distwtd_mean"))) loi_distwtd_mean<-NULL
         loi_stats_temp<-list(distwtd_mean=loi_distwtd_mean,
                              distwtd_sd=loi_distwtd_sd)
 
