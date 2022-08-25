@@ -51,7 +51,7 @@ process_input<-function(input=NULL,
   # Reconcile Types ---------------------------------------------------------
   if (inherits(input,"character")){
     if (grepl("\\.shp$",input)) {
-      output<-terra::vect(input)
+      output<-terra::vect(sf::read_sf(input)) # terra seems to have trouble reading crs sometimes
     } else if (grepl("\\.tif$|\\.tiff",input)) {
       output<-terra::rast(input)
     } else  {
