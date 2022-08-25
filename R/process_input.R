@@ -101,6 +101,8 @@ process_input<-function(input=NULL,
     if (inherits(target,"SpatRaster")){
       if (inherits(output,"SpatVector")) {
 
+        output<-terra::project(output,target)
+
         if (resample_type=="near"){ # For categorical vector inputs
           output_split<-lapply(setNames(variable_names,variable_names), function(x) {
             out<-output %>%
