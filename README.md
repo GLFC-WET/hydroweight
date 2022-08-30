@@ -523,9 +523,9 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2022-08-22 09:07:15
-#> Running hydroweight for site 2 at 2022-08-22 09:07:18
-#> Running hydroweight for site 3 at 2022-08-22 09:07:21
+#> Running hydroweight for site 1 at 2022-08-30 14:26:16
+#> Running hydroweight for site 2 at 2022-08-30 14:26:18
+#> Running hydroweight for site 3 at 2022-08-30 14:26:19
 
 hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## Resultant structure:
@@ -1222,7 +1222,7 @@ library(future.apply)
 
 availableCores()
 #> system 
-#>      8
+#>     16
 
 plan(list( #nested loop - note can be memory intensive
   tweak(multisession, workers = 3)), # split site processing across 3 cores
