@@ -90,7 +90,8 @@ hydroweight_attributes <- function(loi,
                        clip_region=distance_weights[[1]],
                        resample_type="near",
                        working_dir=own_tempdir)
-    roi<-roi[[1]]
+    if (length(roi)>1 & inherits(roi,"SpatRaster")) roi<-roi[[1]]
+    if (length(roi)>1 & inherits(roi,"SpatVector")) roi<-roi[,1]
     names(roi)<-"roi"
   }
 
