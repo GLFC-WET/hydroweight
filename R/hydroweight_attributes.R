@@ -76,6 +76,7 @@ hydroweight_attributes <- function(loi,
   }
 
   distance_weights<-lapply(distance_weights,function(x) if (inherits(x,"PackedSpatRaster")) terra::rast(x) else x)
+  names(distance_weights)<-lapply(distance_weights,names)
 
   # Prepare roi data ------------------------------------------------------
   if (is.null(roi)) {
@@ -85,7 +86,7 @@ hydroweight_attributes <- function(loi,
   } else {
     roi<-process_input(input = roi,
                        input_name="roi",
-                       target = distance_weights[[1]],
+                       #target = distance_weights[[1]],
                        clip_region=distance_weights[[1]],
                        resample_type="near",
                        working_dir=own_tempdir)
@@ -101,6 +102,15 @@ hydroweight_attributes <- function(loi,
                                working_dir=own_tempdir)
 
   if (!is.null(remove_region)) {
+    roi<-process_input(input = roi,
+                       input_name="roi",
+                       target = distance_weights[[1]],
+                       clip_region=distance_weights[[1]],
+                       resample_type="near",
+                       working_dir=own_tempdir)
+    roi<-roi[[1]]
+    names(roi)<-"roi"
+
     remove_region<-remove_region[[1]]
     names(remove_region)<-"remove_region"
 
@@ -196,7 +206,7 @@ hydroweight_attributes <- function(loi,
     )
 
     # Weighted statistics -----------------------------------------------------
-    distance_weights_attributes <- lapply(distance_weights, function(dw) {
+    distance_weights_attributes <- lapply(distance_weights[sapply(distance_weights,names)!="lumped"], function(dw) {
 
       loi_dist <- loi * dw
       names(loi_dist) <- names(loi)
