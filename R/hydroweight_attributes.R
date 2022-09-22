@@ -53,8 +53,17 @@ hydroweight_attributes <- function(loi,
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
   terra::terraOptions(tempdir = own_tempdir, verbose=F)
 
-  if (inherits(distance_weights,"character")){
-    if (grepl("\\.rds$",distance_weights)) {
+  if (inherits(distance_weights,"list")){
+    if ((inherits(distance_weights[[1]],"character") & grepl("\\.tif$",distance_weights[[1]])) |
+        inherits(distance_weights[[1]],"PackedSpatRaster")) {
+      distance_weights<-lapply(distance_weights,terra::rast)
+    } else if (inherits(distance_weights[[1]],"SpatRaster")) {
+      distance_weights<-distance_weights
+    }
+  } else if (inherits(distance_weights,"character")){
+    if (grepl("\\.tif$",distance_weights)) {
+      distance_weights<-lapply(distance_weights,terra::rast)
+    } else if (grepl("\\.rds$",distance_weights)) {
       distance_weights<-readRDS(distance_weights)
     } else {
       if (grepl("\\.zip$",distance_weights)) {
@@ -62,7 +71,7 @@ hydroweight_attributes <- function(loi,
         fls<-file.path("/vsizip",distance_weights,fls$Name)
         distance_weights<-lapply(fls,terra::rast)
         names(distance_weights)<-sapply(distance_weights,names)
-      } else stop("'distance_weights' must be specified as .rds or .zip file")
+      } else stop("'distance_weights' must be specified as .rds or .zip file, or a list of file paths or SpatRast objects")
     }
   }
 
