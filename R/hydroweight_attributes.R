@@ -283,7 +283,9 @@ hydroweight_attributes <- function(loi,
   final_out_table_nms<-unlist(final_out_table_nms)
 
   final_out_table<-tibble::enframe(unlist(final_out_table)) %>%
-    tidyr::pivot_wider()
+    tidyr::pivot_wider() %>%
+    mutate(across(ends_with("_prop"),~ifelse(is.na(.),0,.)))
+
   colnames(final_out_table)<-final_out_table_nms
 
   return_list <- list(attribute_table=final_out_table)
