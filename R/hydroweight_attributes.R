@@ -284,6 +284,7 @@ hydroweight_attributes <- function(loi,
 
   final_out_table<-tibble::enframe(unlist(final_out_table)) %>%
     tidyr::pivot_wider() %>%
+    mutate(across(c(everything(),-any_of(roi_uid_col)),as.numeric)) %>%
     mutate(across(ends_with("_prop"),~ifelse(is.na(.),0,.)))
 
   colnames(final_out_table)<-final_out_table_nms
