@@ -91,7 +91,7 @@ hydroweight_attributes <- function(loi,
                        resample_type="near",
                        working_dir=own_tempdir)
     if (length(roi)>1 & inherits(roi,"SpatRaster")) roi<-roi[[1]]
-    if (length(roi)>1 & inherits(roi,"SpatVector")) roi<-roi[,1]
+    if (inherits(roi,"SpatVector") && ncol(roi)>1) roi<-roi[,names(roi)[1]]
     names(roi)<-"roi"
   }
 
@@ -275,6 +275,12 @@ hydroweight_attributes <- function(loi,
       return(loi_stats_temp)
     })
   }
+
+  # Add lumped raster to output in return_products=T
+  if ("lumped" %in% sapply(distance_weights,names)){
+    distance_weights_attributes$lumped<-list(loi_dist_rast=loi)
+  }
+
 
   # Process final table -----------------------------------------------------
   final_out_table<-lapply(distance_weights_attributes,function(x) x[names(x) != "loi_dist_rast"])
