@@ -186,7 +186,7 @@ library(mapview)
 ## Import toy_dem from whitebox package
 toy_file<-sample_dem_data()
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
-toy_dem <- rast(raster::raster(x = toy_file)) # reading the file from terra directly sometimes crashes R for some reason
+toy_dem <- rast(x = toy_file) # reading the file from terra directly sometimes crashes R for some reason
 crs(toy_dem) <- "epsg:3161"
 
 ## Generate hydroweight_dir as a temporary directory
@@ -393,7 +393,7 @@ hw_test_1$HAiFLO<-log(hw_test_1$HAiFLO) # These two weighting schemes can get va
 hw_test_1$HAiFLS<-log(hw_test_1$HAiFLS) #  log transformation improves visualization
 
 plot(rast(c(hw_test_1[1:4],hw_test_1$lumped,hw_test_1[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1.25,1.25,1.25,1.25),reset=T,cex.main = 1.25)
 
 ```
 
@@ -474,7 +474,7 @@ hw_test_4$HAiFLO<-log(hw_test_4$HAiFLO) # These two weighting schemes can get va
 hw_test_4$HAiFLS<-log(hw_test_4$HAiFLS) #  log transformation improves visualization
 
 plot(rast(c(hw_test_4[1:4],hw_test_4$lumped,hw_test_4[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T,cex.main = 1.25)
 
 ```
 
@@ -717,25 +717,22 @@ legend("bottom",
 
 ```{r, fig.width=7, fig.height=14, message = FALSE, error = FALSE}
 ## Plot results
-par(mfrow = c(3, 2), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 
-## Lumped
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights")
-plot(hw_test_1$lumped, axes = F, legend = F, col = "yellow", add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]], axes = F, legend = F, col = viridis(101), add = TRUE)
+plot(
+  rast(
+    list(
+      hw_test_1$lumped,hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]],
+      hw_test_1$iFLO,hwa_test_numeric$return_products$iFLO$loi_dist_rast[[1]],
+      hw_test_1$HAiFLS,hwa_test_numeric$return_products$HAiFLS$loi_dist_rast[[1]]
+    )),
+  col=viridis(50),
+  main=c("Lumped - distance_weights","Lumped - distance_weights * ndvi",
+         "iFLO - distance_weights","iFLO - distance_weights * ndvi",
+         "HAiFLS - distance_weights","HAiFLS - distance_weights * ndvi"),
+  axes = F, legend = F,cex.main = 1.25,
+  nc=2,mar=c(1.5,1.5,1.5,1.5),reset=T)
 
-## iEucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights")
-plot(hw_test_1$iEucO, axes = F, legend = F, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iEucO$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
 
-## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights")
-plot(hw_test_1$iFLS, axes = F, legend = F, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iFLS$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
 ```
 
 [Back to top](#contents)
@@ -837,21 +834,21 @@ plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_2,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
 
-## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS")
-plot(hw_test_1$iFLS,
+## HAiFLS
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS")
+plot(hw_test_1$HAiFLS,
      axes = F, legend = F, col = "yellow", add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_4,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 4)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_4,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_3,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 3)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_3,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_2,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 2)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_2,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
 ```
@@ -986,7 +983,8 @@ look pretty:
 cl <- parallel::makeCluster(3)
 doParallel::registerDoParallel(cl)
 
-sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { #note other parallel backends work as well (i.e., future.apply)
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { 
+  #note other parallel backends work as well (i.e., future.apply)
   #when running in with foreach parallel, must specify libraries in function call
   require(sf)
   require(terra)
@@ -1129,7 +1127,7 @@ plan(list( #nested loop - note can be memory intensive
 sites_attributes_products<-future_lapply(split(tg_O_multi_catchment,tg_O_multi_catchment$Site), function(xx){
   
   write_sf(xx,file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")))
-
+  
   ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
   loi_consist <- list(
     roi = file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")),
@@ -1168,13 +1166,6 @@ sites_attributes_df<-map_dfr(sites_attributes_products, #rbind sites
                              ~map(.,~as_tibble(.$attribute_table)) %>% 
                                reduce(left_join) # join numeric and categorical summaries
 )
-
-## If a raster category was missing in a site's catchment but was present in another site's,
-## that record would be filled with NA according to left_join. Need to fix this.
-## This is only true for columns containing "prop".
-
-sites_attributes_df <- sites_attributes_df %>% 
-  mutate(across(ends_with("_prop"),~if_else(is.na(.),0,.)))
 
 ## Final data frame
 colnames(sites_attributes_df)

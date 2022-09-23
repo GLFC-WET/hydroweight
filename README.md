@@ -183,7 +183,7 @@ library(mapview)
 ## Import toy_dem from whitebox package
 toy_file<-sample_dem_data()
 toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
-toy_dem <- rast(raster::raster(x = toy_file)) # reading the file from terra directly sometimes crashes R for some reason
+toy_dem <- rast(x = toy_file) # reading the file from terra directly sometimes crashes R for some reason
 crs(toy_dem) <- "epsg:3161"
 
 ## Generate hydroweight_dir as a temporary directory
@@ -394,7 +394,7 @@ hw_test_1$HAiFLO<-log(hw_test_1$HAiFLO) # These two weighting schemes can get va
 hw_test_1$HAiFLS<-log(hw_test_1$HAiFLS) #  log transformation improves visualization
 
 plot(rast(c(hw_test_1[1:4],hw_test_1$lumped,hw_test_1[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1.25,1.25,1.25,1.25),reset=T,cex.main = 1.25)
 ```
 
 <img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
@@ -475,7 +475,7 @@ hw_test_4$HAiFLO<-log(hw_test_4$HAiFLO) # These two weighting schemes can get va
 hw_test_4$HAiFLS<-log(hw_test_4$HAiFLS) #  log transformation improves visualization
 
 plot(rast(c(hw_test_4[1:4],hw_test_4$lumped,hw_test_4[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T)
+     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T,cex.main = 1.25)
 ```
 
 <img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
@@ -523,9 +523,9 @@ hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   
   return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2022-08-30 14:26:16
-#> Running hydroweight for site 2 at 2022-08-30 14:26:18
-#> Running hydroweight for site 3 at 2022-08-30 14:26:19
+#> Running hydroweight for site 1 at 2022-09-23 12:19:43
+#> Running hydroweight for site 2 at 2022-09-23 12:20:31
+#> Running hydroweight for site 3 at 2022-09-23 12:21:33
 
 hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
 ## Resultant structure:
@@ -710,21 +710,19 @@ names(hwa_test_numeric$attribute_table)
 #>  [7] "ndvi2_lumped_median"       "ndvi1_lumped_min"         
 #>  [9] "ndvi2_lumped_min"          "ndvi1_lumped_max"         
 #> [11] "ndvi2_lumped_max"          "ndvi1_lumped_cell_count"  
-#> [13] "ndvi2_lumped_cell_count"   "ndvi1_lumped_distwtd_mean"
-#> [15] "ndvi2_lumped_distwtd_mean" "ndvi1_lumped_distwtd_sd"  
-#> [17] "ndvi2_lumped_distwtd_sd"   "ndvi1_iEucO_distwtd_mean" 
-#> [19] "ndvi2_iEucO_distwtd_mean"  "ndvi1_iEucO_distwtd_sd"   
-#> [21] "ndvi2_iEucO_distwtd_sd"    "ndvi1_iFLO_distwtd_mean"  
-#> [23] "ndvi2_iFLO_distwtd_mean"   "ndvi1_iFLO_distwtd_sd"    
-#> [25] "ndvi2_iFLO_distwtd_sd"     "ndvi1_HAiFLO_distwtd_mean"
-#> [27] "ndvi2_HAiFLO_distwtd_mean" "ndvi1_HAiFLO_distwtd_sd"  
-#> [29] "ndvi2_HAiFLO_distwtd_sd"   "ndvi1_iEucS_distwtd_mean" 
-#> [31] "ndvi2_iEucS_distwtd_mean"  "ndvi1_iEucS_distwtd_sd"   
-#> [33] "ndvi2_iEucS_distwtd_sd"    "ndvi1_iFLS_distwtd_mean"  
-#> [35] "ndvi2_iFLS_distwtd_mean"   "ndvi1_iFLS_distwtd_sd"    
-#> [37] "ndvi2_iFLS_distwtd_sd"     "ndvi1_HAiFLS_distwtd_mean"
-#> [39] "ndvi2_HAiFLS_distwtd_mean" "ndvi1_HAiFLS_distwtd_sd"  
-#> [41] "ndvi2_HAiFLS_distwtd_sd"
+#> [13] "ndvi2_lumped_cell_count"   "ndvi1_iEucO_distwtd_mean" 
+#> [15] "ndvi2_iEucO_distwtd_mean"  "ndvi1_iEucO_distwtd_sd"   
+#> [17] "ndvi2_iEucO_distwtd_sd"    "ndvi1_iFLO_distwtd_mean"  
+#> [19] "ndvi2_iFLO_distwtd_mean"   "ndvi1_iFLO_distwtd_sd"    
+#> [21] "ndvi2_iFLO_distwtd_sd"     "ndvi1_HAiFLO_distwtd_mean"
+#> [23] "ndvi2_HAiFLO_distwtd_mean" "ndvi1_HAiFLO_distwtd_sd"  
+#> [25] "ndvi2_HAiFLO_distwtd_sd"   "ndvi1_iEucS_distwtd_mean" 
+#> [27] "ndvi2_iEucS_distwtd_mean"  "ndvi1_iEucS_distwtd_sd"   
+#> [29] "ndvi2_iEucS_distwtd_sd"    "ndvi1_iFLS_distwtd_mean"  
+#> [31] "ndvi2_iFLS_distwtd_mean"   "ndvi1_iFLS_distwtd_sd"    
+#> [33] "ndvi2_iFLS_distwtd_sd"     "ndvi1_HAiFLS_distwtd_mean"
+#> [35] "ndvi2_HAiFLS_distwtd_mean" "ndvi1_HAiFLS_distwtd_sd"  
+#> [37] "ndvi2_HAiFLS_distwtd_sd"
 
 hwa_test_numeric$return_products<-lapply(hwa_test_numeric$return_products,function(x) lapply(x,rast))
 
@@ -756,25 +754,20 @@ legend("bottom",
 
 ``` r
 ## Plot results
-par(mfrow = c(3, 2), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
 
-## Lumped
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights")
-plot(hw_test_1$lumped, axes = F, legend = F, col = "yellow", add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]], axes = F, legend = F, col = viridis(101), add = TRUE)
-
-## iEucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights")
-plot(hw_test_1$iEucO, axes = F, legend = F, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iEucO$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
-
-## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights")
-plot(hw_test_1$iFLS, axes = F, legend = F, col = viridis(101), add = TRUE)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - distance_weights * ndvi")
-plot(hwa_test_numeric$return_products$iFLS$loi_dist_rast[[1]], main = "Lumped \n- loi * distance_weights", axes = F, legend = F, col = viridis(101), add = TRUE)
+plot(
+  rast(
+    list(
+      hw_test_1$lumped,hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]],
+      hw_test_1$iFLO,hwa_test_numeric$return_products$iFLO$loi_dist_rast[[1]],
+      hw_test_1$HAiFLS,hwa_test_numeric$return_products$HAiFLS$loi_dist_rast[[1]]
+    )),
+  col=viridis(50),
+  main=c("Lumped - distance_weights","Lumped - distance_weights * ndvi",
+         "iFLO - distance_weights","iFLO - distance_weights * ndvi",
+         "HAiFLS - distance_weights","HAiFLS - distance_weights * ndvi"),
+  axes = F, legend = F,cex.main = 1.25,
+  nc=2,mar=c(1.5,1.5,1.5,1.5),reset=T)
 ```
 
 <img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
@@ -811,25 +804,23 @@ hwa_test_categorical <- hydroweight_attributes(
   return_products = TRUE
 )
 names(hwa_test_categorical$attribute_table)
-#>  [1] "Lake"                "lulc1_1_lumped_prop" "lulc1_2_lumped_prop"
-#>  [4] "lulc1_3_lumped_prop" "lulc1_4_lumped_prop" "lulc2_1_lumped_prop"
-#>  [7] "lulc2_2_lumped_prop" "lulc2_3_lumped_prop" "lulc2_4_lumped_prop"
-#> [10] "lulc1_1_iEucO_prop"  "lulc1_2_iEucO_prop"  "lulc1_3_iEucO_prop" 
-#> [13] "lulc1_4_iEucO_prop"  "lulc2_1_iEucO_prop"  "lulc2_2_iEucO_prop" 
-#> [16] "lulc2_3_iEucO_prop"  "lulc2_4_iEucO_prop"  "lulc1_1_iFLO_prop"  
-#> [19] "lulc1_2_iFLO_prop"   "lulc1_3_iFLO_prop"   "lulc1_4_iFLO_prop"  
-#> [22] "lulc2_1_iFLO_prop"   "lulc2_2_iFLO_prop"   "lulc2_3_iFLO_prop"  
-#> [25] "lulc2_4_iFLO_prop"   "lulc1_1_HAiFLO_prop" "lulc1_2_HAiFLO_prop"
-#> [28] "lulc1_3_HAiFLO_prop" "lulc1_4_HAiFLO_prop" "lulc2_1_HAiFLO_prop"
-#> [31] "lulc2_2_HAiFLO_prop" "lulc2_3_HAiFLO_prop" "lulc2_4_HAiFLO_prop"
-#> [34] "lulc1_1_iEucS_prop"  "lulc1_2_iEucS_prop"  "lulc1_3_iEucS_prop" 
-#> [37] "lulc1_4_iEucS_prop"  "lulc2_1_iEucS_prop"  "lulc2_2_iEucS_prop" 
-#> [40] "lulc2_3_iEucS_prop"  "lulc2_4_iEucS_prop"  "lulc1_1_iFLS_prop"  
-#> [43] "lulc1_2_iFLS_prop"   "lulc1_3_iFLS_prop"   "lulc1_4_iFLS_prop"  
-#> [46] "lulc2_1_iFLS_prop"   "lulc2_2_iFLS_prop"   "lulc2_3_iFLS_prop"  
-#> [49] "lulc2_4_iFLS_prop"   "lulc1_1_HAiFLS_prop" "lulc1_2_HAiFLS_prop"
-#> [52] "lulc1_3_HAiFLS_prop" "lulc1_4_HAiFLS_prop" "lulc2_1_HAiFLS_prop"
-#> [55] "lulc2_2_HAiFLS_prop" "lulc2_3_HAiFLS_prop" "lulc2_4_HAiFLS_prop"
+#>  [1] "Lake"                "lulc1_1_iEucO_prop"  "lulc1_2_iEucO_prop" 
+#>  [4] "lulc1_3_iEucO_prop"  "lulc1_4_iEucO_prop"  "lulc2_1_iEucO_prop" 
+#>  [7] "lulc2_2_iEucO_prop"  "lulc2_3_iEucO_prop"  "lulc2_4_iEucO_prop" 
+#> [10] "lulc1_1_iFLO_prop"   "lulc1_2_iFLO_prop"   "lulc1_3_iFLO_prop"  
+#> [13] "lulc1_4_iFLO_prop"   "lulc2_1_iFLO_prop"   "lulc2_2_iFLO_prop"  
+#> [16] "lulc2_3_iFLO_prop"   "lulc2_4_iFLO_prop"   "lulc1_1_HAiFLO_prop"
+#> [19] "lulc1_2_HAiFLO_prop" "lulc1_3_HAiFLO_prop" "lulc1_4_HAiFLO_prop"
+#> [22] "lulc2_1_HAiFLO_prop" "lulc2_2_HAiFLO_prop" "lulc2_3_HAiFLO_prop"
+#> [25] "lulc2_4_HAiFLO_prop" "lulc1_1_iEucS_prop"  "lulc1_2_iEucS_prop" 
+#> [28] "lulc1_3_iEucS_prop"  "lulc1_4_iEucS_prop"  "lulc2_1_iEucS_prop" 
+#> [31] "lulc2_2_iEucS_prop"  "lulc2_3_iEucS_prop"  "lulc2_4_iEucS_prop" 
+#> [34] "lulc1_1_iFLS_prop"   "lulc1_2_iFLS_prop"   "lulc1_3_iFLS_prop"  
+#> [37] "lulc1_4_iFLS_prop"   "lulc2_1_iFLS_prop"   "lulc2_2_iFLS_prop"  
+#> [40] "lulc2_3_iFLS_prop"   "lulc2_4_iFLS_prop"   "lulc1_1_HAiFLS_prop"
+#> [43] "lulc1_2_HAiFLS_prop" "lulc1_3_HAiFLS_prop" "lulc1_4_HAiFLS_prop"
+#> [46] "lulc2_1_HAiFLS_prop" "lulc2_2_HAiFLS_prop" "lulc2_3_HAiFLS_prop"
+#> [49] "lulc2_4_HAiFLS_prop"
 
 hwa_test_categorical$return_products<-lapply(hwa_test_categorical$return_products,function(x) lapply(x,rast))
 
@@ -899,21 +890,21 @@ plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_2,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
 
-## iFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS")
-plot(hw_test_1$iFLS,
+## HAiFLS
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS")
+plot(hw_test_1$HAiFLS,
      axes = F, legend = F, col = "yellow", add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_4,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 4)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_4,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_3,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 3)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_3,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iFLS - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$iFLS$loi_dist_rast$lulc1_2,
+plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 2)")
+plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_2,
      axes = F, legend = F, col = viridis(101), add = TRUE
 )
 ```
@@ -968,21 +959,19 @@ names(hwa_test_numeric_polygon$attribute_table)
 #>  [5] "var_2_lumped_sd"           "var_1_lumped_min"         
 #>  [7] "var_2_lumped_min"          "var_1_lumped_max"         
 #>  [9] "var_2_lumped_max"          "var_1_lumped_cell_count"  
-#> [11] "var_2_lumped_cell_count"   "var_1_lumped_distwtd_mean"
-#> [13] "var_2_lumped_distwtd_mean" "var_1_lumped_distwtd_sd"  
-#> [15] "var_2_lumped_distwtd_sd"   "var_1_iEucO_distwtd_mean" 
-#> [17] "var_2_iEucO_distwtd_mean"  "var_1_iEucO_distwtd_sd"   
-#> [19] "var_2_iEucO_distwtd_sd"    "var_1_iFLO_distwtd_mean"  
-#> [21] "var_2_iFLO_distwtd_mean"   "var_1_iFLO_distwtd_sd"    
-#> [23] "var_2_iFLO_distwtd_sd"     "var_1_HAiFLO_distwtd_mean"
-#> [25] "var_2_HAiFLO_distwtd_mean" "var_1_HAiFLO_distwtd_sd"  
-#> [27] "var_2_HAiFLO_distwtd_sd"   "var_1_iEucS_distwtd_mean" 
-#> [29] "var_2_iEucS_distwtd_mean"  "var_1_iEucS_distwtd_sd"   
-#> [31] "var_2_iEucS_distwtd_sd"    "var_1_iFLS_distwtd_mean"  
-#> [33] "var_2_iFLS_distwtd_mean"   "var_1_iFLS_distwtd_sd"    
-#> [35] "var_2_iFLS_distwtd_sd"     "var_1_HAiFLS_distwtd_mean"
-#> [37] "var_2_HAiFLS_distwtd_mean" "var_1_HAiFLS_distwtd_sd"  
-#> [39] "var_2_HAiFLS_distwtd_sd"
+#> [11] "var_2_lumped_cell_count"   "var_1_iEucO_distwtd_mean" 
+#> [13] "var_2_iEucO_distwtd_mean"  "var_1_iEucO_distwtd_sd"   
+#> [15] "var_2_iEucO_distwtd_sd"    "var_1_iFLO_distwtd_mean"  
+#> [17] "var_2_iFLO_distwtd_mean"   "var_1_iFLO_distwtd_sd"    
+#> [19] "var_2_iFLO_distwtd_sd"     "var_1_HAiFLO_distwtd_mean"
+#> [21] "var_2_HAiFLO_distwtd_mean" "var_1_HAiFLO_distwtd_sd"  
+#> [23] "var_2_HAiFLO_distwtd_sd"   "var_1_iEucS_distwtd_mean" 
+#> [25] "var_2_iEucS_distwtd_mean"  "var_1_iEucS_distwtd_sd"   
+#> [27] "var_2_iEucS_distwtd_sd"    "var_1_iFLS_distwtd_mean"  
+#> [29] "var_2_iFLS_distwtd_mean"   "var_1_iFLS_distwtd_sd"    
+#> [31] "var_2_iFLS_distwtd_sd"     "var_1_HAiFLS_distwtd_mean"
+#> [33] "var_2_HAiFLS_distwtd_mean" "var_1_HAiFLS_distwtd_sd"  
+#> [35] "var_2_HAiFLS_distwtd_sd"
 hwa_test_numeric_polygon$return_products<-lapply(hwa_test_numeric_polygon$return_products,function(x) lapply(x,rast))
 
 ## Resultant structure
@@ -1030,21 +1019,19 @@ hwa_test_categorical_polygon <- hydroweight_attributes(
   return_products = TRUE
 )
 names(hwa_test_categorical_polygon$attribute_table)
-#>  [1] "Lake"                 "var_1_2_lumped_prop"  "var_1_3_lumped_prop" 
-#>  [4] "var_1_10_lumped_prop" "var_2_21_lumped_prop" "var_2_22_lumped_prop"
-#>  [7] "var_2_29_lumped_prop" "var_1_2_iEucO_prop"   "var_1_3_iEucO_prop"  
-#> [10] "var_1_10_iEucO_prop"  "var_2_21_iEucO_prop"  "var_2_22_iEucO_prop" 
-#> [13] "var_2_29_iEucO_prop"  "var_1_2_iFLO_prop"    "var_1_3_iFLO_prop"   
-#> [16] "var_1_10_iFLO_prop"   "var_2_21_iFLO_prop"   "var_2_22_iFLO_prop"  
-#> [19] "var_2_29_iFLO_prop"   "var_1_2_HAiFLO_prop"  "var_1_3_HAiFLO_prop" 
-#> [22] "var_1_10_HAiFLO_prop" "var_2_21_HAiFLO_prop" "var_2_22_HAiFLO_prop"
-#> [25] "var_2_29_HAiFLO_prop" "var_1_2_iEucS_prop"   "var_1_3_iEucS_prop"  
-#> [28] "var_1_10_iEucS_prop"  "var_2_21_iEucS_prop"  "var_2_22_iEucS_prop" 
-#> [31] "var_2_29_iEucS_prop"  "var_1_2_iFLS_prop"    "var_1_3_iFLS_prop"   
-#> [34] "var_1_10_iFLS_prop"   "var_2_21_iFLS_prop"   "var_2_22_iFLS_prop"  
-#> [37] "var_2_29_iFLS_prop"   "var_1_2_HAiFLS_prop"  "var_1_3_HAiFLS_prop" 
-#> [40] "var_1_10_HAiFLS_prop" "var_2_21_HAiFLS_prop" "var_2_22_HAiFLS_prop"
-#> [43] "var_2_29_HAiFLS_prop"
+#>  [1] "Lake"                 "var_1_2_iEucO_prop"   "var_1_3_iEucO_prop"  
+#>  [4] "var_1_10_iEucO_prop"  "var_2_21_iEucO_prop"  "var_2_22_iEucO_prop" 
+#>  [7] "var_2_29_iEucO_prop"  "var_1_2_iFLO_prop"    "var_1_3_iFLO_prop"   
+#> [10] "var_1_10_iFLO_prop"   "var_2_21_iFLO_prop"   "var_2_22_iFLO_prop"  
+#> [13] "var_2_29_iFLO_prop"   "var_1_2_HAiFLO_prop"  "var_1_3_HAiFLO_prop" 
+#> [16] "var_1_10_HAiFLO_prop" "var_2_21_HAiFLO_prop" "var_2_22_HAiFLO_prop"
+#> [19] "var_2_29_HAiFLO_prop" "var_1_2_iEucS_prop"   "var_1_3_iEucS_prop"  
+#> [22] "var_1_10_iEucS_prop"  "var_2_21_iEucS_prop"  "var_2_22_iEucS_prop" 
+#> [25] "var_2_29_iEucS_prop"  "var_1_2_iFLS_prop"    "var_1_3_iFLS_prop"   
+#> [28] "var_1_10_iFLS_prop"   "var_2_21_iFLS_prop"   "var_2_22_iFLS_prop"  
+#> [31] "var_2_29_iFLS_prop"   "var_1_2_HAiFLS_prop"  "var_1_3_HAiFLS_prop" 
+#> [34] "var_1_10_HAiFLS_prop" "var_2_21_HAiFLS_prop" "var_2_22_HAiFLS_prop"
+#> [37] "var_2_29_HAiFLS_prop"
 
 ## Resultant structure
 ## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
@@ -1086,7 +1073,8 @@ look pretty:
 cl <- parallel::makeCluster(3)
 doParallel::registerDoParallel(cl)
 
-sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { #note other parallel backends work as well (i.e., future.apply)
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { 
+  #note other parallel backends work as well (i.e., future.apply)
   #when running in with foreach parallel, must specify libraries in function call
   require(sf)
   require(terra)
@@ -1222,7 +1210,7 @@ library(future.apply)
 
 availableCores()
 #> system 
-#>     16
+#>      8
 
 plan(list( #nested loop - note can be memory intensive
   tweak(multisession, workers = 3)), # split site processing across 3 cores
@@ -1232,7 +1220,7 @@ plan(list( #nested loop - note can be memory intensive
 sites_attributes_products<-future_lapply(split(tg_O_multi_catchment,tg_O_multi_catchment$Site), function(xx){
   
   write_sf(xx,file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")))
-
+  
   ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
   loi_consist <- list(
     roi = file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")),
@@ -1267,30 +1255,27 @@ names(sites_attributes_products[[1]][[1]]$attribute_table) ## Attribute table fo
 #>  [7] "var_2_lumped_sd"           "ndvi_lumped_min"          
 #>  [9] "var_1_lumped_min"          "var_2_lumped_min"         
 #> [11] "ndvi_lumped_max"           "var_1_lumped_max"         
-#> [13] "var_2_lumped_max"          "ndvi_lumped_distwtd_mean" 
-#> [15] "var_1_lumped_distwtd_mean" "var_2_lumped_distwtd_mean"
-#> [17] "ndvi_lumped_distwtd_sd"    "var_1_lumped_distwtd_sd"  
-#> [19] "var_2_lumped_distwtd_sd"   "ndvi_iEucO_distwtd_mean"  
-#> [21] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
-#> [23] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
-#> [25] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
-#> [27] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
-#> [29] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
-#> [31] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
-#> [33] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
-#> [35] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
-#> [37] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
-#> [39] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
-#> [41] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
-#> [43] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
-#> [45] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
-#> [47] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
-#> [49] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
-#> [51] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
-#> [53] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
-#> [55] "var_2_HAiFLS_distwtd_sd"
+#> [13] "var_2_lumped_max"          "ndvi_iEucO_distwtd_mean"  
+#> [15] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
+#> [17] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
+#> [19] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
+#> [21] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
+#> [23] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
+#> [25] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
+#> [27] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
+#> [29] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
+#> [31] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
+#> [33] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
+#> [35] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
+#> [37] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
+#> [39] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
+#> [41] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
+#> [43] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
+#> [45] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
+#> [47] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
+#> [49] "var_2_HAiFLS_distwtd_sd"
 names(sites_attributes_products[[1]][[1]]$return_products) ## Return products for site 1 and loi 1 per distance-weighted raster
-#> [1] "lumped" "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS"
+#> [1] "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS" "lumped"
 ```
 
 ### 5.4 Extract and adjust results data frames
@@ -1304,13 +1289,6 @@ sites_attributes_df<-map_dfr(sites_attributes_products, #rbind sites
                                reduce(left_join) # join numeric and categorical summaries
 )
 
-## If a raster category was missing in a site's catchment but was present in another site's,
-## that record would be filled with NA according to left_join. Need to fix this.
-## This is only true for columns containing "prop".
-
-sites_attributes_df <- sites_attributes_df %>% 
-  mutate(across(ends_with("_prop"),~if_else(is.na(.),0,.)))
-
 ## Final data frame
 colnames(sites_attributes_df)
 #>   [1] "Site"                      "ndvi_lumped_mean"         
@@ -1319,63 +1297,55 @@ colnames(sites_attributes_df)
 #>   [7] "var_2_lumped_sd"           "ndvi_lumped_min"          
 #>   [9] "var_1_lumped_min"          "var_2_lumped_min"         
 #>  [11] "ndvi_lumped_max"           "var_1_lumped_max"         
-#>  [13] "var_2_lumped_max"          "ndvi_lumped_distwtd_mean" 
-#>  [15] "var_1_lumped_distwtd_mean" "var_2_lumped_distwtd_mean"
-#>  [17] "ndvi_lumped_distwtd_sd"    "var_1_lumped_distwtd_sd"  
-#>  [19] "var_2_lumped_distwtd_sd"   "ndvi_iEucO_distwtd_mean"  
-#>  [21] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
-#>  [23] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
-#>  [25] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
-#>  [27] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
-#>  [29] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
-#>  [31] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
-#>  [33] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
-#>  [35] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
-#>  [37] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
-#>  [39] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
-#>  [41] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
-#>  [43] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
-#>  [45] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
-#>  [47] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
-#>  [49] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
-#>  [51] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
-#>  [53] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
-#>  [55] "var_2_HAiFLS_distwtd_sd"   "lulc_1_lumped_prop"       
-#>  [57] "lulc_2_lumped_prop"        "lulc_3_lumped_prop"       
-#>  [59] "lulc_4_lumped_prop"        "var_1_2_lumped_prop"      
-#>  [61] "var_1_3_lumped_prop"       "var_1_10_lumped_prop"     
-#>  [63] "var_2_21_lumped_prop"      "var_2_22_lumped_prop"     
-#>  [65] "var_2_29_lumped_prop"      "lulc_1_iEucO_prop"        
-#>  [67] "lulc_2_iEucO_prop"         "lulc_3_iEucO_prop"        
-#>  [69] "lulc_4_iEucO_prop"         "var_1_2_iEucO_prop"       
-#>  [71] "var_1_3_iEucO_prop"        "var_1_10_iEucO_prop"      
-#>  [73] "var_2_21_iEucO_prop"       "var_2_22_iEucO_prop"      
-#>  [75] "var_2_29_iEucO_prop"       "lulc_1_iFLO_prop"         
-#>  [77] "lulc_2_iFLO_prop"          "lulc_3_iFLO_prop"         
-#>  [79] "lulc_4_iFLO_prop"          "var_1_2_iFLO_prop"        
-#>  [81] "var_1_3_iFLO_prop"         "var_1_10_iFLO_prop"       
-#>  [83] "var_2_21_iFLO_prop"        "var_2_22_iFLO_prop"       
-#>  [85] "var_2_29_iFLO_prop"        "lulc_1_HAiFLO_prop"       
-#>  [87] "lulc_2_HAiFLO_prop"        "lulc_3_HAiFLO_prop"       
-#>  [89] "lulc_4_HAiFLO_prop"        "var_1_2_HAiFLO_prop"      
-#>  [91] "var_1_3_HAiFLO_prop"       "var_1_10_HAiFLO_prop"     
-#>  [93] "var_2_21_HAiFLO_prop"      "var_2_22_HAiFLO_prop"     
-#>  [95] "var_2_29_HAiFLO_prop"      "lulc_1_iEucS_prop"        
-#>  [97] "lulc_2_iEucS_prop"         "lulc_3_iEucS_prop"        
-#>  [99] "lulc_4_iEucS_prop"         "var_1_2_iEucS_prop"       
-#> [101] "var_1_3_iEucS_prop"        "var_1_10_iEucS_prop"      
-#> [103] "var_2_21_iEucS_prop"       "var_2_22_iEucS_prop"      
-#> [105] "var_2_29_iEucS_prop"       "lulc_1_iFLS_prop"         
-#> [107] "lulc_2_iFLS_prop"          "lulc_3_iFLS_prop"         
-#> [109] "lulc_4_iFLS_prop"          "var_1_2_iFLS_prop"        
-#> [111] "var_1_3_iFLS_prop"         "var_1_10_iFLS_prop"       
-#> [113] "var_2_21_iFLS_prop"        "var_2_22_iFLS_prop"       
-#> [115] "var_2_29_iFLS_prop"        "lulc_1_HAiFLS_prop"       
-#> [117] "lulc_2_HAiFLS_prop"        "lulc_3_HAiFLS_prop"       
-#> [119] "lulc_4_HAiFLS_prop"        "var_1_2_HAiFLS_prop"      
-#> [121] "var_1_3_HAiFLS_prop"       "var_1_10_HAiFLS_prop"     
-#> [123] "var_2_21_HAiFLS_prop"      "var_2_22_HAiFLS_prop"     
-#> [125] "var_2_29_HAiFLS_prop"
+#>  [13] "var_2_lumped_max"          "ndvi_iEucO_distwtd_mean"  
+#>  [15] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
+#>  [17] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
+#>  [19] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
+#>  [21] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
+#>  [23] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
+#>  [25] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
+#>  [27] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
+#>  [29] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
+#>  [31] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
+#>  [33] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
+#>  [35] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
+#>  [37] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
+#>  [39] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
+#>  [41] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
+#>  [43] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
+#>  [45] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
+#>  [47] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
+#>  [49] "var_2_HAiFLS_distwtd_sd"   "lulc_1_iEucO_prop"        
+#>  [51] "lulc_2_iEucO_prop"         "lulc_3_iEucO_prop"        
+#>  [53] "lulc_4_iEucO_prop"         "var_1_2_iEucO_prop"       
+#>  [55] "var_1_3_iEucO_prop"        "var_1_10_iEucO_prop"      
+#>  [57] "var_2_21_iEucO_prop"       "var_2_22_iEucO_prop"      
+#>  [59] "var_2_29_iEucO_prop"       "lulc_1_iFLO_prop"         
+#>  [61] "lulc_2_iFLO_prop"          "lulc_3_iFLO_prop"         
+#>  [63] "lulc_4_iFLO_prop"          "var_1_2_iFLO_prop"        
+#>  [65] "var_1_3_iFLO_prop"         "var_1_10_iFLO_prop"       
+#>  [67] "var_2_21_iFLO_prop"        "var_2_22_iFLO_prop"       
+#>  [69] "var_2_29_iFLO_prop"        "lulc_1_HAiFLO_prop"       
+#>  [71] "lulc_2_HAiFLO_prop"        "lulc_3_HAiFLO_prop"       
+#>  [73] "lulc_4_HAiFLO_prop"        "var_1_2_HAiFLO_prop"      
+#>  [75] "var_1_3_HAiFLO_prop"       "var_1_10_HAiFLO_prop"     
+#>  [77] "var_2_21_HAiFLO_prop"      "var_2_22_HAiFLO_prop"     
+#>  [79] "var_2_29_HAiFLO_prop"      "lulc_1_iEucS_prop"        
+#>  [81] "lulc_2_iEucS_prop"         "lulc_3_iEucS_prop"        
+#>  [83] "lulc_4_iEucS_prop"         "var_1_2_iEucS_prop"       
+#>  [85] "var_1_3_iEucS_prop"        "var_1_10_iEucS_prop"      
+#>  [87] "var_2_21_iEucS_prop"       "var_2_22_iEucS_prop"      
+#>  [89] "var_2_29_iEucS_prop"       "lulc_1_iFLS_prop"         
+#>  [91] "lulc_2_iFLS_prop"          "lulc_3_iFLS_prop"         
+#>  [93] "lulc_4_iFLS_prop"          "var_1_2_iFLS_prop"        
+#>  [95] "var_1_3_iFLS_prop"         "var_1_10_iFLS_prop"       
+#>  [97] "var_2_21_iFLS_prop"        "var_2_22_iFLS_prop"       
+#>  [99] "var_2_29_iFLS_prop"        "lulc_1_HAiFLS_prop"       
+#> [101] "lulc_2_HAiFLS_prop"        "lulc_3_HAiFLS_prop"       
+#> [103] "lulc_4_HAiFLS_prop"        "var_1_2_HAiFLS_prop"      
+#> [105] "var_1_3_HAiFLS_prop"       "var_1_10_HAiFLS_prop"     
+#> [107] "var_2_21_HAiFLS_prop"      "var_2_22_HAiFLS_prop"     
+#> [109] "var_2_29_HAiFLS_prop"
 ```
 
 Now - like any good environmental scientist - you have more variables
