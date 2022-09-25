@@ -588,6 +588,7 @@ hydroweight <- function(hydroweight_dir,
     )
   } else {
     out_file<-NULL
+    dist_list_out<-NULL
   }
 
 
@@ -611,7 +612,9 @@ hydroweight <- function(hydroweight_dir,
                                full.names = TRUE)
     r1<-file.remove(temp_rasters)
 
-    r2<-file.remove(unlist(dist_list_out))
+    if (!is.null(dist_list_out)){
+      r2<-file.remove(unlist(dist_list_out))
+    }
 
     list_obj<-ls()
     list_obj<-list_obj[!list_obj %in% c("own_tempdir","dist_list")]
