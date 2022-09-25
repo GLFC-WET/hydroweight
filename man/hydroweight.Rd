@@ -18,6 +18,8 @@ hydroweight(
      (x * 0.001 + 1)^-1
  },
   return_products = T,
+  wrap_return_products = T,
+  save_output = T,
   clean_tempfiles = T
 )
 }
@@ -43,6 +45,10 @@ hydroweight(
 \item{inv_function}{function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.}
 
 \item{return_products}{logical. If \code{TRUE}, a list containing the file path to write resulting \code{*.zip} file, and \code{distance_weights} raster. If \code{FALSE}, file path only.}
+
+\item{wrap_return_products}{logical. Should return_products be \code{terra::wrap()} (necessary for running function in parallel)?}
+
+\item{save_output}{logical. Should output rasters be saved to a zip file?}
 
 \item{clean_tempfiles}{logical. Should temporary files be removed?}
 }

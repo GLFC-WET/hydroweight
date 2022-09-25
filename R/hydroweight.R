@@ -44,6 +44,8 @@
 #' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
 #' @param inv_function function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
 #' @param return_products logical. If \code{TRUE}, a list containing the file path to write resulting \code{*.zip} file, and \code{distance_weights} raster. If \code{FALSE}, file path only.
+#' @param save_output logical. Should output rasters be saved to a zip file?
+#' @param wrap_return_products logical. Should return_products be \code{terra::wrap()} (necessary for running function in parallel)?
 #' @param clean_tempfiles logical. Should temporary files be removed?
 #'
 #' @return Named list of \code{PackedSpatRaster} distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
@@ -62,7 +64,11 @@ hydroweight <- function(hydroweight_dir,
                           (x * 0.001 + 1)^-1
                         },
                         return_products = T,
+                        wrap_return_products=T,
+                        save_output=T,
                         clean_tempfiles=T) {
+
+  if (!save_output & !return_products) stop("'return_products' and 'save_output' cannot both be FALSE")
 
   weighting_scheme<-match.arg(weighting_scheme,several.ok = T)
 
@@ -230,7 +236,7 @@ hydroweight <- function(hydroweight_dir,
     }
     terra::crs(iEucO_inv) <- dem_crs
     iEucO_inv<-terra::mask(iEucO_inv,lumped_inv)
-    terra::writeRaster(iEucO_inv,
+    if (save_output) terra::writeRaster(iEucO_inv,
                        file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucO.tif")),
                        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                        NAflag = -9999
@@ -272,7 +278,7 @@ hydroweight <- function(hydroweight_dir,
 
       terra::crs(iEucS_inv) <- dem_crs
       iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
-      terra::writeRaster(iEucS_inv,
+      if (save_output) terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
@@ -312,7 +318,7 @@ hydroweight <- function(hydroweight_dir,
 
       terra::crs(iEucS_inv) <- dem_crs
       iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
-      terra::writeRaster(iEucS_inv,
+      if (save_output) terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
@@ -352,7 +358,7 @@ hydroweight <- function(hydroweight_dir,
     }
 
     terra::crs(iFLO_inv) <- dem_crs
-    terra::writeRaster(iFLO_inv,
+    if (save_output) terra::writeRaster(iFLO_inv,
                        file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLO.tif")),
                        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                        NAflag = -9999
@@ -392,7 +398,7 @@ hydroweight <- function(hydroweight_dir,
       }
 
       terra::crs(iFLS_inv) <- dem_crs
-      terra::writeRaster(iFLS_inv,
+      if (save_output) terra::writeRaster(iFLS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
@@ -430,7 +436,7 @@ hydroweight <- function(hydroweight_dir,
       }
 
       terra::crs(iFLS_inv) <- dem_crs
-      terra::writeRaster(iFLS_inv,
+      if (save_output) terra::writeRaster(iFLS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
@@ -472,7 +478,7 @@ hydroweight <- function(hydroweight_dir,
       HAiFLO_inv <- HAiFLO_inv * flow_accum
 
       terra::crs(HAiFLO_inv) <- dem_crs
-      terra::writeRaster(HAiFLO_inv,
+      if (save_output) terra::writeRaster(HAiFLO_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLO.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                          NAflag = -9999
@@ -507,7 +513,7 @@ hydroweight <- function(hydroweight_dir,
         HAiFLS_inv <- HAiFLS_inv * flow_accum
         HAiFLS_inv <- terra::mask(HAiFLS_inv, OS_combine_r, maskvalues = 1)
 
-        terra::writeRaster(HAiFLS_inv,
+        if (save_output) terra::writeRaster(HAiFLS_inv,
                            file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLS.tif")),
                            overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                            NAflag = -9999
@@ -540,7 +546,7 @@ hydroweight <- function(hydroweight_dir,
         HAiFLS_inv <- HAiFLS_inv * flow_accum
         HAiFLS_inv <- terra::mask(HAiFLS_inv, target_S, maskvalues = 1)
 
-        terra::writeRaster(HAiFLS_inv,
+        if (save_output) terra::writeRaster(HAiFLS_inv,
                            file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLS.tif")),
                            overwrite = TRUE, gdal = c("COMPRESS=NONE"),
                            NAflag = -9999
@@ -560,24 +566,37 @@ hydroweight <- function(hydroweight_dir,
   })
   names(dist_list) <- weighting_scheme
 
-  dist_list_out<-lapply(dist_list,function(x) {
-    fl<-file.path(own_tempdir,paste0(paste0(names(x),".tif")))
-    terra::writeRaster(x,fl,overwrite=T,gdal="COMPRESS=NONE")
-    return(fl)
-  })
+  if (save_output) {
+    dist_list_out<-lapply(dist_list,function(x) {
+      file.rename(
+        file.path(own_tempdir,paste0(paste0(target_uid,"_TEMP_",names(x),".tif"))),
+        file.path(own_tempdir,paste0(paste0(names(x),".tif")))
+      )
+      fl<-file.path(own_tempdir,paste0(paste0(names(x),".tif")))
+      #terra::writeRaster(x,fl,overwrite=T,gdal="COMPRESS=NONE")
+      return(fl)
+    })
 
-  out_file<-file.path(hydroweight_dir,paste0(target_uid, "_inv_distances.zip"))
-  if (file.exists(out_file)) {
-    out_file<-file.path(hydroweight_dir,paste0(target_uid,"_",basename(tempfile()), "_inv_distances.zip"))
-    warning(paste0("Target .zip file already exists. Saving as: ",out_file))
+    out_file<-file.path(hydroweight_dir,paste0(target_uid, "_inv_distances.zip"))
+    if (file.exists(out_file)) {
+      out_file<-file.path(hydroweight_dir,paste0(target_uid,"_",basename(tempfile()), "_inv_distances.zip"))
+      warning(paste0("Target .zip file already exists. Saving as: ",out_file))
+    }
+    zip(out_file,
+        unlist(dist_list_out),
+        flags = '-r9Xjq'
+    )
+  } else {
+    out_file<-NULL
   }
-  zip(out_file,
-      unlist(dist_list_out),
-      flags = '-r9Xjq'
-  )
+
 
   if (return_products){
-    dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is slow for large rasters
+    if (wrap_return_products) {
+      dist_list<-lapply(dist_list,terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is slow for large rasters
+    } else {
+      dist_list<-dist_list
+    }
   } else {
     dist_list<-out_file
   }
