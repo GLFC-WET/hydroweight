@@ -202,6 +202,7 @@ hydroweight <- function(hydroweight_dir,
   lumped_inv <- dem
   lumped_inv[!is.na(lumped_inv)]<-1
   terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T,gdal="COMPRESS=NONE")
+  terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_lumped.tif")),overwrite=T,gdal="COMPRESS=NONE")
 
   ## iEucO, Euclidean distance to target_O ----
   if ("iEucO" %in% weighting_scheme) {
