@@ -201,6 +201,7 @@ hydroweight <- function(hydroweight_dir,
 
   lumped_inv <- dem
   lumped_inv[!is.na(lumped_inv)]<-1
+  names(lumped_inv)<-"lumped"
   terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_dem_clip_cost.tif")),overwrite=T,gdal="COMPRESS=NONE")
   terra::writeRaster(lumped_inv,file.path(own_tempdir, paste0(target_uid,"_TEMP_lumped.tif")),overwrite=T,gdal="COMPRESS=NONE")
 
@@ -237,6 +238,7 @@ hydroweight <- function(hydroweight_dir,
     }
     terra::crs(iEucO_inv) <- dem_crs
     iEucO_inv<-terra::mask(iEucO_inv,lumped_inv)
+    names(iEucO_inv)<-"iEucO"
     if (save_output) terra::writeRaster(iEucO_inv,
                        file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucO.tif")),
                        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -279,6 +281,7 @@ hydroweight <- function(hydroweight_dir,
 
       terra::crs(iEucS_inv) <- dem_crs
       iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
+      names(iEucS_inv)<-"iEucS"
       if (save_output) terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -319,6 +322,7 @@ hydroweight <- function(hydroweight_dir,
 
       terra::crs(iEucS_inv) <- dem_crs
       iEucS_inv<-terra::mask(iEucS_inv,lumped_inv)
+      names(iEucS_inv)<-"iEucS"
       if (save_output) terra::writeRaster(iEucS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iEucS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -359,6 +363,7 @@ hydroweight <- function(hydroweight_dir,
     }
 
     terra::crs(iFLO_inv) <- dem_crs
+    names(iFLO_inv)<-"iFLO"
     if (save_output) terra::writeRaster(iFLO_inv,
                        file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLO.tif")),
                        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -399,6 +404,7 @@ hydroweight <- function(hydroweight_dir,
       }
 
       terra::crs(iFLS_inv) <- dem_crs
+      names(iFLS_inv)<-"iFLS"
       if (save_output) terra::writeRaster(iFLS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -437,6 +443,7 @@ hydroweight <- function(hydroweight_dir,
       }
 
       terra::crs(iFLS_inv) <- dem_crs
+      names(iFLS_inv)<-"iFLS"
       if (save_output) terra::writeRaster(iFLS_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_iFLS.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -479,6 +486,7 @@ hydroweight <- function(hydroweight_dir,
       HAiFLO_inv <- HAiFLO_inv * flow_accum
 
       terra::crs(HAiFLO_inv) <- dem_crs
+      names(HAiFLO_inv)<-"HAiFLO"
       if (save_output) terra::writeRaster(HAiFLO_inv,
                          file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLO.tif")),
                          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
@@ -513,6 +521,7 @@ hydroweight <- function(hydroweight_dir,
 
         HAiFLS_inv <- HAiFLS_inv * flow_accum
         HAiFLS_inv <- terra::mask(HAiFLS_inv, OS_combine_r, maskvalues = 1)
+        names(HAiFLS_inv)<-"HAiFLS"
 
         if (save_output) terra::writeRaster(HAiFLS_inv,
                            file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLS.tif")),
@@ -546,6 +555,7 @@ hydroweight <- function(hydroweight_dir,
 
         HAiFLS_inv <- HAiFLS_inv * flow_accum
         HAiFLS_inv <- terra::mask(HAiFLS_inv, target_S, maskvalues = 1)
+        names(HAiFLS_inv)<-"HAiFLS"
 
         if (save_output) terra::writeRaster(HAiFLS_inv,
                            file.path(own_tempdir, paste0(target_uid,"_TEMP_HAiFLS.tif")),
