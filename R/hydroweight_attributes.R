@@ -250,6 +250,12 @@ hydroweight_attributes <- function(loi,
         return(loi_stats_temp)
       }
     })
+
+    # Add lumped raster to output in return_products=T
+    if ("lumped" %in% sapply(distance_weights,names)){
+      distance_weights_attributes$lumped<-list(loi_dist_rast=loi)
+    }
+
   }
 
   # For raster data with loi_numeric categorical numbers -----------------------
@@ -276,10 +282,6 @@ hydroweight_attributes <- function(loi,
     })
   }
 
-  # Add lumped raster to output in return_products=T
-  if ("lumped" %in% sapply(distance_weights,names)){
-    distance_weights_attributes$lumped<-list(loi_dist_rast=loi)
-  }
 
 
   # Process final table -----------------------------------------------------
@@ -294,6 +296,8 @@ hydroweight_attributes <- function(loi,
     mutate(across(ends_with("_prop"),~ifelse(is.na(.),0,.)))
 
   colnames(final_out_table)<-final_out_table_nms
+
+  final_out_table<-distinct(final_out_table)
 
   return_list <- list(attribute_table=final_out_table)
 
