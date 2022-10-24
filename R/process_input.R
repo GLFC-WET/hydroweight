@@ -228,6 +228,7 @@ process_input<-function(input=NULL,
     if (inherits(output,"SpatRaster")) {
       output<-terra::crop(
         x=output,
+        snap="in",
         y=clip_region,
         mask=T,
         overwrite=T
