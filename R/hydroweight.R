@@ -66,7 +66,8 @@ hydroweight <- function(hydroweight_dir,
                         return_products = T,
                         wrap_return_products=T,
                         save_output=T,
-                        clean_tempfiles=T) {
+                        clean_tempfiles=T,
+                        temp_dir=NULL) {
 
   if (!save_output & !return_products) stop("'return_products' and 'save_output' cannot both be FALSE")
 
@@ -74,7 +75,12 @@ hydroweight <- function(hydroweight_dir,
 
   require(terra)
 
-  own_tempdir<-gsub("file","",tempfile())
+  if (!is.null(temp_dir)){
+    own_tempdir<-tempfile("",temp_dir)
+  } else {
+    own_tempdir<-gsub("file","",tempfile())
+  }
+
   if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
 
   ## Set up raster temp file for out-of-memory raster files
