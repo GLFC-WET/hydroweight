@@ -69,7 +69,9 @@ hydroweight_attributes <- function(loi = NULL,
       loi_r <- lapply(loi_columns, function(x) {
         loi_return <- fasterize::fasterize(loi,
           raster = distance_weights[[1]],
-          field = x
+          field = x,
+          ### Need to add background = 0 here, or else the averaging that happens later gets messed up with the NA's being removed for numeric values
+          background = 0
         )
       })
       names(loi_r) <- loi_columns
