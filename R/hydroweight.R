@@ -357,14 +357,16 @@ hydroweight <- function(hydroweight_dir = NULL,
     lumped_inv <- raster::setValues(raster::raster(lumped_inv), lumped_inv[])
   }
 
-  ## iEucO, Euclidean distance to target_O ----
-  if ("iEucO" %in% weighting_scheme) {
-    whitebox::wbt_reclass(
+  ## Produce cost estimate for iEucO and iEucS measurements
+      whitebox::wbt_reclass(
       input = file.path(hydroweight_dir, "TEMP-dem_clip.tif"),
       output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
       reclass_vals = "1,min,1000000"
     ) # because max sometimes misses max values?
-
+  
+  ## iEucO, Euclidean distance to target_O ----
+  if ("iEucO" %in% weighting_scheme) {
+    
     whitebox::wbt_cost_distance(
       source = file.path(hydroweight_dir, "TEMP-target_O_clip.tif"),
       cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
@@ -405,6 +407,7 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## iEucS, Euclidean distance to target_S ----
   if ("iEucS" %in% weighting_scheme) {
     if (OS_combine == FALSE) {
+      
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
