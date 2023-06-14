@@ -56,5 +56,5 @@ summary statistics (i.e., one \code{loi}, one \code{roi}, and one set of \code{d
 See https://github.com/bkielstr/hydroweight for workflows.
 }
 \details{
-Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS).
+Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS) and do not contain NA or null areas (i.e., the polygons or raster must completely cover the roi).
 }
