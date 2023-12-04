@@ -261,9 +261,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       sf::st_write(target_S, file.path(hydroweight_dir, "TEMP-target_S.shp"),
         append = FALSE, quiet = TRUE
       )
-    }
-
-    if (grepl(".tif", target_S)) {
+    } else if (grepl(".tif", target_S)) {
       target_S <- raster::raster(file.path(hydroweight_dir, target_S))
     }
   }
