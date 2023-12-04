@@ -294,7 +294,7 @@ hydroweight <- function(hydroweight_dir = NULL,
       )
     }
 
-    if (sf::st_is(target_S, "POINT")) {
+    if (any(sf::st_is(target_S, "POINT"))) {
       target_S_r <- raster::rasterize(sf::st_coordinates(target_S),
         y = dem_clip,
         field = 1,
