@@ -405,6 +405,11 @@ hydroweight <- function(hydroweight_dir = NULL,
   ## iEucS, Euclidean distance to target_S ----
   if ("iEucS" %in% weighting_scheme) {
     if (OS_combine == FALSE) {
+      whitebox::wbt_reclass(input = file.path(hydroweight_dir, 
+                                "TEMP-dem_clip.tif"),
+                            output = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"), 
+                            reclass_vals = "1,min,1000000")
+               
       whitebox::wbt_cost_distance(
         source = file.path(hydroweight_dir, "TEMP-target_S_clip.tif"),
         cost = file.path(hydroweight_dir, "TEMP_dem_clip_cost.tif"),
