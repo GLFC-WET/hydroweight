@@ -5,41 +5,55 @@
 \title{Generate inverse distance-weighted rasters}
 \usage{
 hydroweight(
-  hydroweight_dir = NULL,
+  hydroweight_dir,
   target_O = NULL,
   target_S = NULL,
   target_uid = NULL,
   OS_combine = NULL,
   clip_region = NULL,
-  dem = NULL,
+  dem,
   flow_accum = NULL,
-  weighting_scheme = NULL,
-  inv_function = function(x) {     (x * 0.001 + 1)^-1 }
+  weighting_scheme = c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
+  inv_function = function(x) {
+     (x * 0.001 + 1)^-1
+ },
+  return_products = T,
+  wrap_return_products = T,
+  save_output = T,
+  clean_tempfiles = T
 )
 }
 \arguments{
-\item{hydroweight_dir}{character. File path for read/write.}
+\item{hydroweight_dir}{character. File path to write resulting \code{*.zip} file.}
 
-\item{target_O}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.}
+\item{target_O}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/sample_point.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.}
 
-\item{target_S}{\code{sf}, \code{RasterLayer}, or character (with extension, e.g., "target.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.}
+\item{target_S}{character (ffull file path with extension, e.g., "C:/Users/Administrator/Desktop/stream_lines.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.}
 
 \item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)}
 
 \item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}. This allows cells surrounding \code{target_O} to flow directly into \code{target_O} rather than be forced through \code{target_S}.}
 
-\item{clip_region}{numeric, \code{sf}, \code{RasterLayer}, or character (with extension, e.g., "clip_region.shp") of file found in \code{hydroweight_dir} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated. If numeric, \code{sf::sf_buffer()} produces a default buffer of crs-specific numeric width around \code{target_O}, exports, then clips using \code{whitebox}; if \code{sf}, exports and clips using \code{whitebox}; and if character, loads the file, converts to \code{sf}, exports, and clips using \code{whitebox}.}
+\item{clip_region}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated.}
 
-\item{dem}{character (with extension, e.g., "dem.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Digital elevation model raster.}
+\item{dem}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/dem.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of GeoTiFF type. Digital elevation model raster.}
 
-\item{flow_accum}{character (with extension, e.g., "flow_accum.tif") of file found in \code{hydroweight_dir} of GeoTiFF type. Flow accumulation raster (units: # of cells).}
+\item{flow_accum}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/flow_accum.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}  of GeoTiFF type. Flow accumulation raster (units: # of cells).}
 
 \item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")}
 
-\item{inv_function}{function. Inverse function used in \code{raster::calc()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.}
+\item{inv_function}{function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.}
+
+\item{return_products}{logical. If \code{TRUE}, a list containing the file path to write resulting \code{*.zip} file, and \code{distance_weights} raster. If \code{FALSE}, file path only.}
+
+\item{wrap_return_products}{logical. Should return_products be \code{terra::wrap()} (necessary for running function in parallel)?}
+
+\item{save_output}{logical. Should output rasters be saved to a zip file?}
+
+\item{clean_tempfiles}{logical. Should temporary files be removed?}
 }
 \value{
-A named list of distance-weighted rasters and accompanying \code{*.rds} in \code{hydroweight_dir}
+Named list of \code{PackedSpatRaster} distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
 }
 \description{
 \code{hydroweight::hydroweight()} generates distance-weighted rasters for targets
@@ -47,7 +61,7 @@ on a digital elevation model raster. Examples of targets include single points,
 areas such as lakes, or linear features such as streams. The function outputs
 a list of \code{length(weighting_scheme)} and an accompanying \code{*.rds} file
 of distance-weighted rasters for targets (\code{target_O} is a point/area target as
-in iFLO and \code{target_S} is a stream/waterbody target as in iFLS in
+in iFLO and \code{target_S} is a stream/linear feature target as in iFLS in
 Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
 IMPORTANTLY, this function acts on a single set of targets but can produce
 multiple weights. The distance-weighted rasters, can be used for generating
@@ -57,7 +71,7 @@ cover weighted by flow distance to a point). See https://github.com/bkielstr/hyd
 \details{
 Spatial layers should align (i.e., identical coordinate reference systems - CRS).
 Through processing, targets are converted to the resolution and CRS of the
-digital elevation model/flow accumulation CRS. TEMP-* files are generated in
+digital elevation model/flow accumulation CRS. \emph{TEMP}* files are generated in
 \code{hydroweight_dir} depending on processing step and can be overwritten.
 
 For \code{weighting_scheme}:

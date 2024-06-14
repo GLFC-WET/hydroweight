@@ -12,313 +12,313 @@
 #'
 #' Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS).
 #'
-#' @param loi \code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).
-#' @param loi_attr_col character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)
+#' @param loi character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Layer of interest (e.g., land use layer).
 #' @param loi_columns character. The column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the `loi_columns` being summarized are numeric. If \code{FALSE}, the `loi_columns` being summarized are categorical.
 #' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.
-#' @param roi \code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
+#' @param roi character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
-#' @param roi_uid_col character. Column name that will be assigned to the roi_uid.
-#' @param distance_weights \code{list}. The distance-weighted rasters output from \code{hydroweight}.
-#' @param remove_region \code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)
+#' @param roi_uid_col character. Column name that will be assigned to the roi_uid; Will be included in the attribute summary table.
+#' @param distance_weights character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/idw.rds", or "idw.zip"), \code{list}. The distance-weighted rasters output from \code{hydroweight}.
+#' @param remove_region character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)
 #' @param return_products logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weights} raster. If \code{FALSE}, attribute summary table only.
+#'
 #' @return If \code{return_products = TRUE}, a list containing 1) attribute summary table, and 2) a list of return_products of \code{length(distance_weights)} where each list element contains a list of 2 sub-elements: 1) \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 2) the \code{roi-} and \code{remove_region}-masked \code{distance_weights} raster. If \code{return_products = FALSE}, attribute summary table only.
 #' @export
 
-hydroweight_attributes <- function(loi = NULL,
-                                   loi_attr_col = NULL,
+hydroweight_attributes <- function(loi,
                                    loi_columns = NULL,
-                                   loi_numeric = NULL,
-                                   loi_numeric_stats = NULL,
-                                   roi = NULL,
-                                   roi_uid = NULL,
-                                   roi_uid_col = NULL,
-                                   distance_weights = NULL,
-                                   remove_region = NULL,
+                                   loi_numeric,
+                                   loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"),
+                                   roi=NULL,
+                                   roi_uid,
+                                   roi_uid_col="ID",
+                                   distance_weights,
+                                   remove_region=NULL,
                                    return_products = TRUE) {
+  require(terra)
 
-  ## Set resampling based on loi_numeric
+  loi_numeric_stats<-match.arg(loi_numeric_stats,several.ok = T)
+
   if (loi_numeric == TRUE) {
     loi_resample <- "bilinear"
   }
 
   if (loi_numeric == FALSE) {
-    loi_resample <- "ngb"
+    loi_resample <- "near"
   }
 
-  if (inherits(loi, "RasterLayer")) {
-    message("\n Reprojecting `loi` to match `distance_weights` using method `ngb/bilinear` if loi_categorical == `TRUE/FALSE`")
+  # Read in distance weights ------------------------------------------------
+  own_tempdir<-gsub("file","",tempfile())
+  if (!dir.exists(own_tempdir)) dir.create(own_tempdir)
+  terra::terraOptions(tempdir = own_tempdir, verbose=F)
 
-    loi_r <- raster::projectRaster(
-      from = loi,
-      to = distance_weights[[1]],
-      method = loi_resample
-    )
-  }
-
-  ## Generate RasterBrick of polygon loi using distance_weights as template
-
-  ## If polygon loi has a field of interest with numerical data, categories
-  ## are used to produce a RasterBrick of these
-
-  ## If polygon loi has a field of interest with categorical data, categories
-  ## are used to produce a RasterBrick of these
-  if (inherits(loi, "sf")) {
-    if (loi_numeric == TRUE) {
-      loi_r <- lapply(loi_columns, function(x) {
-        loi_return <- fasterize::fasterize(loi,
-          raster = distance_weights[[1]],
-          field = x
-        )
-      })
-      names(loi_r) <- loi_columns
-      loi_r <- raster::brick(loi_r)
+  if (inherits(distance_weights,"list")){
+    if ((inherits(distance_weights[[1]],"character") & grepl("\\.tif$",distance_weights[[1]])) |
+        inherits(distance_weights[[1]],"PackedSpatRaster")) {
+      distance_weights<-lapply(distance_weights,terra::rast)
+    } else if (inherits(distance_weights[[1]],"SpatRaster")) {
+      distance_weights<-distance_weights
     }
-
-    if (loi_numeric == FALSE) {
-      loi_r <- lapply(loi_columns, function(x) {
-        brick_ret <- fasterize::fasterize(loi,
-          raster = distance_weights[[1]],
-          by = x
-        )
-        names(brick_ret) <- paste0(x, names(brick_ret))
-        brick_ret
-      })
-      loi_r <- raster::brick(loi_r)
-
-      ## Account for fasterizing NAs
-      names(loi_r) <- gsub("NA\\.", "XNA", names(loi_r))
+  } else if (inherits(distance_weights,"character")){
+    if (grepl("\\.tif$",distance_weights)) {
+      distance_weights<-lapply(distance_weights,terra::rast)
+    } else if (grepl("\\.rds$",distance_weights)) {
+      distance_weights<-readRDS(distance_weights)
+    } else {
+      if (grepl("\\.zip$",distance_weights)) {
+        fls<-unzip(distance_weights,list=T)
+        fls<-file.path("/vsizip",distance_weights,fls$Name)
+        distance_weights<-lapply(fls,terra::rast)
+        names(distance_weights)<-sapply(distance_weights,names)
+      } else stop("'distance_weights' must be specified as .rds or .zip file, or a list of file paths or SpatRast objects")
     }
   }
 
-  ## Generate roi
-  if (inherits(roi, "sf")) {
-    roi_r <- fasterize::fasterize(roi, raster = distance_weights[[1]])
+  distance_weights<-lapply(distance_weights,function(x) if (inherits(x,"PackedSpatRaster")) terra::rast(x) else x)
+  names(distance_weights)<-lapply(distance_weights,names)
+
+  # Prepare roi data ------------------------------------------------------
+  if (is.null(roi)) {
+    roi<-distance_weights[[1]]
+    roi[!is.na(roi)]<-1
+    names(roi)<-"roi"
   } else {
-    message("\n Reprojecting `roi` to match `distance_weights` attributes using method `loi_resample`")
-
-    roi_r <- raster::projectRaster(
-      from = roi,
-      to = distance_weights[[1]],
-      method = loi_resample
-    )
+    roi<-process_input(input = roi,
+                       input_name="roi",
+                       #target = distance_weights[[1]],
+                       clip_region=distance_weights[[1]],
+                       resample_type="near",
+                       working_dir=own_tempdir)
+    if (length(roi)>1 & inherits(roi,"SpatRaster")) roi<-roi[[1]]
+    if (inherits(roi,"SpatVector") && ncol(roi)>1) roi<-roi[,names(roi)[1]]
+    names(roi)<-"roi"
   }
 
-  ## Mask out remove_region if present
+  remove_region<-process_input(input = remove_region, #PS: I'm debating if this is necessary in this function, wouldn't the workflow make more sense to do this external to the function, and feed your desired region into hydroweight()?
+                               input_name="remove_region",
+                               target = distance_weights[[1]],
+                               clip_region=distance_weights[[1]],
+                               resample_type="near",
+                               working_dir=own_tempdir)
+
   if (!is.null(remove_region)) {
-    if (inherits(remove_region, "sf")) {
-      remove_region_r <- fasterize::fasterize(remove_region, raster = distance_weights[[1]])
-    } else {
-      remove_region_r <- remove_region
-    }
+    roi<-process_input(input = roi,
+                       input_name="roi",
+                       target = distance_weights[[1]],
+                       clip_region=distance_weights[[1]],
+                       resample_type="near",
+                       working_dir=own_tempdir)
+    roi<-roi[[1]]
+    names(roi)<-"roi"
 
-    roi_r <- raster::mask(roi_r, mask = remove_region_r, inverse = TRUE)
+    remove_region<-remove_region[[1]]
+    names(remove_region)<-"remove_region"
+
+    roi <- terra::mask(x=roi, mask = remove_region, inverse = TRUE)
   }
 
-  distance_weights_attributes <- lapply(1:length(distance_weights), function(ii) {
+  roi<-process_input(input = roi, # this converts ROI to polygon
+                     input_name="roi",
+                     target = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs( distance_weights[[1]])),
+                     resample_type="near")
 
-    ## For raster data with loi_numeric numbers
-    if (loi_numeric == TRUE) {
+  # Prepare loi -------------------------------------------------------------
+  loi<-process_input(input = loi,
+                     input_name="loi",
+                     variable_names=loi_columns,
+                     target = distance_weights[[1]],
+                     clip_region=roi,
+                     resample_type=loi_resample,
+                     working_dir=own_tempdir)
 
-      ## Mask out roi
-      loi_r_mask <- raster::mask(loi_r, roi_r)
-      distance_weights_mask <- raster::mask(distance_weights[[ii]], roi_r)
+  distance_weights<-lapply(distance_weights,process_input,target=distance_weights[[1]],clip_region=roi,resample_type="bilinear",working_dir=own_tempdir)
 
-      ## Make sure NA across loi_r_mask is replicated across distance_weights_mask
-      distance_weights_mask <- distance_weights_mask * !is.na(loi_r_mask)
+  loi_stats <- list(setNames(roi_uid,roi_uid_col) %>% unlist())
+  names(loi_stats)<-roi_uid_col
+  loi_stats<-list(UID=loi_stats)
 
-      ##
-      (loi_dist <- loi_r_mask * distance_weights_mask)
-      names(loi_dist) <- names(loi_r_mask)
 
-      ## Weighted mean
-      (loi_distwtd_mean <- raster::cellStats(loi_dist, stat = "sum", na.rm = TRUE) / raster::cellStats(distance_weights_mask, stat = "sum", na.rm = T))
+  # For raster data with loi_numeric numbers --------------------------------
+  if (loi_numeric == TRUE){
+    # Non-weighted statistics -------------------------------------------------
 
-      ## Weighted standard deviation
-      ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
-      (term1 <- raster::cellStats((distance_weights_mask * (loi_r_mask - loi_distwtd_mean)^2), stat = "sum", na.rm = TRUE))
-      (M <- raster::cellStats(distance_weights_mask != 0, "sum", na.rm = T))
-      (term2 <- ((M - 1) / M) * raster::cellStats(distance_weights_mask, stat = "sum", na.rm = TRUE))
-
-      (loi_distwtd_sd <- sqrt(term1 / term2))
-
-      ## Non-weighted statistics
-      (loi_mean <- raster::cellStats(loi_r_mask, stat = "mean", na.rm = T))
-      (loi_sd <- raster::cellStats(loi_r_mask, stat = "sd", na.rm = T))
-      (loi_median <- stats::median(loi_r_mask@data@values, na.rm = T))
-      (loi_min <- raster::cellStats(loi_r_mask, stat = "min", na.rm = T))
-      (loi_max <- raster::cellStats(loi_r_mask, stat = "max", na.rm = T))
-      (loi_sum <- raster::cellStats(loi_r_mask, stat = "sum", na.rm = T))
-      (loi_cell_count <- !is.na(loi_r_mask))
-      (loi_cell_count <- raster::cellStats(loi_cell_count, "sum", na.rm = T))
-      (roi_cell_count <- raster::cellStats(roi_r, "sum", na.rm = T))
-      (loi_NA_cell_count <- roi_cell_count - loi_cell_count)
-
-      loi_stats <- data.frame(
-        loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
-        loi_median, loi_min, loi_max,
-        loi_sum, loi_cell_count, loi_NA_cell_count
-      )
-
-      ## If single RasterLayer
-      if (raster::nlayers(loi_dist) == 1) {
-        loi_stats <- as.data.frame(loi_stats)
-        colnames(loi_stats) <- gsub("loi_", "", colnames(loi_stats))
-        colnames(loi_stats) <- paste(loi_attr_col, colnames(loi_stats), sep = "_")
-      }
-
-      ## If RasterBrick
-      if (raster::nlayers(loi_dist) > 1) {
-        loi_stats$cats <- rownames(loi_stats)
-        loi_stats_w <- tidyr::pivot_wider(loi_stats, values_from = c(
-          loi_distwtd_mean, loi_distwtd_sd, loi_mean, loi_sd,
-          loi_median, loi_min, loi_max,
-          loi_sum, loi_cell_count, loi_NA_cell_count
-        ), names_from = "cats")
-        colnames(loi_stats_w) <- gsub("loi_", "", colnames(loi_stats_w))
-
-        (vars_strings <- stringr::str_extract(colnames(loi_stats_w), loi_columns))
-        (stats_strings <- stringr::str_replace(colnames(loi_stats_w), paste0("_", loi_columns), ""))
-        (colnames_strings <- paste(vars_strings, stats_strings, sep = "_"))
-
-        loi_stats_w <- as.data.frame(loi_stats_w)
-        colnames(loi_stats_w) <- paste(loi_attr_col, colnames_strings, sep = "_")
-        loi_stats_w <- as.data.frame(loi_stats_w)
-
-        loi_stats <- loi_stats_w
-      }
-    }
-
-    ## For raster data with categorical numbers
-    if (loi_numeric == FALSE) {
-
-      ## Construct brick if "RasterLayer"
-      if (inherits(loi_r, "RasterLayer")) {
-
-        ## Change all categorical NAs to 987654321; these will be converted back to NA shortly
-        loi_r[is.na(loi_r)] <- 987654321
-
-        (uv <- raster::unique(loi_r, na.last = TRUE))
-
-        brick_list <- lapply(uv, function(x) {
-          loi_r_ret <- loi_r
-          loi_r_ret[loi_r_ret@data@values == x] <- 9999
-          loi_r_ret[loi_r_ret@data@values != 9999] <- NA
-          loi_r_ret[loi_r_ret@data@values == 9999] <- 1
-
-          return(loi_r_ret)
-        })
-
-        loi_r <- raster::brick(brick_list)
-        names(loi_r) <- uv
-        names(loi_r) <- gsub("987654321", "NA", names(loi_r))
-      }
-
-      loi_r_mask <- raster::mask(loi_r, roi_r)
-      distance_weights_mask <- raster::mask(distance_weights[[ii]], roi_r)
-
-      loi_dist <- loi_r_mask * distance_weights_mask
-      names(loi_dist) <- names(loi_r_mask)
-
-      (loi_pct_distwtd <- raster::cellStats(loi_dist, stat = "sum", na.rm = TRUE) /
-        raster::cellStats(distance_weights_mask, stat = "sum", na.rm = TRUE))
-      (names(loi_pct_distwtd) <- names(loi_r_mask))
-
-      (loi_stats <- data.frame(t(loi_pct_distwtd)))
-      (colnames(loi_stats) <- gsub("X", "_", colnames(loi_stats)))
-      (colnames(loi_stats) <- paste(loi_attr_col, "prop", colnames(loi_stats), sep = "_"))
-      (colnames(loi_stats) <- gsub("__", "_", colnames(loi_stats)))
-    }
-
-    loi_stats <- data.frame(data.frame(roi_uid = roi_uid), loi_stats)
-    colnames(loi_stats)[1] <- roi_uid_col
-
-    ## Reduce loi_stats frame according to loi_numeric_stats
-    if (!is.null(loi_numeric_stats)) {
-      col_return <- lapply(loi_numeric_stats, function(x) {
-        grep(x, names(loi_stats))
-      })
-      col_return <- do.call("c", col_return)
-      col_return <- unique(col_return)
-
-      loi_stats <- loi_stats[, c(1, col_return)]
-    }
-
-    loi_stats
-
-    if (return_products == TRUE) {
-      ret_list <- list(loi_stats, loi_r_mask, distance_weights_mask)
-      names(ret_list) <- c("loi_statistics", "loi_Raster*_bounded", "distance_weights_bounded")
+    if (any(loi_numeric_stats %in% "mean")){
+      loi_mean <- terra::global(loi, fun = "mean", na.rm = T) %>% unlist()
+      names(loi_mean)<-paste0(names(loi), "_lumped_mean")
     } else {
-      ret_list <- loi_stats
+      loi_mean<-NULL
+    }
+    if (any(loi_numeric_stats %in% "sd")){
+      loi_sd <- terra::global(loi, fun = "sd", na.rm = T) %>% unlist()
+      names(loi_sd)<-paste0(names(loi), "_lumped_sd")
+    } else {
+      loi_sd<-NULL
+    }
+    if (any(loi_numeric_stats %in% "median")){
+      loi_median <- terra::global(loi, fun = function(x) median(x,na.rm=T)) %>% unlist()
+      names(loi_median)<-paste0(names(loi), "_lumped_median")
+    }else {
+      loi_median<-NULL
+    }
+    if (any(loi_numeric_stats %in% "min")){
+      loi_min <- terra::global(loi, fun = "min", na.rm = T) %>% unlist()
+      names(loi_min)<-paste0(names(loi), "_lumped_min")
+    }else {
+      loi_min<-NULL
+    }
+    if (any(loi_numeric_stats %in% "max")){
+      loi_max <- terra::global(loi, fun = "max", na.rm = T) %>% unlist()
+      names(loi_max)<-paste0(names(loi), "_lumped_max")
+    }else {
+      loi_max<-NULL
+    }
+    if (any(loi_numeric_stats %in% "sum")){
+      loi_sum <- terra::global(loi, fun = "sum", na.rm = T) %>% unlist()
+      names(loi_sum)<-paste0(names(loi), "_lumped_sum")
+    }else {
+      loi_sum<-NULL
+    }
+    if (any(loi_numeric_stats %in% "cell_count")){
+      loi_cell_count <- !is.na(loi)
+      loi_cell_count <- terra::global(loi_cell_count, fun="sum", na.rm = T) %>% unlist()
+      names(loi_cell_count)<-paste0(names(loi), "_lumped_cell_count")
+    }else {
+      loi_cell_count<-NULL
+    }
+    if (any(loi_numeric_stats %in% "NA_cell_count")){
+      roi_cell_count <- terra::global(roi, fun="sum", na.rm = T) %>% unlist()
+      loi_NA_cell_count <- unlist(roi_cell_count) - unlist(loi_cell_count)
+      names(loi_NA_cell_count)<-paste0(names(loi), "_lumped_NA_cell_count")
+    }else {
+      loi_NA_cell_count<-NULL
     }
 
-    return(ret_list)
-  })
-
-  ## Pull out attribute_frames and adjust
-  attribute_frames <- lapply(1:length(distance_weights_attributes), function(ii) {
-    if (return_products == TRUE) {
-      sub_frame <- distance_weights_attributes[[ii]][[1]]
-
-      colnames(sub_frame)[-1] <- paste0(
-        names(distance_weights)[[ii]],
-        "_",
-        colnames(sub_frame)[-1]
-      )
-    }
-
-    if (return_products == FALSE) {
-      sub_frame <- distance_weights_attributes[[ii]]
-
-      colnames(sub_frame)[-1] <- paste0(
-        names(distance_weights)[[ii]],
-        "_",
-        colnames(sub_frame)[-1]
-      )
-    }
-
-    return(sub_frame)
-  })
-  attribute_frames <- Reduce(merge, attribute_frames)
-
-  if (loi_numeric == TRUE) {
-
-    ## Pull out distance-weighted columns
-    distwtd_cols <- grep("distwtd", names(attribute_frames))
-    distwtd_data <- attribute_frames[distwtd_cols]
-
-    ## All lumped columns are identical data regardless of prefix. Reducing.
-    lumped_cols <- which(!grepl("distwtd", colnames(attribute_frames)) & !grepl(roi_uid_col, colnames(attribute_frames)))
-    lumped_data <- attribute_frames[lumped_cols]
-    lumped_cols_reduce <- grep(names(distance_weights)[1], colnames(lumped_data))
-    lumped_data <- lumped_data[lumped_cols_reduce]
-    colnames(lumped_data) <- gsub(names(distance_weights)[1], "lumped", colnames(lumped_data))
-
-    ## Bring together
-    attribute_frames_return <- cbind(
-      attribute_frames[, roi_uid_col],
-      lumped_data,
-      distwtd_data
+    loi_stats <- c(loi_stats,
+                   list(lummped=list(mean=loi_mean,
+                                     sd=loi_sd,
+                                     median=loi_median,
+                                     min=loi_min,
+                                     max=loi_max,
+                                     sum=loi_sum,
+                                     cell_count=loi_cell_count,
+                                     NA_cell_count=loi_NA_cell_count
+                   ))
     )
-    colnames(attribute_frames_return)[1] <- roi_uid_col
-  } else {
-    attribute_frames_return <- attribute_frames
-  }
 
-  ## If return_products == TRUE, remove the attribute table, keep the other parts of the list, and name according to distance_weights
-  if (return_products == TRUE) {
-    attribute_products <- lapply(1:length(distance_weights_attributes), function(ii) {
-      sub_products <- distance_weights_attributes[[ii]][-1]
+    # Weighted statistics -----------------------------------------------------
+    distance_weights_attributes <- lapply(distance_weights[sapply(distance_weights,names)!="lumped"], function(dw) {
+
+      loi_dist <- loi * dw
+      names(loi_dist) <- names(loi)
+
+      loi_sum<-terra::global(loi_dist, fun = "sum", na.rm = TRUE)
+      distance_weights_sum<-terra::global(dw, fun = "sum", na.rm = T)
+
+      if (loi_numeric == TRUE) {
+
+        ## Weighted mean
+        if (any(loi_numeric_stats %in% c("distwtd_mean","distwtd_sd"))){
+          loi_distwtd_mean <- unlist(loi_sum) / unlist(distance_weights_sum)
+          names(loi_distwtd_mean)<-paste0(names(loi),"_",names(dw),"_distwtd_mean")
+        } else {
+          loi_distwtd_mean<-NULL
+        }
+
+        if (any(loi_numeric_stats %in% "distwtd_sd")){
+          ## Weighted standard deviation
+          ## https://stats.stackexchange.com/questions/6534/how-do-i-calculate-a-weighted-standard-deviation-in-excel
+          term1 <- terra::global((dw * (loi - unlist(loi_distwtd_mean))^2), fun = "sum", na.rm = TRUE)
+          M <- terra::global(dw != 0, fun="sum", na.rm = T)
+          term2 <- ((M - 1) / M) * distance_weights_sum
+
+          loi_distwtd_sd <- sqrt(unlist(term1) / unlist(term2))
+          names(loi_distwtd_sd)<-paste0(names(loi),"_",names(dw),"_distwtd_sd")
+        }else  {
+          loi_distwtd_sd<-NULL
+        }
+
+        if (!any(loi_numeric_stats %in% c("distwtd_mean"))) loi_distwtd_mean<-NULL
+        loi_stats_temp<-list(distwtd_mean=loi_distwtd_mean,
+                             distwtd_sd=loi_distwtd_sd)
+
+        if (return_products == TRUE) {
+          loi_stats_temp<-c(loi_stats_temp,
+                            list(loi_dist_rast=loi_dist))
+        }
+
+        return(loi_stats_temp)
+      }
     })
-    names(attribute_products) <- names(distance_weights)
 
-    return_list <- list(attribute_frames_return, attribute_products)
-    names(return_list) <- c("attribute_table", "return_products")
-  } else {
-    return_list <- attribute_frames_return
+    # Add lumped raster to output in return_products=T
+    if ("lumped" %in% sapply(distance_weights,names)){
+      distance_weights_attributes$lumped<-list(loi_dist_rast=loi)
+    }
+
   }
+
+  # For raster data with loi_numeric categorical numbers -----------------------
+  if (loi_numeric == FALSE){
+
+    distance_weights_attributes <- lapply(distance_weights, function(dw) {
+
+      loi_dist <- loi * dw
+      names(loi_dist) <- names(loi)
+
+      loi_sum<-terra::global(loi_dist, fun = "sum", na.rm = TRUE)
+      distance_weights_sum<-terra::global(dw, fun = "sum", na.rm = T)
+
+      loi_pct_distwtd <- unlist(loi_sum) /  unlist(distance_weights_sum)
+      names(loi_pct_distwtd)<-paste0(names(loi),"_",names(dw),"_prop")
+
+      loi_stats_temp<-list(pct_distwtd=loi_pct_distwtd)
+
+      if (return_products == TRUE) {
+        loi_stats_temp<-c(loi_stats_temp,
+                          list(loi_dist_rast=loi_dist))
+      }
+      return(loi_stats_temp)
+    })
+  }
+
+
+
+  # Process final table -----------------------------------------------------
+  final_out_table<-lapply(distance_weights_attributes,function(x) x[names(x) != "loi_dist_rast"])
+  final_out_table<-c(loi_stats,final_out_table)
+  final_out_table_nms<-lapply(names(final_out_table),function(x) lapply(names(final_out_table[[x]]),function(y) names(final_out_table[[x]][[y]])))
+  final_out_table_nms<-unlist(final_out_table_nms)
+
+  final_out_table<-tibble::enframe(unlist(final_out_table)) %>%
+    tidyr::pivot_wider() %>%
+    mutate(across(c(everything(),-any_of(roi_uid_col)),as.numeric)) %>%
+    mutate(across(ends_with("_prop"),~ifelse(is.na(.),0,.)))
+
+  colnames(final_out_table)<-final_out_table_nms
+
+  final_out_table<-distinct(final_out_table)
+
+  return_list <- list(attribute_table=final_out_table)
+
+  if (return_products == TRUE) {
+    final_out_rasts<-lapply(distance_weights_attributes,function(x) x[names(x) == "loi_dist_rast"])
+    final_out_rasts<-lapply(final_out_rasts,function(x) lapply(x,terra::wrap))
+
+    return_list<-c(return_list,
+                   list(return_products=final_out_rasts))
+  }
+
+
+  # Cleanup -----------------------------------------------------------------
+  list_obj<-ls()
+  list_obj<-list_obj[!list_obj %in% c("own_tempdir","return_list")]
+  rm(list_obj)
+
+  file.remove(list.files(own_tempdir,pattern="_TEMP.tif"))
+  fls_to_remove<-unlink(own_tempdir,recursive=T,force =T)
+  terra::tmpFiles(current = T,orphan=T,old=F,remove = T)
 
   return(return_list)
 }
+

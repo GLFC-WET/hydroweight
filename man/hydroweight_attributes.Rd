@@ -5,23 +5,21 @@
 \title{Generate inverse distance-weighted attributes}
 \usage{
 hydroweight_attributes(
-  loi = NULL,
-  loi_attr_col = NULL,
+  loi,
   loi_columns = NULL,
-  loi_numeric = NULL,
-  loi_numeric_stats = NULL,
+  loi_numeric,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min",
+    "max", "sum", "cell_count"),
   roi = NULL,
-  roi_uid = NULL,
-  roi_uid_col = NULL,
-  distance_weights = NULL,
+  roi_uid,
+  roi_uid_col = "ID",
+  distance_weights,
   remove_region = NULL,
   return_products = TRUE
 )
 }
 \arguments{
-\item{loi}{\code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
-
-\item{loi_attr_col}{character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)}
+\item{loi}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Layer of interest (e.g., land use layer).}
 
 \item{loi_columns}{character. The column names over which to summarize the attributes.}
 
@@ -29,15 +27,15 @@ hydroweight_attributes(
 
 \item{loi_numeric_stats}{character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.}
 
-\item{roi}{\code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
+\item{roi}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
 
 \item{roi_uid}{character. Unique identifier value for the roi.}
 
-\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
+\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid; Will be included in the attribute summary table.}
 
-\item{distance_weights}{\code{list}. The distance-weighted rasters output from \code{hydroweight}.}
+\item{distance_weights}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/idw.rds", or "idw.zip"), \code{list}. The distance-weighted rasters output from \code{hydroweight}.}
 
-\item{remove_region}{\code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
+\item{remove_region}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
 
 \item{return_products}{logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weights} raster. If \code{FALSE}, attribute summary table only.}
 }
