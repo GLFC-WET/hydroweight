@@ -43,8 +43,6 @@ Imports:
     fasterize,
     foreach,
     raster,
-    rgdal,
-    rgeos,
     sf,
     stringr,
     tidyr,
