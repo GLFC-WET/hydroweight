@@ -156,7 +156,7 @@ install_whitebox()
 
 
 ## Install current version of hydroweight
-devtools::install_github("bkielstr/hydroweight@main")
+devtools::install_github("GLFC-WET/hydroweight@main")
 ```
 
 [Back to top](#contents)
