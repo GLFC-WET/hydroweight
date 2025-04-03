@@ -6,7 +6,7 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
 
 [![DOI](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
 
-## Ownership
+## Development Team
 
 This development of this package is a collaborative project led by Dr. Erik Emilson with planning and conceptual contributions from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles. 
 
