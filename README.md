@@ -2,8 +2,15 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
 ================
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+## Latest published version
 
 [![DOI](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
+
+## Ownership
+
+This development of this package is a collaborative project led by Dr. Erik Emilson with planning and conceptual contributions from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles. 
+
+To date, the coding and development of this package has been completed by Dr. Brian Kielstra, with minor maintenance and updates being incorporated by Emily Smenderovac and other WETlab members. A future update with major contributions from Patrick Schaeffer is currently planned.
 
 ## Contents
 
