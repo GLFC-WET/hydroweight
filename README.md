@@ -8,9 +8,9 @@ hydroweight: Inverse distance-weighted rasters and landscape attributes
 
 ## Development Team
 
-This development of this package is a collaborative project led by Dr. Erik Emilson with planning and conceptual contributions from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles. 
+The development of this package is a collaborative project led and developed by Dr. Erik Emilson with planning and conceptual contributions from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles. 
 
-To date, the coding and development of this package has been completed by Dr. Brian Kielstra, with minor maintenance and updates being incorporated by Emily Smenderovac and other WETlab members. A future update with major contributions from Patrick Schaeffer is currently planned.
+To date, the coding and development of this package has been completed by Dr. Brian Kielstra and Dr. Erik Emilson, with minor maintenance and updates being incorporated by Emily Smenderovac and other WETlab members. A future update with major contributions from Brian Kielstra and Patrick Schaeffer is currently planned.
 
 ## Contents
 
