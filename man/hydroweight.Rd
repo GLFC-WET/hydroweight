@@ -20,7 +20,8 @@ hydroweight(
   return_products = T,
   wrap_return_products = T,
   save_output = T,
-  clean_tempfiles = T
+  clean_tempfiles = T,
+  temp_dir = NULL
 )
 }
 \arguments{
