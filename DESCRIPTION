@@ -1,15 +1,16 @@
 Package: hydroweight
 Title: Implements inverse distance-weighted euclidean/flow-path landscape attributes
-Version: 1.2.4
+Version: 2.0.0
 Authors@R: c( 
     person(given = "Brian",
            family = "Kielstra",
-           role = c("aut", "cre"),
-           email = c("brian.kielstra@nrcan-rncan.gc.ca", "b.kielstra@alumni.ubc.ca"),
+           role = c("aut"),
+           email = c("b.kielstra@alumni.ubc.ca", "bkielstra@ecometrix.ca"),
            comment = c(ORCID = "0000-0003-1105-4971")), 
     person(given = "Patrick",
            family = "Schaefer",
-           role = c("aut")), 
+           email = c("ecopulseanalytics@gmail.com"),
+           role = c("aut", "cre")),
     person(given = "Rob",
            family = "Mackereth",
            role = c("aut")), 
@@ -22,7 +23,7 @@ Authors@R: c(
            role = c("aut"),
            email = c("erik.emilson@nrcan-rncan.gc.ca"),
            comment = c(ORCID = "0000-0002-1516-9728")),
-    person("Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
+    person("His Majesty the King in Right of Canada, as represented by the Minister of Natural Resources",
             role = "cph")
     )
 Description: Implements workflows to compute spatially explicit landscape metrics 
@@ -30,15 +31,15 @@ Description: Implements workflows to compute spatially explicit landscape metric
     Uses previously generated terrain products (examples provided) and a user- 
     defined weighting function to produce distance-weighted rasters. Weighted rasters 
     and landscape layers are then used to produce distance-weighted landscape attributes.
-URL: https://github.com/bkielstr/hydroweight 
-BugReports: https://github.com/bkielstr/hydroweight/issues 
+URL: https://github.com/GLFC-WET/hydroweight
+BugReports: https://github.com/GLFC-WET/hydroweight/issues 
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:
-    R (>= 4.0)
+    R (>= 4.5)
 Imports:
     devtools,
     dplyr,
@@ -47,8 +48,9 @@ Imports:
     tidyr,
     tidyselect,
     terra,
-    whitebox
+    whitebox,
 Suggests: 
     knitr, 
     rmarkdown
 VignetteBuilder: knitr
+
