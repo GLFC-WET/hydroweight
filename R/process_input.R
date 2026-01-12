@@ -1,30 +1,30 @@
-#' Process Input GIS files into target format and clip
+#' Process Input GIS files into reference format and clip
 #'
-#' \code{hydroweight::process_input()} processes any input GIS data files into type \code{SpatVector} or \code{SpatRaster} depending on `target`.
+#' \code{hydroweight::process_input()} processes any input GIS data files into type \code{SpatVector} or \code{SpatRaster} depending on `reference`.
 #'
-#' `input` data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of `target`.
-#' If `resample_type` == \code{bilinear}, and `target` is of class \code{SpatRaster}, `input` is
+#' `input` data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of `reference`.
+#' If `resample_type` == \code{bilinear}, and `reference` is of class \code{SpatRaster}, `input` is
 #' coerced to class \code{SpatRaster}, reasterizing and/or reprojecting as necessary. If `resample_type` == \code{near},
-#' `target` is of class \code{SpatRaster}, and `input` is of class \code{SpatRaster}, unique values of `input` are coerced
+#' `reference` is of class \code{SpatRaster}, and `input` is of class \code{SpatRaster}, unique values of `input` are coerced
 #' into separate layers of a \code{SpatRaster}, with 1 indicating the value is present; if input` is of class \code{SpatVector},
 #' unique values of `variable_names` are each coerced into separate layers in a \code{SpatRaster}, with 1 indicating the value is present.
 #'
 #'
-#' @param input character. (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input GIS data.
-#' @param input_name \code{NULL} or character. A name that is used only in error or warning messages.
-#' @param variable_names \code{NULL} or character. The names if input that should be included in the coerced output. If \code{NULL} all variables in `input` are used.
-#' @param target \code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/target.tif"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Target for intput to be coerced into. If \code{NULL} all variables in `input` are returned as \code{SpatVector} or \code{SpatRaster}.
+#' @param input Input GIS data: \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}, or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp").
+#' @param input_name Input name only used in error or waterning messages: \code{NULL} or character.
+#' @param variable_names Names of \code{input} that should be included in output: \code{NULL} or character. If \code{NULL} all variables in \code{input} `input` are used.
+#' @param reference \code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/reference.tif"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. reference for intput to be coerced into. If \code{NULL} all variables in `input` are returned as \code{SpatVector} or \code{SpatRaster}.
 #' @param clip_region \code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input with be clipped and masked to this region. Internally converted to  \code{SpatVector}. If \code{NULL}, full extent of `input` is returned.
-#' @param resample_type character. If \code{bilinear} (default), the `variable_names` being coerced are numeric, if \code{'near'}, the `variable_names` being coerced are categorical, for the purposes of resampling/projecting if `target` is \code{SpatRaster}.
+#' @param resample_type character. If \code{bilinear} (default), the `variable_names` being coerced are numeric, if \code{'near'}, the `variable_names` being coerced are categorical, for the purposes of resampling/projecting if `reference` is \code{SpatRaster}.
 #' @param working_dir \code{NULL} or character. Folder path for temporary file storage. If \code{NULL}, assigned internally.
 #' @param ... other variables passed to various \code{terra} functions.
-#' @return an object of class \code{SpatVector} or \code{SpatRaster} depending on `target`
+#' @return an object of class \code{SpatVector} or \code{SpatRaster} depending on `reference`
 #' @export
 
 process_input<-function(input=NULL,
                         input_name=NULL,
                         variable_names=NULL,
-                        target=NULL,
+                        reference=NULL,
                         clip_region=NULL,
                         resample_type=c("bilinear","near"),
                         working_dir=NULL,
@@ -89,19 +89,19 @@ process_input<-function(input=NULL,
   }
 
 
-  if (!is.null(target)){
-    target<-process_input(input=target,working_dir=tdir)
-    clip_region<-process_input(clip_region,target=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(target)),working_dir=tdir)
+  if (!is.null(reference)){
+    reference<-process_input(input=reference,working_dir=tdir)
+    clip_region<-process_input(clip_region,reference=terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",crs=terra::crs(reference)),working_dir=tdir)
 
-    if (is.na(terra::crs(target)) | is.null(terra::crs(target))) {
-      stop("'target' crs() is NULL or NA. Apply projection before continuing")
+    if (is.na(terra::crs(reference)) | is.null(terra::crs(reference))) {
+      stop("'reference' crs() is NULL or NA. Apply projection before continuing")
     }
 
-    # If target is raster -----------------------------------------------------
-    if (inherits(target,"SpatRaster")){
+    # If reference is raster -----------------------------------------------------
+    if (inherits(reference,"SpatRaster")){
       if (inherits(output,"SpatVector")) {
 
-        output<-terra::project(output,target)
+        output<-terra::project(output,reference)
 
         if (resample_type=="near"){ # For categorical vector inputs
           output_split<-lapply(setNames(variable_names,variable_names), function(x) {
@@ -132,7 +132,7 @@ process_input<-function(input=NULL,
           output <- lapply(output_split, function(x) {
             fl<-file.path(tdir,paste0(basename(tempfile()),".tif"))
             out<-terra::rasterize(x=x,
-                                  y=target,
+                                  y=reference,
                                   field = "",
                                   overwrite=T,
                                   ...
@@ -151,7 +151,7 @@ process_input<-function(input=NULL,
           output <- lapply(variable_names, function(x) {
             fl<-file.path(tdir,paste0(basename(tempfile()),".tif"))
             out<-terra::rasterize(x=output, #PS: Development version of terra gives a warning here, may cause problems in the future
-                                  y=target,
+                                  y=reference,
                                   field = x,
                                   overwrite=T,
                                   ...
@@ -165,21 +165,21 @@ process_input<-function(input=NULL,
       }
     }
 
-    # If target is vector -----------------------------------------------------
-    if (inherits(target,"SpatVector")){
+    # If reference is vector -----------------------------------------------------
+    if (inherits(reference,"SpatVector")){
       if (inherits(output,"SpatRaster")) {
-        if (terra::is.polygons(target)) output<-terra::as.polygons(output,...)
-        if (terra::is.points(target)) output<-terra::as.points(output,...)
-        if (terra::is.lines(target)) output<-terra::as.lines(output,...)
+        if (terra::is.polygons(reference)) output<-terra::as.polygons(output,...)
+        if (terra::is.points(reference)) output<-terra::as.points(output,...)
+        if (terra::is.lines(reference)) output<-terra::as.lines(output,...)
       }
     }
 
 
-    # Reprojecting to mathc target --------------------------------------------
+    # Reprojecting to mathc reference --------------------------------------------
     if (inherits(output,"SpatRaster")) {
       need_reproj<-terra::compareGeom(
         x = output,
-        y = target,
+        y = reference,
         lyrs=F,
         crs=T,
         ext=T,
@@ -196,7 +196,7 @@ process_input<-function(input=NULL,
 
         output <- terra::project(
           x = output,
-          y = target,
+          y = reference,
           method = resample_type,
           overwrite = TRUE,
           #filename = file.path(tdir,paste0(basename(tempfile()),".tif")),
@@ -209,7 +209,7 @@ process_input<-function(input=NULL,
     if (inherits(output,"SpatVector")) {
       output <- terra::project(
         x = output,
-        y = target,
+        y = reference,
         ...
       )
     }
@@ -218,7 +218,7 @@ process_input<-function(input=NULL,
 
   # Clip and mask to clip_region --------------------------------------------
 
-  if (!is.null(clip_region) & !is.null(target)){
+  if (!is.null(clip_region) & !is.null(reference)){
     if (inherits(output,"SpatVector")) {
       output<-terra::crop(
         x=output,
