@@ -35,13 +35,13 @@
 #'
 #' @param hydroweight_dir character. File path to write resulting \code{*.zip} file.
 #' @param target_O character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/sample_point.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.
-#' @param target_S character (ffull file path with extension, e.g., "C:/Users/Administrator/Desktop/stream_lines.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.
+#' @param target_S character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/stream_lines.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.
 #' @param target_uid character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)
 #' @param OS_combine logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}. This allows cells surrounding \code{target_O} to flow directly into \code{target_O} rather than be forced through \code{target_S}.
 #' @param clip_region character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated.
 #' @param dem character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/dem.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of GeoTiFF type. Digital elevation model raster.
 #' @param flow_accum  character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/flow_accum.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}  of GeoTiFF type. Flow accumulation raster (units: # of cells).
-#' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS")
+#' @param weighting_scheme character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS").
 #' @param inv_function function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.
 #' @param return_products logical. If \code{TRUE}, a list containing the file path to write resulting \code{*.zip} file, and \code{distance_weights} raster. If \code{FALSE}, file path only.
 #' @param save_output logical. Should output rasters be saved to a zip file?
@@ -115,7 +115,7 @@ hydroweight <- function(hydroweight_dir,
                      input_name="dem",
                      working_dir=own_tempdir)
 
-  # Process flow_accum Input ---------------------------------------------------
+  # Process flow_accum input ---------------------------------------------------
   flow_accum<-process_input(input = flow_accum,
                             target = dem,
                             clip_region=clip_region,
@@ -197,9 +197,9 @@ hydroweight <- function(hydroweight_dir,
   for (i in names(rast_list)){
     if (!is.null(rast_list[[i]])){
       if (inherits(rast_list[[i]],"SpatVector")) {
-        writeVector(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
+        terra::writeVector(rast_list[[i]],file.path(own_tempdir,i),overwrite=T)
       } else {
-        writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T,gdal="COMPRESS=NONE")
+        terra::writeRaster(rast_list[[i]],file.path(own_tempdir,i),overwrite=T,gdal="COMPRESS=NONE")
       }
     }
   }
@@ -599,7 +599,7 @@ hydroweight <- function(hydroweight_dir,
       out_file<-file.path(hydroweight_dir,paste0(target_uid,"_",basename(tempfile()), "_inv_distances.zip"))
       warning(paste0("Target .zip file already exists. Saving as: ",out_file))
     }
-    zip(out_file,
+    utils::zip(out_file,
         unlist(dist_list_out),
         flags = '-r9Xjq'
     )
@@ -607,7 +607,6 @@ hydroweight <- function(hydroweight_dir,
     out_file<-NULL
     dist_list_out<-NULL
   }
-
 
   if (return_products){
     if (wrap_return_products) {

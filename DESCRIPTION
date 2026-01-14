@@ -49,6 +49,8 @@ Imports:
     tidyselect,
     terra,
     whitebox,
+    utils,
+    stats,
 Suggests: 
     knitr, 
     rmarkdown

@@ -16,7 +16,7 @@
 #' @param loi_columns character. The column names over which to summarize the attributes.
 #' @param loi_numeric logical. If \code{TRUE}, the `loi_columns` being summarized are numeric. If \code{FALSE}, the `loi_columns` being summarized are categorical.
 #' @param loi_numeric_stats character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.
-#' @param roi character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.
+#' @param roi character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). dplyr::everything within this region will be used to calculate attributes.
 #' @param roi_uid character. Unique identifier value for the roi.
 #' @param roi_uid_col character. Column name that will be assigned to the roi_uid; Will be included in the attribute summary table.
 #' @param distance_weights character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/idw.rds", or "idw.zip"), \code{list}. The distance-weighted rasters output from \code{hydroweight}.
@@ -67,7 +67,7 @@ hydroweight_attributes <- function(loi,
       distance_weights<-readRDS(distance_weights)
     } else {
       if (grepl("\\.zip$",distance_weights)) {
-        fls<-unzip(distance_weights,list=T)
+        fls<-utils::unzip(distance_weights,list=T)
         fls<-file.path("/vsizip",distance_weights,fls$Name)
         distance_weights<-lapply(fls,terra::rast)
         names(distance_weights)<-sapply(distance_weights,names)
@@ -95,7 +95,9 @@ hydroweight_attributes <- function(loi,
     names(roi)<-"roi"
   }
 
-  remove_region<-process_input(input = remove_region, #PS: I'm debating if this is necessary in this function, wouldn't the workflow make more sense to do this external to the function, and feed your desired region into hydroweight()?
+  #PS: I'm debating if this is necessary in this function, wouldn't the workflow make more sense to do this external to the function, and feed your desired region into hydroweight()?
+  #BK: No, I wanted the generated distance weights generated throught the terrain to be independent of an arbitrarily imposed watershed boundary for traceability.
+  remove_region<-process_input(input = remove_region,
                                input_name="remove_region",
                                target = distance_weights[[1]],
                                clip_region=distance_weights[[1]],
@@ -134,7 +136,7 @@ hydroweight_attributes <- function(loi,
 
   distance_weights<-lapply(distance_weights,process_input,target=distance_weights[[1]],clip_region=roi,resample_type="bilinear",working_dir=own_tempdir)
 
-  loi_stats <- list(setNames(roi_uid,roi_uid_col) %>% unlist())
+  loi_stats <- list(stats::setNames(roi_uid,roi_uid_col) |> unlist())
   names(loi_stats)<-roi_uid_col
   loi_stats<-list(UID=loi_stats)
 
@@ -144,50 +146,50 @@ hydroweight_attributes <- function(loi,
     # Non-weighted statistics -------------------------------------------------
 
     if (any(loi_numeric_stats %in% "mean")){
-      loi_mean <- terra::global(loi, fun = "mean", na.rm = T) %>% unlist()
+      loi_mean <- terra::global(loi, fun = "mean", na.rm = T) |> unlist()
       names(loi_mean)<-paste0(names(loi), "_lumped_mean")
     } else {
       loi_mean<-NULL
     }
     if (any(loi_numeric_stats %in% "sd")){
-      loi_sd <- terra::global(loi, fun = "sd", na.rm = T) %>% unlist()
+      loi_sd <- terra::global(loi, fun = "sd", na.rm = T) |> unlist()
       names(loi_sd)<-paste0(names(loi), "_lumped_sd")
     } else {
       loi_sd<-NULL
     }
     if (any(loi_numeric_stats %in% "median")){
-      loi_median <- terra::global(loi, fun = function(x) median(x,na.rm=T)) %>% unlist()
+      loi_median <- terra::global(loi, fun = function(x) stats::median(x,na.rm=T)) |> unlist()
       names(loi_median)<-paste0(names(loi), "_lumped_median")
     }else {
       loi_median<-NULL
     }
     if (any(loi_numeric_stats %in% "min")){
-      loi_min <- terra::global(loi, fun = "min", na.rm = T) %>% unlist()
+      loi_min <- terra::global(loi, fun = "min", na.rm = T) |> unlist()
       names(loi_min)<-paste0(names(loi), "_lumped_min")
     }else {
       loi_min<-NULL
     }
     if (any(loi_numeric_stats %in% "max")){
-      loi_max <- terra::global(loi, fun = "max", na.rm = T) %>% unlist()
+      loi_max <- terra::global(loi, fun = "max", na.rm = T) |> unlist()
       names(loi_max)<-paste0(names(loi), "_lumped_max")
     }else {
       loi_max<-NULL
     }
     if (any(loi_numeric_stats %in% "sum")){
-      loi_sum <- terra::global(loi, fun = "sum", na.rm = T) %>% unlist()
+      loi_sum <- terra::global(loi, fun = "sum", na.rm = T) |> unlist()
       names(loi_sum)<-paste0(names(loi), "_lumped_sum")
     }else {
       loi_sum<-NULL
     }
     if (any(loi_numeric_stats %in% "cell_count")){
       loi_cell_count <- !is.na(loi)
-      loi_cell_count <- terra::global(loi_cell_count, fun="sum", na.rm = T) %>% unlist()
+      loi_cell_count <- terra::global(loi_cell_count, fun="sum", na.rm = T) |> unlist()
       names(loi_cell_count)<-paste0(names(loi), "_lumped_cell_count")
     }else {
       loi_cell_count<-NULL
     }
     if (any(loi_numeric_stats %in% "NA_cell_count")){
-      roi_cell_count <- terra::global(roi, fun="sum", na.rm = T) %>% unlist()
+      roi_cell_count <- terra::global(roi, fun="sum", na.rm = T) |> unlist()
       loi_NA_cell_count <- unlist(roi_cell_count) - unlist(loi_cell_count)
       names(loi_NA_cell_count)<-paste0(names(loi), "_lumped_NA_cell_count")
     }else {
@@ -290,10 +292,10 @@ hydroweight_attributes <- function(loi,
   final_out_table_nms<-lapply(names(final_out_table),function(x) lapply(names(final_out_table[[x]]),function(y) names(final_out_table[[x]][[y]])))
   final_out_table_nms<-unlist(final_out_table_nms)
 
-  final_out_table<-tibble::enframe(unlist(final_out_table)) %>%
-    tidyr::pivot_wider() %>%
-    mutate(across(c(everything(),-any_of(roi_uid_col)),as.numeric)) %>%
-    mutate(across(ends_with("_prop"),~ifelse(is.na(.),0,.)))
+  final_out_table<-tibble::enframe(unlist(final_out_table)) |>
+    tidyr::pivot_wider() |>
+    dplyr::mutate(dplyr::across(c(dplyr::everything(),-dplyr::any_of(roi_uid_col)),as.numeric)) |>
+    dplyr::mutate(dplyr::across(dplyr::ends_with("_prop"),~ifelse(is.na(.),0,.)))
 
   colnames(final_out_table)<-final_out_table_nms
 

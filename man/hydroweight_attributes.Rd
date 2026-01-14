@@ -27,7 +27,7 @@ hydroweight_attributes(
 
 \item{loi_numeric_stats}{character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.}
 
-\item{roi}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
+\item{roi}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/roi.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Region of interest (e.g., catchment boundary). dplyr::everything within this region will be used to calculate attributes.}
 
 \item{roi_uid}{character. Unique identifier value for the roi.}
 

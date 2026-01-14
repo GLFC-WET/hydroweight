@@ -2,46 +2,54 @@
 % Please edit documentation in R/process_input.R
 \name{process_input}
 \alias{process_input}
-\title{Process Input GIS files into target format and clip}
+\title{Align spatial data for \verb{hydroweight::} functions}
 \usage{
 process_input(
   input = NULL,
   input_name = NULL,
-  variable_names = NULL,
-  target = NULL,
+  input_variable_names = NULL,
+  align_to = NULL,
   clip_region = NULL,
   resample_type = c("bilinear", "near"),
+  snap = c("near", "in", "out"),
   working_dir = NULL,
   ...
 )
 }
 \arguments{
-\item{input}{character. (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input GIS data.}
+\item{input}{Input spatial data: \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster}, or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp").}
 
-\item{input_name}{\code{NULL} or character. A name that is used only in error or warning messages.}
+\item{input_name}{Input name only used in error or warning messages: \code{NULL} or \code{character}.}
 
-\item{variable_names}{\code{NULL} or character. The names if input that should be included in the coerced output. If \code{NULL} all variables in \code{input} are used.}
+\item{input_variable_names}{\code{input} variable names that should be included in output: \code{NULL} or \code{character}. If \code{NULL}, all variables in \code{input} are used.}
 
-\item{target}{\code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/target.tif"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Target for intput to be coerced into. If \code{NULL} all variables in \code{input} are returned as \code{SpatVector} or \code{SpatRaster}.}
+\item{align_to}{Spatial data that \code{input} will be aligned to: \code{NULL}, \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster} or \code{character} (full file path with extension, e.g., "C:/Users/Administrator/Desktop/align_to.tif"). If \code{NULL}, all variables in \code{input} are returned as \code{SpatVector} or \code{SpatRaster}.}
 
-\item{clip_region}{\code{NULL} or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}. Input with be clipped and masked to this region. Internally converted to  \code{SpatVector}. If \code{NULL}, full extent of \code{input} is returned.}
+\item{clip_region}{\code{input} will be clipped and masked to this region: \code{NULL}, \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster}, or \code{character} (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"). Internally converted to \code{SpatVector}. If \code{NULL}, full extent of \code{input} is returned.}
 
-\item{resample_type}{character. If \code{bilinear} (default), the \code{variable_names} being coerced are numeric, if \code{'near'}, the \code{variable_names} being coerced are categorical, for the purposes of resampling/projecting if \code{target} is \code{SpatRaster}.}
+\item{resample_type}{\code{character}. If \code{bilinear} (default), the \code{input_variable_names} being coerced are numeric, if \code{'near'}, the \code{input_variable_names} being coerced are categorical, for the purposes of resampling/projecting if \code{align_to} is \code{SpatRaster}.}
 
-\item{working_dir}{\code{NULL} or character. Folder path for temporary file storage. If \code{NULL}, assigned internally.}
+\item{snap}{\code{character}. One of "near", "in", or "out". Used to align y to the geometry of x. Default is \code{near}.}
+
+\item{working_dir}{Folder path for temporary file storage: \code{NULL} or \code{character}. If \code{NULL}, assigned internally.}
 
 \item{...}{other variables passed to various \code{terra} functions.}
 }
 \value{
-an object of class \code{SpatVector} or \code{SpatRaster} depending on \code{target}
+an object of class \code{SpatVector} or \code{SpatRaster} depending on \code{align_to}
 }
 \description{
-\code{hydroweight::process_input()} processes any input GIS data files into type \code{SpatVector} or \code{SpatRaster} depending on \code{target}.
+\code{hydroweight::process_input()} is an internal function that aligns spatial data into \code{SpatVector} or \code{SpatRaster} types depending on \code{align_to} class.
 }
 \details{
-\code{input} data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of \code{target}.
-If \code{resample_type} == \code{bilinear}, and \code{target} is of class \code{SpatRaster}, \code{input} is
-coerced to class \code{SpatRaster}, reasterizing and/or reprojecting as necessary. If \code{resample_type} == \code{near},
-\code{target} is of class \code{SpatRaster}, and \code{input} is of class \code{SpatRaster}, unique values of \code{input} are coerced
-into separate layers of a \code{SpatRaster}, with 1 indicating the value is present; if input\verb{is of class \code{SpatVector}, unique values of}variable_names` are each coerced into separate layers in a \code{SpatRaster}, with 1 indicating the value is present.
+\code{input} data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of \code{align_to}:
+\itemize{
+\item If \code{input} is a raster, \code{align_to} is a raster, and \code{resample_type} == \code{bilinear} (e.g., for continuous data), then class \code{SpatRaster} is output with rasterizing and reprojection occurring as necessary;
+\item If \code{input} is a raster, \code{align_to} is a raster, and \code{resample_type} == \code{near} (e.g., for categorical data), then unique values of \code{input} are coerced into separate binary layers of a \code{SpatRaster}, with 1 indicating the category/value is present;
+\item If \code{input} is a vector, \code{align_to} is a raster, unique values of \code{input_variable_names} are each coerced into separate layers in a \code{SpatRaster}, with 1 indicating the category/value is present.
+, and \code{align_to} is of class \code{SpatRaster}, \code{input} is coerced to class \code{SpatRaster}, rasterizing and/or reprojecting as necessary;
+\item If \code{resample_type} == \code{near}, (e.g., for categorical data), \code{align_to} is of class \code{SpatRaster}, and \code{input} is of class \code{SpatRaster},  and
+\item If \code{input} is of class \code{SpatVector} and \code{align_to} is of class \code{SpatRaster},
+\item If \code{input} is of class \code{SpatVector} and \code{align_to} is
+}
 }
