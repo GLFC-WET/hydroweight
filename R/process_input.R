@@ -1,413 +1,341 @@
-#' Align spatial data for `hydroweight::` functions
+#' Aligns spatial data for `hydroweight` functions
 #'
-#' `hydroweight::process_input()` is an internal function that aligns spatial data into `SpatVector` or `SpatRaster` types depending on `align_to` class.
+#' `hydroweight::process_input()` internally aligns spatial data into `SpatVector` or
+#' `SpatRaster` objects depending on the class of `align_to`. The function
+#' normalizes inputs (vectors/rasters or file paths), optionally subsets
+#' variables, aligns to a target object, and optionally clips/masks to a
+#' region.
 #'
-#' `input` data is coerced to type `SpatVector` or `SpatRaster` depending on class of `align_to`:
-#'    * If `input` is a raster, `align_to` is a raster, and `resample_type` == `bilinear` (e.g., for continuous data), then class `SpatRaster` is output with rasterizing and reprojection occurring as necessary;
-#'    * If `input` is a raster, `align_to` is a raster, and `resample_type` == `near` (e.g., for categorical data), then unique values of `input` are coerced into separate binary layers of a `SpatRaster`, with 1 indicating the category/value is present;
-#'    * If `input` is a vector, `align_to` is a raster, unique values of `input_variable_names` are each coerced into separate layers in a `SpatRaster`, with 1 indicating the category/value is present.
-
-#'    , and `align_to` is of class `SpatRaster`, `input` is coerced to class `SpatRaster`, rasterizing and/or reprojecting as necessary;
-#'    * If `resample_type` == `near`, (e.g., for categorical data), `align_to` is of class `SpatRaster`, and `input` is of class `SpatRaster`,  and
-#'    * If `input` is of class `SpatVector` and `align_to` is of class `SpatRaster`,
-#'    * If `input` is of class `SpatVector` and `align_to` is
+#' @details
+#' **Coercion & alignment behavior (high-level):**
 #'
-#'  `snap` can have very important implications for hydroweight and
+#' \itemize{
+#'   \item If `input` is a raster, `align_to` is a raster, and `resample_type == "bilinear"`
+#'   (e.g., continuous data), the result is a `SpatRaster` with rasterize/warp
+#'   applied as needed.
 #'
-#' @param input Input spatial data: `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp").
-#' @param input_name Input name only used in error or warning messages: `NULL` or `character`.
-#' @param input_variable_names `input` variable names that should be included in output: `NULL` or `character`. If `NULL`, all variables in `input` are used.
-#' @param align_to Spatial data that `input` will be aligned to: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/align_to.tif"). If `NULL`, all variables in `input` are returned as `SpatVector` or `SpatRaster`.
-#' @param clip_region `input` will be clipped and masked to this region: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"). Internally converted to `SpatVector`. If `NULL`, full extent of `input` is returned.
-#' @param resample_type Type of resampling needed to conver to raster (typically categorical = `near` and numerical = `bilinear`): `character`. If `bilinear` (default), the `input_variable_names` being coerced are numeric, if `'near'`, the `input_variable_names` being coerced are categorical, for the purposes of resampling/projecting if `align_to` is `SpatRaster`.
-#' @param snap Type of snap scheme to use during `terra::crop()`: `character`. One of "near", "in", or "out". Used to align y to the geometry of x. Default is `near`.
-#' @param working_dir Folder path for temporary file storage: `NULL` or `character`. If `NULL`, assigned internally.
-#' @param ... other variables passed to various `terra` functions.
-#' @return an object of class `SpatVector` or `SpatRaster` depending on `align_to`
+#'   \item If `input` is a raster, `align_to` is a raster, and `resample_type == "near"`
+#'   (e.g., categorical data), unique values of `input` are coerced into
+#'   separate binary `SpatRaster` layers (1 = category present).
+#'
+#'   \item If `input` is a vector and `align_to` is a raster, unique values of
+#'   each variable in `input_variable_names` are coerced into separate binary
+#'   `SpatRaster` layers (1 = category present).
+#' }
+#'
+#' **Notes:**
+#' \itemize{
+#'   \item `resample_type` affects reprojection/resampling when `align_to`
+#'   is a `SpatRaster`. Use `"bilinear"` for numeric/continuous data and
+#'   `"near"` for categorical data.
+#'   \item `snap` controls how `terra::crop()` aligns the raster grid to the
+#'   clipping geometry (`"near"`, `"in"`, or `"out"`), which can materially
+#'   affect hydrologic analyses.
+#' }
+#'
+#' @param input Input spatial data: one of `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/input.shp"`, `"C:/path/input.tif"`).
+#' @param input_name Optional label used in error/warning messages. `NULL` or `character`.
+#' @param input_variable_names Names of variables in `input` to include in the output: one of `NULL` or `character`. If `NULL`, all variables are used.
+#' @param align_to Spatial target to which `input` will be aligned: one of `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/align_to.shp"`, `"C:/path/align_to.tif"`). If `NULL`, the function returns a `SpatVector` or `SpatRaster` in the original input CRS/geometry (after optional subsetting).
+#' @param clip_region Optional region for clipping/masking: one of `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/clip_region.shp"`, `"C:/path/clip_region.tif"`). Internally converted to `SpatVector`. If `NULL`, the full extent of `input` (after alignment) is returned.
+#' @param resample_type Type of resampling when converting/alignment to raster (typically categorical = `"near"`, numeric = `"bilinear"`): `character`, one of`c("bilinear","near")`. If `"bilinear"` (default), `input_variable_names` are treated as numeric; if `"near"`, they are treated as categorical for resampling/projecting when `align_to` is a `SpatRaster`.
+#' @param snap Snap scheme for `terra::crop()`: `character`, one of `"near"`, `"in"`, or `"out"`. Controls how the raster grid aligns to the clipping geometry. Default is `"near"`.
+#' @param working_dir Folder path for temporary file storage: `NULL` or `character`. If `NULL`, a temporary directory is created internally and may be removed at the end.
+#' @param persist_final Should the final `SpatRaster` or `SpatVector` be written to disk inside `working_dir` and returned as a file-backed object? Logical, default `FALSE`. Set to `TRUE` when reproducible on-disk outputs or file-backed terra objects are required.
+#' @param ... Additional arguments passed to `terra` operations.
+#'
+#' @return An object of class `SpatVector` or `SpatRaster`, depending on `align_to`.
 #' @export
+#'
+process_input <- function(
+    input = NULL,
+    input_name = NULL,
+    input_variable_names = NULL,
+    align_to = NULL,
+    clip_region = NULL,
+    resample_type = c("bilinear", "near"),
+    snap = c("near", "in", "out"),
+    working_dir = NULL,
+    persist_final = FALSE,
+    ...
+) {
 
-process_input <- function(input = NULL,
-                          input_name = NULL,
-                          input_variable_names = NULL,
-                          align_to = NULL,
-                          clip_region = NULL,
-                          resample_type = c("bilinear", "near"),
-                          snap = c("near", "in", "out"),
-                          working_dir = NULL,
-                          ...) {
+  ## SETUP ---------------------------------------------------------------------
 
-  ## Set up outputs and working directories ------------------------------------
-
-  ## Output
   if (is.null(input)) {
     return(input)
   }
-  output <- NULL
 
-  ## Working directories
-  if (is.null(working_dir)) {
-    tdir <- file.path(gsub("file", "", tempfile()))
-    working_dir <- tdir # also make working_dir
-  } else {
-    tdir <- file.path(working_dir, basename(gsub("file", "", tempfile())))
-  }
-  if (!dir.exists(tdir)) {
-    dir.create(tdir)
-  }
-
-  ## Set terra options
-  terra::terraOptions(tempdir = tdir, verbose = FALSE)
-
-  ## match.arg
+  ## Match arguments
   resample_type <- match.arg(resample_type)
   snap <- match.arg(snap)
 
-  # Reconcile Types ---------------------------------------------------------
-  if (inherits(input, "character")) {
-    if (grepl("\\.shp$", input)) {
-      output <- terra::vect(input) # terra seems to have trouble reading crs sometimes (sf::read_sf())
-    } else if (grepl("\\.tif$|\\.tiff", input)) {
-      output <- terra::rast(input)
-    } else {
-      stop(paste0(input_name, " must be spcified as vector or raster layer, or a character string ending in .shp or .tif"))
-    }
+  ## Use a single stable working directory per call
+  working_root <- if (is.null(working_dir)) {
+    tempfile("hwt_")
+  } else {
+    working_dir
   }
-  if (inherits(input, "RasterLayer")) {
-    output <- terra::rast(input)
-  }
-  if (inherits(input, "PackedSpatRaster")) {
-    output <- terra::rast(input)
-  }
-  if (inherits(input, "PackedSpatVector")) {
-    output <- terra::vect(input)
-  }
-  if (inherits(input, c("sf", "sfc"))) {
-    output <- terra::vect(input)
-  }
-  if (inherits(input, c("SpatRaster", "SpatVector"))) {
-    output <- input
-  }
-  if (is.na(terra::crs(output)) | is.null(terra::crs(output))) {
-    stop("'output' crs() is NULL or NA. Apply a CRS before continuing")
+  dir.create(working_root, showWarnings = FALSE, recursive = TRUE)
+
+  ## Helper for generating temporary file paths
+  tmp_file <- function(ext = ".tif") {
+    file.path(working_root, paste0("tmp_", tempfile(), ext))
   }
 
-  ## Construct output using input_variable_names as necessary
+  ## Set terra temp directory once
+  terra::terraOptions(tempdir = working_root, verbose = FALSE)
+
+  ## PROCESS INPUTS ------------------------------------------------------------
+
+  if (inherits(input, "character")) {
+
+    if (grepl("\\.shp$", input, ignore.case = TRUE)) {
+      output <- terra::vect(input)
+
+    } else if (grepl("\\.(tif|tiff)$", input, ignore.case = TRUE)) {
+      output <- terra::rast(input)
+
+    } else {
+      stop(paste0(input_name, " must end in .shp, .tif, or .tiff"))
+    }
+
+  } else if (inherits(input, c("RasterLayer", "PackedSpatRaster"))) {
+    output <- terra::rast(input)
+
+  } else if (inherits(input, c("PackedSpatVector", "sf", "sfc"))) {
+    output <- terra::vect(input)
+
+  } else if (inherits(input, c("SpatRaster", "SpatVector"))) {
+    output <- input
+
+  } else {
+    stop("'input' is not a supported spatial type")
+  }
+
+  if (is.na(terra::crs(output)) || is.null(terra::crs(output))) {
+    stop("'output' crs() is NULL or NA. Apply a CRS before continuing.")
+  }
+
   orig_output <- output
 
+  ## SUBSET INPUTS BY VARIABLE NAMES -------------------------------------------
   if (is.null(input_variable_names)) {
     input_variable_names <- names(output)
   }
+
   if (any(!input_variable_names %in% names(output))) {
-    stop("some 'input_variable_names' not in input")
-  }
-  if (length(input_variable_names) > 0) {
-    if (inherits(output, "SpatVector")) {
-      output <- output[, input_variable_names]
-    }
-    if (inherits(output, "SpatRaster")) {
-      output <- terra::subset(output, input_variable_names)
-    }
+    stop("Some 'input_variable_names' not present in input")
   }
 
-  ## Align to align_to ---------------------------------------------------------
+  if (inherits(output, "SpatVector")) {
+    output <- output[, input_variable_names, drop = FALSE]
+  }
 
+  if (inherits(output, "SpatRaster")) {
+    output <- terra::subset(output, input_variable_names)
+  }
+
+  ## ALIGN TO ALIGN_TO (IF PROVIDED)--------------------------------------------
   if (!is.null(align_to)) {
-    ## This seems quite circular, given that it is within the process_input
-    ## function, check in on whether something different needs to be done.
 
-    align_to <- process_input(input = align_to, working_dir = tdir) # builds a temp directory
-
-    clip_region <- process_input(clip_region,
-      align_to = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",
-      crs = terra::crs(align_to)
-      ),
-      working_dir = tdir
+    # Reuse SAME working directory for recursive calls
+    align_to <- process_input(
+      input = align_to,
+      working_dir = working_root
     )
 
-    if (is.na(terra::crs(align_to)) | is.null(terra::crs(align_to))) {
-      stop("'align_to' crs() is NULL or NA. Apply CRS before continuing")
+    if (is.na(terra::crs(align_to)) || is.null(terra::crs(align_to))) {
+      stop("'align_to' crs() is NULL or NA. Apply a CRS before continuing.")
     }
 
-    ## If align_to is raster ---------------------------------------------------
+    ### IF ALIGN_TO IS A RASTER ------------------------------------------------
     if (inherits(align_to, "SpatRaster")) {
 
-      ## If output (i.e., same class as input) is
+      ### ALIGN VECTOR TO RASTER -----------------------------------------------
       if (inherits(output, "SpatVector")) {
 
         output <- terra::project(output, align_to)
 
-        ## For categorical vector inputs ---------------------------------------
+        #### ALIGN CATEGORICAL VECTOR TO RASTER --------------------------------
         if (resample_type == "near") {
-          # output_split <- lapply(stats::setNames(input_variable_names, input_variable_names), function(x) {
-          #   out <- output %>%
-          #     sf::st_as_sf() %>%
-          #     dplyr::select(tidyselect::any_of(x)) %>%
-          #     split(.[[x]]) %>%
-          #     lapply(terra::vect)
-          #
-          #   fl <- lapply(out, function(x) {
-          #     file.path(tdir, paste0(basename(tempfile()), ".shp"))
-          #     })
-          #   sv <- lapply(names(out), function(x) {
-          #     terra::writeVector(out[[x]], filename = fl[[x]], overwrite = T)
-          #     })
-          #
-          #   out <- lapply(fl, terra::vect)
-          #
-          #   out <- lapply(out, function(y) {
-          #     names(y) <- paste0(x, "_", unlist(y[[1]])[[1]])
-          #     return(y)
-          #   })
-          #
-          #   return(out)
-          # })
 
-          ## More package safe version of code above
-          output_split <- lapply(stats::setNames(
-            input_variable_names,
-            input_variable_names
-          ), function(x) {
-            # Convert to sf
-            sfobj <- sf::st_as_sf(output)
+          # Split categorical data to multiple rasters
+          output_split <- lapply(
+            stats::setNames(input_variable_names, input_variable_names),
+            function(varname) {
+              sf_obj <- sf::st_as_sf(output)[, varname, drop = FALSE]
 
-            # Select only the column(s) of interest
-            sfobj <- sfobj[, x, drop = FALSE]
+              splitted <- split(sf_obj, sf_obj[[varname]])
+              vects <- lapply(splitted, terra::vect)
 
-            # Split by the grouping column (x)
-            out <- split(sfobj, sfobj[[x]]) # <- no dot pronoun here
-            out <- lapply(out, terra::vect)
-
-            # Create file paths
-            fl <- lapply(out, function(y) {
-              file.path(tdir, paste0(basename(tempfile()), ".shp"))
-            })
-
-            # Write each group to file
-            sv <- lapply(names(out), function(nm) {
-              terra::writeVector(out[[nm]], filename = fl[[nm]], overwrite = TRUE)
-            })
-
-            # Reload as SpatVector
-            out <- lapply(fl, terra::vect)
-
-            # Rename layers
-            out <- lapply(out, function(y) {
-              names(y) <- paste0(x, "_", unlist(y[[1]])[[1]])
-              return(y)
-            })
-
-            return(out)
-          })
-
-          output_split_nms <- sapply(names(output_split), function(x) {
-            paste0(x, "_", names(output_split[[x]]))
-          })
-
-          output_split <- unlist(output_split, recursive = F)
-          names(output_split) <- output_split_nms
-
-          output <- lapply(output_split, function(x) {
-            fl <- file.path(tdir, paste0(basename(tempfile()), ".tif"))
-            out <- terra::rasterize(
-              x = x,
-              y = align_to,
-              field = "",
-              overwrite = TRUE,
-              ...
-            )
-
-            sv <- terra::writeRaster(out, filename = fl, overwrite = TRUE, gdal = "COMPRESS=NONE")
-
-            return(terra::rast(fl))
-          })
-
-          output <- lapply(stats::setNames(names(output), names(output)), function(x) {
-            out <- output[[x]]
-            names(out) <- x
-            return(out)
-          })
-        }
-
-        ## For numeric vector inputs -------------------------------------------
-        if (resample_type == "bilinear") {
-          output <- lapply(input_variable_names, function(x) {
-            fl <- file.path(tdir, paste0(basename(tempfile()), ".tif"))
-            out <- terra::rasterize(
-              x = output, # PS: Development version of terra gives a warning here, may cause problems in the future
-              y = align_to,
-              field = x,
-              overwrite = TRUE,
-              ...
-            )
-            sv <- terra::writeRaster(out, filename = fl, overwrite = TRUE, gdal = "COMPRESS=NONE")
-            return(terra::rast(fl))
-          })
-        }
-
-        output <- terra::rast(output)
-      }
-    }
-
-    ## If align_to is vector ---------------------------------------------------
-    if (inherits(align_to, "SpatVector")) {
-      if (inherits(output, "SpatRaster")) {
-        if (terra::is.polygons(align_to)) {
-          output <- terra::as.polygons(output, ...)
-        }
-        if (terra::is.points(align_to)) {
-          output <- terra::as.points(output, ...)
-        }
-        if (terra::is.lines(align_to)) {
-          output <- terra::as.lines(output, ...)
-        }
-      }
-    }
-
-    ## Reprojecting to align_to as necessary -----------------------------------
-
-    ## Compare output and aligh_to
-    if (inherits(output, "SpatRaster")) {
-      need_reproj <- terra::compareGeom(
-        x = output,
-        y = align_to,
-        lyrs = FALSE,
-        crs = TRUE,
-        ext = TRUE,
-        rowcol = TRUE,
-        res = TRUE,
-        warncrs = FALSE,
-        stopOnError = FALSE,
-        messages = FALSE
-      )
-      need_reproj <- !need_reproj # take inverse
-
-      ## Reproject as necessary
-      if (need_reproj) {
-        if (length(resample_type) > 1) { # BK: maybe this should be before doing anything?
-          stop("'resample_type' must be one of: 'bilinear','near'")
-        }
-
-        output <- terra::project(
-          x = output,
-          y = align_to,
-          method = resample_type,
-          overwrite = TRUE,
-          ...
-        )
-      }
-    }
-
-    if (inherits(output, "SpatVector")) {
-      output <- terra::project(
-        x = output,
-        y = align_to,
-        ...
-      )
-    }
-  }
-
-  ## Clip and mask to clip_region -----------------------------------------------
-
-  if (!is.null(clip_region) & !is.null(align_to)) {
-    ## For vector data
-    if (inherits(output, "SpatVector")) {
-      output <- terra::crop(
-        x = output,
-        y = clip_region
-      )
-    }
-
-    ## For raster data
-    if (inherits(output, "SpatRaster")) {
-      output <- terra::crop(
-        x = output,
-        snap = snap,
-        y = clip_region,
-        mask = TRUE,
-        overwrite = TRUE
-      )
-
-      output <- terra::mask(
-        x = output,
-        mask = clip_region,
-        overwrite = TRUE
-      )
-    }
-  }
-
-  ## Split output into separate layers if multiple numerical values present ----
-  if (inherits(output, "SpatRaster")) {
-    if (resample_type == "near") {
-      if (terra::nlyr(output) > 1) {
-        brick_list <- terra::split(output, names(output))
-        names(brick_list) <- names(output)
-      } else {
-        brick_list <- output
-      }
-
-      brick_list <- lapply(names(brick_list), function(y) {
-        uv <- unlist(terra::unique(brick_list[[y]]))
-        uv <- uv[!sapply(uv, is.nan)]
-        uv <- uv[!sapply(uv, is.na)]
-        uv <- uv[!sapply(uv, is.infinite)]
-
-        if (length(uv) > 1) {
-          out <- lapply(uv, function(x) {
-            repl <- terra::values(brick_list[[y]])
-            repl[repl != x] <- NA
-            repl[!is.na(repl)] <- 1
-            out <- terra::setValues(brick_list[[y]], repl)
-            if (length(uv) > 1) {
-              names(out) <- paste0(y, "_", x)
+              lapply(vects, function(vx) {
+                out_file <- tmp_file(".tif")
+                r <- terra::rasterize(
+                  x = vx, y = align_to, field = "",
+                  overwrite = TRUE, ...
+                )
+                terra::writeRaster(r, out_file,
+                                   overwrite = TRUE,
+                                   gdal = "COMPRESS=NONE")
+                rr <- terra::rast(out_file)
+                names(rr) <- paste0(
+                  varname, "_",
+                  unique(vx[[varname]])[1]
+                )
+                rr
+              })
             }
-            if (length(uv) == 1) {
-              names(out) <- y
-            }
-            return(out)
-          })
+          )
 
-          nms <- sapply(out, names)
-          out <- terra::rast(out)
-          names(out) <- nms
+          output <- terra::rast(unlist(output_split, recursive = FALSE))
+
         } else {
-          out <- brick_list[[y]]
+
+          ### ALIGN NUMERIC VECTOR TO RASTER -----------------------------------
+          rasters <- lapply(input_variable_names, function(varname) {
+            out_file <- tmp_file(".tif")
+            r <- terra::rasterize(
+              x = output,
+              y = align_to,
+              field = varname,
+              overwrite = TRUE,
+              ...
+            )
+            terra::writeRaster(r, out_file,
+                               overwrite = TRUE,
+                               gdal = "COMPRESS=NONE")
+            rr <- terra::rast(out_file)
+            names(rr) <- varname
+            rr
+          })
+
+          output <- terra::rast(rasters)
         }
-        return(out)
-      })
+      }
 
-      output <- terra::rast(brick_list)
+      ### ALIGN RASTER TO RASTER -----------------------------------------------
+      if (inherits(output, "SpatRaster")) {
+
+        need_reproj <- !terra::compareGeom(
+          x = output, y = align_to,
+          lyrs = FALSE, crs = TRUE, ext = TRUE,
+          rowcol = TRUE, res = TRUE,
+          warncrs = FALSE, stopOnError = FALSE, messages = FALSE
+        )
+
+        if (need_reproj) {
+          output <- terra::project(
+            x = output,
+            y = align_to,
+            method = resample_type,
+            overwrite = TRUE,
+            ...
+          )
+        }
+      }
+    }
+
+    ### IF ALIGN_TO IS A VECTOR ------------------------------------------------
+    if (inherits(align_to, "SpatVector")) {
+
+      # Raster → vector geometry conversion
+      if (inherits(output, "SpatRaster")) {
+        if (terra::is.polygons(align_to)) output <- terra::as.polygons(output, ...)
+        if (terra::is.points(align_to))   output <- terra::as.points(output, ...)
+        if (terra::is.lines(align_to))    output <- terra::as.lines(output, ...)
+      }
+
+      # Vector → vector projection
+      if (inherits(output, "SpatVector")) {
+        output <- terra::project(output, align_to, ...)
+      }
     }
   }
 
-  if (inherits(output, "SpatRaster")) {
-    if (!inherits(orig_output, "SpatVector")) {
-      need_save <- terra::compareGeom(
-        x = output,
-        y = orig_output,
-        lyrs = T,
-        crs = T,
-        ext = T,
-        rowcol = T,
-        res = T,
-        warncrs = F,
-        stopOnError = F,
-        messages = F
+  ## CLIP AND MASK TO CLIP_REGION PRIOR TO HEAVIER PROCESSING (IF PROVIDED) ----
+  if (!is.null(clip_region)) {
+
+    cr <- process_input(
+      input = clip_region,
+      align_to = align_to,
+      working_dir = working_root
+    )
+
+    if (inherits(output, "SpatVector")) {
+      output <- terra::crop(output, cr)
+    }
+
+    if (inherits(output, "SpatRaster")) {
+      output <- terra::crop(
+        x = output, y = cr, snap = snap,
+        mask = TRUE, overwrite = TRUE
       )
-      need_save <- !need_save # take inverse
-    } else {
+      output <- terra::mask(output, cr, overwrite = TRUE)
+    }
+  }
+
+  ## SPLIT CATEGORICAL RASTERS FOR resample_type = "near" ----------------------
+  if (inherits(output, "SpatRaster") && resample_type == "near") {
+
+    bricks <- terra::split(output, names(output))
+
+    bricks <- lapply(names(bricks), function(layer_name) {
+      lyr <- bricks[[layer_name]]
+      uvals <- unique(terra::values(lyr))
+      uvals <- uvals[!is.na(uvals) & !is.nan(uvals) & !is.infinite(uvals)]
+
+      if (length(uvals) > 1) {
+        outs <- lapply(uvals, function(v) {
+          vals <- terra::values(lyr)
+          vals[vals != v] <- NA
+          vals[vals == v] <- 1
+          r <- terra::setValues(lyr, vals)
+          names(r) <- paste0(layer_name, "_", v)
+          r
+        })
+        terra::rast(outs)
+      } else {
+        lyr
+      }
+    })
+
+    output <- terra::rast(bricks)
+  }
+
+  ## IF PERSISTING FINAL OUTPUT TO DISK RATHER THAN IN-MEMORY ------------------
+
+  if (isTRUE(persist_final)) {
+
+    if (inherits(output, "SpatRaster")) {
+
+      # If we started as a raster and geometry is identical, skip saving.
+      # Otherwise, write a final file so the object is backed by a fresh TIF.
       need_save <- TRUE
+      if (!inherits(orig_output, "SpatVector")) {
+        same_geom <- terra::compareGeom(
+          x = output, y = orig_output,
+          lyrs = FALSE,   # layers not relevant for file-backing intent
+          crs = TRUE, ext = TRUE, rowcol = TRUE, res = TRUE,
+          warncrs = FALSE, stopOnError = FALSE, messages = FALSE
+        )
+        need_save <- !isTRUE(same_geom)
+      }
+
+      if (need_save) {
+        final_tif <- tmp_file(".tif")
+        terra::writeRaster(output, final_tif, overwrite = TRUE, gdal = "COMPRESS=NONE")
+        # Reopen to ensure the returned SpatRaster is file-backed by final_tif
+        output <- terra::rast(final_tif)
+      }
     }
 
-    if (need_save) {
-      final_temp <- file.path(tdir, paste0(basename(tempfile()), ".tif"))
-      terra::writeRaster(output, final_temp, overwrite = TRUE, gdal = "COMPRESS=NONE")
+    if (inherits(output, "SpatVector")) {
+      final_shp <- tmp_file(".shp")
+      terra::writeVector(output, final_shp, overwrite = TRUE)
+      # Reopen to return a file-backed SpatVector
+      output <- terra::vect(final_shp)
     }
   }
-
-  if (inherits(output, "SpatVector")) {
-    final_temp <- file.path(tdir, paste0(basename(tempfile()), ".shp"))
-    terra::writeVector(output, final_temp, overwrite = T)
-  }
-
   return(output)
 }
