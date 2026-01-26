@@ -12,13 +12,15 @@
 #'    * If `input` is of class `SpatVector` and `align_to` is of class `SpatRaster`,
 #'    * If `input` is of class `SpatVector` and `align_to` is
 #'
+#'  `snap` can have very important implications for hydroweight and
+#'
 #' @param input Input spatial data: `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp").
 #' @param input_name Input name only used in error or warning messages: `NULL` or `character`.
 #' @param input_variable_names `input` variable names that should be included in output: `NULL` or `character`. If `NULL`, all variables in `input` are used.
 #' @param align_to Spatial data that `input` will be aligned to: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/align_to.tif"). If `NULL`, all variables in `input` are returned as `SpatVector` or `SpatRaster`.
 #' @param clip_region `input` will be clipped and masked to this region: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"). Internally converted to `SpatVector`. If `NULL`, full extent of `input` is returned.
-#' @param resample_type `character`. If `bilinear` (default), the `input_variable_names` being coerced are numeric, if `'near'`, the `input_variable_names` being coerced are categorical, for the purposes of resampling/projecting if `align_to` is `SpatRaster`.
-#' @param snap `character`. One of "near", "in", or "out". Used to align y to the geometry of x. Default is `near`.
+#' @param resample_type Type of resampling needed to conver to raster (typically categorical = `near` and numerical = `bilinear`): `character`. If `bilinear` (default), the `input_variable_names` being coerced are numeric, if `'near'`, the `input_variable_names` being coerced are categorical, for the purposes of resampling/projecting if `align_to` is `SpatRaster`.
+#' @param snap Type of snap scheme to use during `terra::crop()`: `character`. One of "near", "in", or "out". Used to align y to the geometry of x. Default is `near`.
 #' @param working_dir Folder path for temporary file storage: `NULL` or `character`. If `NULL`, assigned internally.
 #' @param ... other variables passed to various `terra` functions.
 #' @return an object of class `SpatVector` or `SpatRaster` depending on `align_to`
@@ -33,6 +35,7 @@ process_input <- function(input = NULL,
                           snap = c("near", "in", "out"),
                           working_dir = NULL,
                           ...) {
+
   ## Set up outputs and working directories ------------------------------------
 
   ## Output
@@ -44,7 +47,7 @@ process_input <- function(input = NULL,
   ## Working directories
   if (is.null(working_dir)) {
     tdir <- file.path(gsub("file", "", tempfile()))
-    working_dir <- tdir
+    working_dir <- tdir # also make working_dir
   } else {
     tdir <- file.path(working_dir, basename(gsub("file", "", tempfile())))
   }
@@ -53,9 +56,9 @@ process_input <- function(input = NULL,
   }
 
   ## Set terra options
-  terra::terraOptions(tempdir = tdir, verbose = F)
+  terra::terraOptions(tempdir = tdir, verbose = FALSE)
 
-  ## Set resample_type and snap
+  ## match.arg
   resample_type <- match.arg(resample_type)
   snap <- match.arg(snap)
 
@@ -116,7 +119,7 @@ process_input <- function(input = NULL,
 
     clip_region <- process_input(clip_region,
       align_to = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",
-        crs = terra::crs(align_to)
+      crs = terra::crs(align_to)
       ),
       working_dir = tdir
     )
