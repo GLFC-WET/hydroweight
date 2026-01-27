@@ -49,153 +49,162 @@
 #' @param wrap_return_products Should `return_products` be `terra::wrap()` (necessary for running function in parallel)? If `TRUE`, wrapped.
 #' @param clean_tempfiles Should temporary files be removed? If `TRUE`, temporary files are removed.
 #'
-#' @return Named list of `PackedSpatRaster` distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
+#' @return Named list of `SpatRaster` or `PackedSpatRaster` (if `wrap_return_products` = `TRUE`) distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
 #' @export
 #'
-hydroweight <- function(hydroweight_dir = NULL,
-                        target_O = NULL,
-                        target_S = NULL,
-                        target_uid = NULL,
-                        OS_combine = NULL,
-                        clip_region = NULL,
-                        dem,
-                        flow_accum = NULL,
-                        weighting_scheme = c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
-                        inv_function = function(x) {
-                          (x * 0.001 + 1)^-1
-                        },
-                        snap = c("near", "in", "out"),
-                        return_products = T,
-                        wrap_return_products = T,
-                        save_output = T,
-                        clean_tempfiles = T) {
+hydroweight <- function(
+    hydroweight_dir = NULL,
+    target_O = NULL,
+    target_S = NULL,
+    target_uid = NULL,
+    OS_combine = NULL,
+    clip_region = NULL,
+    dem,
+    flow_accum = NULL,
+    weighting_scheme = c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS"),
+    inv_function = function(x) { (x * 0.001 + 1)^-1 },
+    snap = c("near", "in", "out"),
+    return_products = TRUE,
+    wrap_return_products = TRUE,
+    save_output = TRUE,
+    clean_tempfiles = TRUE
+) {
 
   ## SETUP ---------------------------------------------------------------------
 
   message("Preparing hydroweight layers @ ", Sys.time())
 
-  ## A few break points
-  if (!save_output & !return_products) {
+  ## Initial checks
+  if (is.null(target_uid)) {
+    stop("`target_uid` must be specified")
+  }
+
+  if (!save_output && !return_products) {
     stop("'return_products' and 'save_output' cannot both be FALSE")
   }
-  if (is.null(target_uid)){
-    stop("target_uid must be specified")
-  }
-
-  ## Use hydroweight_dir or initiate temporary hydroweight_dir
-  if (!is.null(hydroweight_dir)) {
-    own_tempdir <- tempfile("", temp_dir)
-  } else {
-    own_tempdir <- gsub("file", "", tempfile())
-  }
-
-  if (!dir.exists(own_tempdir)){
-    dir.create(own_tempdir)
-  }
-
-  ## Set up raster temp file for out-of-memory raster files
-  terra::terraOptions(tempdir = own_tempdir, verbose = F)
 
   ## Match arguments
-  weighting_scheme <- match.arg(weighting_scheme, several.ok = T)
+  weighting_scheme <- match.arg(weighting_scheme, several.ok = TRUE)
   snap <- match.arg(snap)
 
-  ## Set whitebox verbose_mode to FALSE
+  ## Use a stable unique working subdir
+  if (!is.null(hydroweight_dir)) {
+    own_tempdir <- file.path(hydroweight_dir, paste0(target_uid, "_hw_tmp_", basename(tempfile())))
+  } else {
+    own_tempdir <- file.path(tempdir(), paste0(target_uid, "_hw_tmp_", basename(tempfile())))
+  }
+  dir.create(own_tempdir, recursive = TRUE, showWarnings = FALSE)
+
+  ## Set terra tempdir for out-of-memory rasters
+  old_terra_opts <- terra::terraOptions()
+  terra::terraOptions(tempdir = own_tempdir, verbose = FALSE)
+
+  ## Ensure cleanup / terra options restoration happen even on error
+  on.exit({
+    # restore terra options
+    do.call(terra::terraOptions, old_terra_opts)
+    if (isTRUE(clean_tempfiles)) {
+      unlink(own_tempdir, recursive = TRUE, force = TRUE)
+      suppressWarnings(terra::tmpFiles(current = TRUE, orphan = TRUE, old = TRUE, remove = TRUE))
+    }
+  }, add = TRUE)
+
+  ## Whitebox options (quiet)
   whitebox::wbt_options(verbose = FALSE)
+
+  ## Generate inverse function helper to save downwstream code
+  apply_inverse <- function(r, key) {
+    if (is.list(inv_function)) {
+      if (!key %in% names(inv_function)) {
+        stop("No `", key, "` found in names(inv_function); please name elements of `inv_function` accordingly.")
+      }
+      terra::app(r, fun = inv_function[[key]])
+    } else {
+      terra::app(r, fun = inv_function)
+    }
+  }
+
+  ## Generate write raster helper to save downstream code
+  write_raster_if <- function(r, filename) {
+    terra::writeRaster(r, file.path(own_tempdir, filename),
+                       overwrite = TRUE, gdal = "COMPRESS=NONE", NAflag = -9999)
+  }
 
   ## PROCESS INPUTS ------------------------------------------------------------
 
-  ## Process dem input ---------------------------------------------------------
-  dem <- process_input(input = dem, input_name = "dem", working_dir = own_tempdir)
+  ## dem
+  dem <- process_input(input = dem, align_to = dem, input_name = "dem", working_dir = own_tempdir)
   dem <- dem[[1]]
   dem_crs <- terra::crs(dem)
 
-  ## Process clip_region input -------------------------------------------------
+  ## clip_region
   clip_region <- process_input(
-    input = clip_region,
-    # target=dem,
-    # clip_region=dem,
-    align_to = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))", crs = dem_crs), # guarantee align_to
-    clip_region = terra::as.polygons(terra::ext(dem), crs = terra::crs(dem)),
-    snap = snap,
-    input_name = "clip_region",
-    working_dir = own_tempdir
+    input        = clip_region,
+    align_to     = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))", crs = dem_crs),
+    clip_region  = terra::as.polygons(terra::ext(dem), crs = terra::crs(dem)),
+    snap         = snap,
+    input_name   = "clip_region",
+    working_dir  = own_tempdir
   )
-  clip_region <- clip_region[,1]
+  clip_region <- clip_region[, 1]
 
-  ## Process dem input ---------------------------------------------------------
-  # dem <- process_input(
-  #   input = dem,
-  #   align_to = dem,
-  #   clip_region = clip_region,
-  #   resample_type = "bilinear",
-  #   input_name = "dem",
-  #   working_dir = own_tempdir
-  # )
-
-  ## Process flow_accum input --------------------------------------------------
+  ## flow_accum
   flow_accum <- process_input(
-    input = flow_accum,
-    target = dem,
-    clip_region = clip_region,
+    input         = flow_accum,
+    align_to      = dem,
+    clip_region   = clip_region,
     resample_type = "bilinear",
-    input_name = "flow_accum",
-    working_dir = own_tempdir
+    input_name    = "flow_accum",
+    working_dir   = own_tempdir
   )
   flow_accum <- flow_accum[[1]]
 
-  ## Process target_O input ----------------------------------------------------
+  ## target_O
   target_O <- process_input(
-    input = target_O,
-    target = dem,
-    clip_region = clip_region,
-    input_name = "target_O",
-    working_dir = own_tempdir
+    input        = target_O,
+    align_to     = dem,
+    clip_region  = clip_region,
+    input_name   = "target_O",
+    working_dir  = own_tempdir
   )
   target_O <- target_O[[1]]
   target_O[!is.na(target_O)] <- 1
 
-  ## Process target_S input ----------------------------------------------------
+  ## target_S
   target_S <- process_input(
-    input = target_S,
-    target = dem,
-    clip_region = clip_region,
-    input_name = "target_S",
-    working_dir = own_tempdir
+    input        = target_S,
+    align_to     = dem,
+    clip_region  = clip_region,
+    input_name   = "target_S",
+    working_dir  = own_tempdir
   )
   target_S <- target_S[[1]]
   target_S[!is.na(target_S)] <- 1
 
-  ## Process OS combined -------------------------------------------------------
-  if (is.null(OS_combine)) {
-    OS_combine <- FALSE
-  }
-
-  if (OS_combine == TRUE & !is.null(target_O) & !is.null(target_S)) {
-    (target_S_OS <- target_S)
-    (target_O_OS <- target_O)
-
+  ## OS combine raster
+  if (OS_combine && !is.null(target_O) && !is.null(target_S)) {
+    target_S_OS <- target_S
+    target_O_OS <- target_O
     target_S_OS[target_S_OS > 0] <- 1
     target_O_OS[target_O_OS > 0] <- 1
-
     OS_combine_r <- terra::mosaic(x = terra::sprc(list(target_O_OS, target_S_OS)), fun = "max")
-    ## OS_combine_r[OS_combine_r > 0] <- 1 ## BK: switched fun to "max", so this can be removed
     OS_combine_r[OS_combine_r == 0] <- NA
   } else {
     OS_combine_r <- NULL
   }
 
-  # Write temporary rasters ----------------------------------------------------
+  ## WRITE TEMP RASTERS --------------------------------------------------------
+
   rast_list <- list(
-    dem,
-    flow_accum,
-    clip_region,
-    target_O,
-    target_S,
-    OS_combine_r
+    dem         = dem,
+    flow_accum  = flow_accum,
+    clip_region = clip_region,
+    target_O    = target_O,
+    target_S    = target_S,
+    OS_combine  = OS_combine_r
   )
 
-  rast_list_nms <- c(
+  rast_names <- c(
     paste0(target_uid, "_TEMP_dem_clip.tif"),
     paste0(target_uid, "_TEMP_flow_accum_clip.tif"),
     paste0(target_uid, "_TEMP_clip_region.tif"),
@@ -203,380 +212,183 @@ hydroweight <- function(hydroweight_dir = NULL,
     paste0(target_uid, "_TEMP_target_S_clip.tif"),
     paste0(target_uid, "_TEMP_OS_combine.tif")
   )
-  names(rast_list) <- rast_list_nms
+  names(rast_list) <- rast_names
 
-  rast_list_nms <- lapply(rast_list_nms, function(x) {
+  # If a list element is a vector, write as .shp, else .tif
+  conv_names <- lapply(names(rast_list), function(x) {
     if (inherits(rast_list[[x]], "SpatVector")) {
-      out <- gsub("\\.tif", "\\.shp", x)
+      gsub("\\.tif$", ".shp", x)
     } else {
-      out <- x
+      x
     }
-    return(out)
   })
-  names(rast_list) <- rast_list_nms
+  names(rast_list) <- conv_names
 
+  # Drop NULLs and zero-length
   rast_list <- rast_list[!sapply(rast_list, is.null)]
   rast_list <- rast_list[sapply(rast_list, length) > 0]
 
-  for (i in names(rast_list)) {
-    if (!is.null(rast_list[[i]])) {
-      if (inherits(rast_list[[i]], "SpatVector")) {
-        terra::writeVector(rast_list[[i]], file.path(own_tempdir, i), overwrite = T)
-      } else {
-        terra::writeRaster(rast_list[[i]], file.path(own_tempdir, i), overwrite = T, gdal = "COMPRESS=NONE")
-      }
+  for (nm in names(rast_list)) {
+    if (inherits(rast_list[[nm]], "SpatVector")) {
+      terra::writeVector(rast_list[[nm]], file.path(own_tempdir, nm), overwrite = TRUE)
+    } else {
+      terra::writeRaster(rast_list[[nm]], file.path(own_tempdir, nm),
+                         overwrite = TRUE, gdal = "COMPRESS=NONE")
     }
   }
 
   ## RUN DISTANCE-WEIGHTING ----------------------------------------------------
   message("Running distance-weighting @ ", Sys.time())
 
-  ## Generate a 'cost' raster
+  ## Generate lumped -----------------------------------------------------------
   lumped_inv <- dem
   lumped_inv[!is.na(lumped_inv)] <- 1
   names(lumped_inv) <- "lumped"
   terra::writeRaster(lumped_inv,
                      file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
                      overwrite = TRUE, gdal = "COMPRESS=NONE")
-  terra::writeRaster(lumped_inv,
-                     file.path(own_tempdir, paste0(target_uid, "_TEMP_lumped.tif")),
-                     overwrite = TRUE, gdal = "COMPRESS=NONE")
+  if (save_output) {
+    terra::writeRaster(lumped_inv,
+                       file.path(own_tempdir, paste0(target_uid, "_TEMP_lumped.tif")),
+                       overwrite = TRUE, gdal = "COMPRESS=NONE")
+  }
 
-  ## iEucO, Euclidean distance to target_O -------------------------------------
+  ## Generate iEucO ------------------------------------------------------------
   if ("iEucO" %in% weighting_scheme) {
-
     whitebox::wbt_cost_distance(
-      source = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
-      cost = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
-      out_accum = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")),
+      source       = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
+      cost         = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
+      out_accum    = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")),
       out_backlink = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_backlink.tif")),
       verbose_mode = FALSE
     )
-
     iEucO <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")))
     terra::crs(iEucO) <- dem_crs
 
-    if (is.list(inv_function)) {
-      if ("iEucO" %in% names(inv_function)) {
-        iEucO_inv <- terra::app(iEucO, fun = inv_function$iEucO)
-      } else {
-        stop("no `iEucO` found in names(inv_function); please name elements of `inv_function`")
-      }
-    } else {
-      iEucO_inv <- terra::app(iEucO, fun = inv_function)
-    }
+    iEucO_inv <- apply_inverse(iEucO, "iEucO")
     terra::crs(iEucO_inv) <- dem_crs
     iEucO_inv <- terra::mask(iEucO_inv, lumped_inv)
     names(iEucO_inv) <- "iEucO"
-    if (save_output) {
-      terra::writeRaster(iEucO_inv,
-        file.path(own_tempdir, paste0(target_uid, "_TEMP_iEucO.tif")),
-        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-        NAflag = -9999
-      )
-    }
+    if (save_output) write_raster_if(iEucO_inv, paste0(target_uid, "_TEMP_iEucO.tif"))
   }
 
-  ## iEucS, Euclidean distance to target_S -------------------------------------
+  ## Generate iEucS ------------------------------------------------------------
   if ("iEucS" %in% weighting_scheme) {
-
-    if (OS_combine == FALSE) {
-
-      whitebox::wbt_cost_distance(
-        source = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif")),
-        cost = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
-        out_accum = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")),
-        out_backlink = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_backlink.tif")),
-        verbose_mode = FALSE
-      )
-
-      iEucS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")))
-      terra::crs(iEucS) <- dem_crs
-
-      if (is.list(inv_function)) {
-        if ("iEucS" %in% names(inv_function)) {
-          iEucS_inv <- terra::app(iEucS, fun = inv_function$iEucS)
-        } else {
-          stop("no `iEucS` found in names(inv_function); please name elements of `inv_function`")
-        }
-      } else {
-        iEucS_inv <- terra::app(iEucS, fun = inv_function)
-      }
-
-      terra::crs(iEucS_inv) <- dem_crs
-      iEucS_inv <- terra::mask(iEucS_inv, lumped_inv)
-      names(iEucS_inv) <- "iEucS"
-      if (save_output) {
-        terra::writeRaster(iEucS_inv,
-          file.path(own_tempdir, paste0(target_uid, "_TEMP_iEucS.tif")),
-          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-          NAflag = -9999
-        )
-      }
+    source_eucS <- if (OS_combine) {
+      file.path(own_tempdir, paste0(target_uid, "_TEMP_OS_combine.tif"))
+    } else {
+      file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif"))
     }
 
-    if (OS_combine == TRUE) {
-
-      whitebox::wbt_cost_distance(
-        source = file.path(own_tempdir, paste0(target_uid, "_TEMP_OS_combine.tif")),
-        cost = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
-        out_accum = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")),
-        out_backlink = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_backlink.tif")),
-        verbose_mode = FALSE
-      )
-
-      iEucS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")))
-      terra::crs(iEucS) <- dem_crs
-
-      if (is.list(inv_function)) {
-        if ("iEucS" %in% names(inv_function)) {
-          iEucS_inv <- terra::app(iEucS, fun = inv_function$iEucS)
-        } else {
-          stop("no `iEucS` found in names(inv_function); please name elements of `inv_function`")
-        }
-      } else {
-        iEucS_inv <- terra::app(iEucS, fun = inv_function)
-      }
-
-      terra::crs(iEucS_inv) <- dem_crs
-      iEucS_inv <- terra::mask(iEucS_inv, lumped_inv)
-      names(iEucS_inv) <- "iEucS"
-      if (save_output) {
-        terra::writeRaster(iEucS_inv,
-          file.path(own_tempdir, paste0(target_uid, "_TEMP_iEucS.tif")),
-          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-          NAflag = -9999
-        )
-      }
-    }
-  }
-
-  ## iFLO, flow line distance to target_O --------------------------------------
-  if ("iFLO" %in% weighting_scheme | "HAiFLO" %in% weighting_scheme) {
-
-    whitebox::wbt_downslope_distance_to_stream(
-      dem = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip.tif")),
-      streams = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
-      output = file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLO.tif")),
+    whitebox::wbt_cost_distance(
+      source       = source_eucS,
+      cost         = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
+      out_accum    = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")),
+      out_backlink = file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_backlink.tif")),
       verbose_mode = FALSE
     )
+    iEucS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_cost_distance.tif")))
+    terra::crs(iEucS) <- dem_crs
 
+    iEucS_inv <- apply_inverse(iEucS, "iEucS")
+    terra::crs(iEucS_inv) <- dem_crs
+    iEucS_inv <- terra::mask(iEucS_inv, lumped_inv)
+    names(iEucS_inv) <- "iEucS"
+    if (save_output) write_raster_if(iEucS_inv, paste0(target_uid, "_TEMP_iEucS.tif"))
+  }
+
+  ## Generate iFLO / HAiFLO ----------------------------------------------------
+  if (any(c("iFLO", "HAiFLO") %in% weighting_scheme)) {
+    whitebox::wbt_downslope_distance_to_stream(
+      dem     = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip.tif")),
+      streams = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
+      output  = file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLO.tif")),
+      verbose_mode = FALSE
+    )
     iFLO <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLO.tif")))
     terra::crs(iFLO) <- dem_crs
 
-    if (is.list(inv_function)) {
-      if ("iFLO" %in% names(inv_function)) {
-        iFLO_inv <- terra::app(iFLO, fun = inv_function$iFLO)
-      } else {
-        stop("no `iFLO` found in names(inv_function); please name elements of `inv_function`")
-      }
-    } else {
-      iFLO_inv <- terra::app(iFLO, fun = inv_function)
-    }
-
-    terra::crs(iFLO_inv) <- dem_crs
-    names(iFLO_inv) <- "iFLO"
-    if (save_output) {
-      terra::writeRaster(iFLO_inv,
-        file.path(own_tempdir, paste0(target_uid, "_TEMP_iFLO.tif")),
-        overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-        NAflag = -9999
-      )
-    }
-  }
-
-  ## iFLS, flow line distance to target_S --------------------------------------
-  if ("iFLS" %in% weighting_scheme | "HAiFLS" %in% weighting_scheme) {
-
-    if (OS_combine == FALSE) {
-      whitebox::wbt_downslope_distance_to_stream(
-        dem = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip.tif")),
-        streams = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif")),
-        output = file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")),
-        verbose_mode = FALSE
-      )
-
-      iFLS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")))
-      terra::crs(iFLS) <- dem_crs
-
-      if (is.list(inv_function)) {
-        if ("iFLS" %in% names(inv_function)) {
-          iFLS_inv <- terra::app(iFLS, fun = inv_function$iFLS)
-        } else {
-          stop("no `iFLS` found in names(inv_function); please name elements of `inv_function`")
-        }
-      } else {
-        iFLS_inv <- terra::app(iFLS, fun = inv_function)
-      }
-
-      terra::crs(iFLS_inv) <- dem_crs
-      names(iFLS_inv) <- "iFLS"
-      if (save_output) {
-        terra::writeRaster(iFLS_inv,
-          file.path(own_tempdir, paste0(target_uid, "_TEMP_iFLS.tif")),
-          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-          NAflag = -9999
-        )
-      }
-    }
-
-    if (OS_combine == TRUE) {
-
-      whitebox::wbt_downslope_distance_to_stream(
-        dem = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip.tif")),
-        streams = file.path(own_tempdir, paste0(target_uid, "_TEMP_OS_combine.tif")),
-        output = file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")),
-        verbose_mode = FALSE
-      )
-
-      iFLS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")))
-      terra::crs(iFLS) <- dem_crs
-
-      if (is.list(inv_function)) {
-        if ("iFLS" %in% names(inv_function)) {
-          iFLS_inv <- terra::app(iFLS, fun = inv_function$iFLS)
-        } else {
-          stop("no `iFLS` found in names(inv_function); please name elements of `inv_function`")
-        }
-      } else {
-        iFLS_inv <- terra::app(iFLS, fun = inv_function)
-      }
-
-      terra::crs(iFLS_inv) <- dem_crs
-      names(iFLS_inv) <- "iFLS"
-      if (save_output) {
-        terra::writeRaster(iFLS_inv,
-          file.path(own_tempdir, paste0(target_uid, "_TEMP_iFLS.tif")),
-          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-          NAflag = -9999
-        )
-      }
-    }
-  }
-
-  ## HA-iFLO and HA-iFLS, hydrologically active --------------------------------
-
-  if (("HAiFLO" %in% weighting_scheme) | ("HAiFLS" %in% weighting_scheme)) {
-    if (is.null(flow_accum)) {
-      stop("`flow_accum` required for HAiFLO and/or HAiFLS calculations")
+    if ("iFLO" %in% weighting_scheme) {
+      iFLO_inv <- apply_inverse(iFLO, "iFLO")
+      terra::crs(iFLO_inv) <- dem_crs
+      names(iFLO_inv) <- "iFLO"
+      if (save_output) write_raster_if(iFLO_inv, paste0(target_uid, "_TEMP_iFLO.tif"))
     }
 
     if ("HAiFLO" %in% weighting_scheme) {
-      HAiFLO <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLO.tif")))
-      terra::crs(HAiFLO) <- dem_crs
-
-      if (is.list(inv_function)) {
-        if ("HAiFLO" %in% names(inv_function)) {
-          iFLO_inv <- terra::app(HAiFLO, fun = inv_function$HAiFLO)
-        } else {
-          stop("no `HAiFLO` found in names(inv_function); please name elements of `inv_function`")
-        }
-      } else {
-        HAiFLO_inv <- terra::app(HAiFLO, fun = inv_function)
-      }
-
+      HAiFLO_inv <- apply_inverse(iFLO, "HAiFLO")
       HAiFLO_inv <- HAiFLO_inv * flow_accum
-
       terra::crs(HAiFLO_inv) <- dem_crs
       names(HAiFLO_inv) <- "HAiFLO"
-      if (save_output) {
-        terra::writeRaster(HAiFLO_inv,
-          file.path(own_tempdir, paste0(target_uid, "_TEMP_HAiFLO.tif")),
-          overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-          NAflag = -9999
-        )
-      }
-    }
-
-    if ("HAiFLS" %in% weighting_scheme) {
-      if (OS_combine == TRUE) {
-
-        HAiFLS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")))
-        terra::crs(HAiFLS) <- dem_crs
-
-        if (is.list(inv_function)) {
-          if ("HAiFLS" %in% names(inv_function)) {
-            iFLS_inv <- terra::app(HAiFLS, fun = inv_function$HAiFLS)
-          } else {
-            stop("no `HAiFLS` found in names(inv_function); please name elements of `inv_function`")
-          }
-        } else {
-          HAiFLS_inv <- terra::app(HAiFLS, fun = inv_function)
-        }
-
-        HAiFLS_inv <- HAiFLS_inv * flow_accum
-        HAiFLS_inv <- terra::mask(HAiFLS_inv, OS_combine_r, maskvalues = 1)
-        names(HAiFLS_inv) <- "HAiFLS"
-
-        if (save_output) {
-          terra::writeRaster(HAiFLS_inv,
-            file.path(own_tempdir, paste0(target_uid, "_TEMP_HAiFLS.tif")),
-            overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-            NAflag = -9999
-          )
-        }
-      }
-
-      if (OS_combine == FALSE) {
-        HAiFLS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")))
-        terra::crs(HAiFLS) <- dem_crs
-
-        if (is.list(inv_function)) {
-          if ("HAiFLS" %in% names(inv_function)) {
-            iFLS_inv <- terra::app(HAiFLS, fun = inv_function$HAiFLS)
-          } else {
-            stop("no `HAiFLS` found in names(inv_function); please name elements of `inv_function`")
-          }
-        } else {
-          HAiFLS_inv <- terra::app(HAiFLS, fun = inv_function)
-        }
-
-        HAiFLS_inv <- HAiFLS_inv * flow_accum
-        HAiFLS_inv <- terra::mask(HAiFLS_inv, target_S, maskvalues = 1)
-        names(HAiFLS_inv) <- "HAiFLS"
-
-        if (save_output) {
-          terra::writeRaster(HAiFLS_inv,
-            file.path(own_tempdir, paste0(target_uid, "_TEMP_HAiFLS.tif")),
-            overwrite = TRUE, gdal = c("COMPRESS=NONE"),
-            NAflag = -9999
-          )
-        }
-      }
+      if (save_output) write_raster_if(HAiFLO_inv, paste0(target_uid, "_TEMP_HAiFLO.tif"))
     }
   }
 
-  ## PREPARE OUTPUT ----
+  ## Generate iFLS / HAiFLS ----------------------------------------------------
+  if (any(c("iFLS", "HAiFLS") %in% weighting_scheme)) {
+    streams_src <- if (OS_combine) {
+      file.path(own_tempdir, paste0(target_uid, "_TEMP_OS_combine.tif"))
+    } else {
+      file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif"))
+    }
 
+    whitebox::wbt_downslope_distance_to_stream(
+      dem     = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip.tif")),
+      streams = streams_src,
+      output  = file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")),
+      verbose_mode = FALSE
+    )
+
+    iFLS <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_flowdist-iFLS.tif")))
+    terra::crs(iFLS) <- dem_crs
+
+    if ("iFLS" %in% weighting_scheme) {
+      iFLS_inv <- apply_inverse(iFLS, "iFLS")
+      terra::crs(iFLS_inv) <- dem_crs
+      names(iFLS_inv) <- "iFLS"
+      if (save_output) write_raster_if(iFLS_inv, paste0(target_uid, "_TEMP_iFLS.tif"))
+    }
+
+    if ("HAiFLS" %in% weighting_scheme) {
+      HAiFLS_inv <- apply_inverse(iFLS, "HAiFLS")
+      HAiFLS_inv <- HAiFLS_inv * flow_accum
+      if (OS_combine) {
+        HAiFLS_inv <- terra::mask(HAiFLS_inv, OS_combine_r, maskvalues = 1)
+      } else {
+        HAiFLS_inv <- terra::mask(HAiFLS_inv, target_S, maskvalues = 1)
+      }
+      names(HAiFLS_inv) <- "HAiFLS"
+      if (save_output) write_raster_if(HAiFLS_inv, paste0(target_uid, "_TEMP_HAiFLS.tif"))
+    }
+  }
+
+  ## PREPARE OUTPUTS -----------------------------------------------------------
   weighting_scheme_inv <- paste0(weighting_scheme, "_inv")
-
   dist_list <- lapply(weighting_scheme_inv, function(x) {
     out <- get(x)
     names(out) <- gsub("_inv", "", x)
-    return(out)
+    out
   })
   names(dist_list) <- weighting_scheme
 
   if (save_output) {
     dist_list_out <- lapply(dist_list, function(x) {
       file.rename(
-        file.path(own_tempdir, paste0(paste0(target_uid, "_TEMP_", names(x), ".tif"))),
-        file.path(own_tempdir, paste0(paste0(names(x), ".tif")))
+        from = file.path(own_tempdir, paste0(target_uid, "_TEMP_", names(x), ".tif")),
+        to   = file.path(own_tempdir, paste0(names(x), ".tif"))
       )
-      fl <- file.path(own_tempdir, paste0(paste0(names(x), ".tif")))
-      # terra::writeRaster(x,fl,overwrite=T,gdal="COMPRESS=NONE")
-      return(fl)
+      file.path(own_tempdir, paste0(names(x), ".tif"))
     })
 
     out_file <- file.path(hydroweight_dir, paste0(target_uid, "_inv_distances.zip"))
     if (file.exists(out_file)) {
-      out_file <- file.path(hydroweight_dir, paste0(target_uid, "_", basename(tempfile()), "_inv_distances.zip"))
+      out_file <- file.path(
+        hydroweight_dir,
+        paste0(target_uid, "_", basename(tempfile()), "_inv_distances.zip")
+      )
       warning(paste0("Target .zip file already exists. Saving as: ", out_file))
     }
-    utils::zip(out_file,
-      unlist(dist_list_out),
-      flags = "-r9Xjq"
-    )
+    utils::zip(out_file, unlist(dist_list_out), flags = "-r9Xjq")
   } else {
     out_file <- NULL
     dist_list_out <- NULL
@@ -584,39 +396,12 @@ hydroweight <- function(hydroweight_dir = NULL,
 
   if (return_products) {
     if (wrap_return_products) {
-      dist_list <- lapply(dist_list, terra::wrap) # will need to use wrap() here for terra: https://github.com/rspatial/terra/issues/50 -- this is slow for large rasters
+      dist_list <- lapply(dist_list, terra::wrap)
     } else {
       dist_list <- dist_list
     }
   } else {
     dist_list <- out_file
-  }
-
-  ## CLEAN UP ----
-  if (clean_tempfiles) {
-    temp_rasters <- list.files(
-      path = own_tempdir, pattern = paste0(target_uid, "_hydroweight_"),
-      full.names = TRUE
-    )
-    file.remove(temp_rasters)
-
-    temp_rasters <- list.files(
-      path = own_tempdir, pattern = paste0(target_uid, "_TEMP_"),
-      full.names = TRUE
-    )
-    r1 <- file.remove(temp_rasters)
-
-    if (!is.null(dist_list_out)) {
-      r2 <- file.remove(unlist(dist_list_out))
-    }
-
-    list_obj <- ls()
-    list_obj <- list_obj[!list_obj %in% c("own_tempdir", "dist_list")]
-    rm(list = list_obj)
-
-    fls_to_remove <- unlink(own_tempdir, recursive = T, force = T)
-
-    suppressWarnings(terra::tmpFiles(current = T, orphan = T, old = T, remove = T))
   }
 
   return(dist_list)

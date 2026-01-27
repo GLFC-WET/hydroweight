@@ -96,7 +96,7 @@ hydroweight_attributes <- function(loi,
   }
 
   #PS: I'm debating if this is necessary in this function, wouldn't the workflow make more sense to do this external to the function, and feed your desired region into hydroweight()?
-  #BK: No, I wanted the generated distance weights generated throught the terrain to be independent of an arbitrarily imposed watershed boundary for traceability.
+  #BK: No, I wanted the generated distance weights generated through the terrain to be independent of an arbitrarily imposed watershed boundary for traceability.
   remove_region<-process_input(input = remove_region,
                                input_name="remove_region",
                                target = distance_weights[[1]],
