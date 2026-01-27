@@ -119,7 +119,7 @@ process_input <- function(
 
   orig_output <- output
 
-  ## SUBSET INPUTS BY VARIABLE NAMES -------------------------------------------
+  ## Subset inputs by variable names -------------------------------------------
   if (is.null(input_variable_names)) {
     input_variable_names <- names(output)
   }
@@ -136,7 +136,7 @@ process_input <- function(
     output <- terra::subset(output, input_variable_names)
   }
 
-  ## ALIGN TO ALIGN_TO (IF PROVIDED)--------------------------------------------
+  ## Align to align_to (if provided) -------------------------------------------
   if (!is.null(align_to)) {
 
     # Reuse SAME working directory for recursive calls
@@ -149,15 +149,15 @@ process_input <- function(
       stop("'align_to' crs() is NULL or NA. Apply a CRS before continuing.")
     }
 
-    ### IF ALIGN_TO IS A RASTER ------------------------------------------------
+    ### If align_to is a raster ------------------------------------------------
     if (inherits(align_to, "SpatRaster")) {
 
-      ### ALIGN VECTOR TO RASTER -----------------------------------------------
+      ### Align vector to raster -----------------------------------------------
       if (inherits(output, "SpatVector")) {
 
         output <- terra::project(output, align_to)
 
-        #### ALIGN CATEGORICAL VECTOR TO RASTER --------------------------------
+        #### Align categorical vector to raster --------------------------------
         if (resample_type == "near") {
 
           # Split categorical data to multiple rasters
@@ -192,7 +192,7 @@ process_input <- function(
 
         } else {
 
-          ### ALIGN NUMERIC VECTOR TO RASTER -----------------------------------
+          ### Align numeric vector to raster -----------------------------------
           rasters <- lapply(input_variable_names, function(varname) {
             out_file <- tmp_file(".tif")
             r <- terra::rasterize(
@@ -214,7 +214,7 @@ process_input <- function(
         }
       }
 
-      ### ALIGN RASTER TO RASTER -----------------------------------------------
+      ### Align raster to raster -----------------------------------------------
       if (inherits(output, "SpatRaster")) {
 
         need_reproj <- !terra::compareGeom(
@@ -228,15 +228,17 @@ process_input <- function(
           output <- terra::project(
             x = output,
             y = align_to,
+            field = input_name,
             method = resample_type,
             overwrite = TRUE,
             ...
           )
+          terra::varnames(output) <- input_name
         }
       }
     }
 
-    ### IF ALIGN_TO IS A VECTOR ------------------------------------------------
+    ### If align_to is a vector ------------------------------------------------
     if (inherits(align_to, "SpatVector")) {
 
       # Raster → vector geometry conversion
@@ -253,7 +255,7 @@ process_input <- function(
     }
   }
 
-  ## CLIP AND MASK TO CLIP_REGION PRIOR TO HEAVIER PROCESSING (IF PROVIDED) ----
+  ## Clip and mask clip_region prior to heavier processing (if provided) -------
   if (!is.null(clip_region)) {
 
     cr <- process_input(
@@ -275,7 +277,7 @@ process_input <- function(
     }
   }
 
-  ## SPLIT CATEGORICAL RASTERS FOR resample_type = "near" ----------------------
+  ## Split categorical rasters for resample_type = "near" ----------------------
   if (inherits(output, "SpatRaster") && resample_type == "near") {
 
     bricks <- terra::split(output, names(output))
@@ -303,7 +305,9 @@ process_input <- function(
     output <- terra::rast(bricks)
   }
 
-  ## IF PERSISTING FINAL OUTPUT TO DISK RATHER THAN IN-MEMORY ------------------
+  ## PREPARE OUTPUTS -----------------------------------------------------------
+
+  ## If persisting final output to disk rater than in-memory -------------------
 
   if (isTRUE(persist_final)) {
 
@@ -337,5 +341,7 @@ process_input <- function(
       output <- terra::vect(final_shp)
     }
   }
+
+  ## Final output --------------------------------------------------------------
   return(output)
 }
