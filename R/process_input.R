@@ -156,12 +156,14 @@ process_input <- function(
     input_variable_names <- names(output)
   }
 
-  if (any(!input_variable_names %in% names(output))) {
-    stop("Some 'input_variable_names' not present in input")
+  if (inherits(output, "SpatVector")) {
+    if (length(input_variable_names) > 0) {
+      output <- output[, input_variable_names, drop = FALSE]
+    }
   }
 
-  if (inherits(output, "SpatVector")) {
-    output <- output[, input_variable_names, drop = FALSE]
+  if (any(!input_variable_names %in% names(output))) {
+    stop("Some 'input_variable_names' not present in input")
   }
 
   if (inherits(output, "SpatRaster")) {
@@ -232,8 +234,8 @@ process_input <- function(
               x = output,
               y = align_to,
               field = varname,
-              overwrite = TRUE,
-              ...
+              overwrite = TRUE
+              #...
             )
             terra::writeRaster(r, out_file,
                                overwrite = TRUE,
@@ -302,11 +304,11 @@ process_input <- function(
     }
 
     if (inherits(output, "SpatRaster")) {
-      output <- terra::crop(
-        x = output, y = cr, snap = snap,
+      this <- terra::crop(
+        x = output, y = cr, snap = "near",
         mask = TRUE, overwrite = TRUE
       )
-      output <- terra::mask(output, cr, overwrite = TRUE)
+      this <- terra::mask(output, cr, overwrite = TRUE)
     }
   }
 
