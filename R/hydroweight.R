@@ -1,57 +1,124 @@
-#' Generate inverse distance-weighted rasters
+#' Generate inverse distance–weighted rasters
 #'
-#' `hydroweight::hydroweight()` generates distance-weighted rasters for targets
-#' on a digital elevation model raster. Examples of targets include single points,
-#' areas such as lakes, or linear features such as streams. The function outputs
-#' a list of `weighting_scheme` and/or an accompanying `.zip` file
-#' of distance-weighted rasters for targets (`target_O` is a point/area target as
-#' in iFLO and `target_S` is a stream/linear feature target as in iFLS in
-#' Peterson et al. 2011 <https://doi:10.1111/j.1365-2427.2010.02507.x>).
-#' IMPORTANTLY, this function acts on a single set of targets but can produce
-#' multiple weights. The distance-weighted rasters, can be used for generating
-#' distance-weighted landscape statistics using `hydroweight::hydroweight_attributes()` (e.g., % urban
-#' cover weighted by flow distance to a point). See https://github.com/GLFC-WET/hydroweight for workflows.
+#' `hydroweight()` computes inverse‑distance rasters for one or more target
+#' features using a digital elevation model (`dem`), a flow‑accumulation surface
+#' (`flow_accum`), and user‑specified weighting schemes. Targets may be points,
+#' lines, or polygons (e.g., monitoring sites, streams, lakes). The implementation
+#' follows the distance‑weighting concepts described in **Peterson et al. (2011)**
+#' <https://doi.org/10.1111/j.1365-2427.2010.02507.x>. The generated rasters represent Euclidean or flow‑path distances to targets,
+#' optionally modified by hydrologic activity (flow accumulation). These distance
+#' layers can be used directly or passed to
+#' `hydroweight_attributes()` to compute distance‑weighted landscape statistics
+#' (e.g., proportion of urban land weighted by flow distance to a site).
 #'
-#' Spatial layers should align (i.e., identical coordinate reference systems (CRS) and identical dem and flow_accum extents, resolutions, and CRS).
-#' Through processing, targets are converted to the resolution and CRS of the
-#' digital elevation model/flow accumulation CRS. _TEMP_* files are generated in
-#'  `hydroweight_dir` depending on processing step and can be overwritten.
+#' Spatial inputs are internally aligned to the CRS, resolution, and extent of
+#' the `dem` using `process_input()`. Temporary rasters (prefixed `_TEMP_`) are
+#' written to a working subdirectory of `hydroweight_dir` and removed unless
+#' `clean_tempfiles = FALSE`.
 #'
-#' For `weighting_scheme`:
+#' @section Weighting schemes:
 #'
-#'  * "lumped" indicates all weights = 1
+#' The `weighting_scheme` argument may include one or more of:
 #'
-#'  * "iEucO" indicates Euclidean distance to `target_O`
+#' * **"lumped"** - uniform weighting (all cells = 1)
+#' * **"iEucO"** - Euclidean distance to `target_O`
+#' * **"iEucS"** - Euclidean distance to `target_S`
+#' * **"iFLO"** - D8 flow‑path distance to `target_O`
+#' * **"iFLS"** - D8 flow‑path distance to `target_S`
+#' * **"HAiFLO"** - hydrologically‑active (flow‑accumulation‑weighted) D8 distance to `target_O`
+#' * **"HAiFLS"** - hydrologically‑active D8 distance to `target_S`
 #'
-#'  * "iEucS" indicates Euclidean distance to `target_S`
+#' These represent the same families of distance metrics used in
+#' **iFLO/iFLS** approaches as in Peterson et al. (2011).
 #'
-#'  * "iFLO" indicates d8 flow-path distance to `target_O`
+#' @param hydroweight_dir Character. Directory in which output rasters and the
+#'   final `.zip` file (if `save_output = TRUE`) will be written. A temporary
+#'   working subdirectory is created inside this folder.
 #'
-#'  * "iFLS" indicates d8 flow-path distance to `target_S`
+#' @param target_O Target feature for distance types involving an “O” (iEucO,
+#'   iFLO, HAiFLO). May be a spatial object (`sf`, `SpatVector`, `RasterLayer`, `SpatRaster`, etc.) or a filepath
+#'   to vector dataset readable by `sf::st_read()` (e.g., Shapefile)
+#'   or raster dataset readable by `terra::rast()` (e.g., GeoTIFF).
+#'   Use `NULL` to omit this target. See *Weighting schemes* section below.
 #'
-#'  * "HAiFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to `target_O`
+#' @param target_S Same as `target_O` but used for distance types involving an
+#'   “S” target (iEucS, iFLS, HAiFLS). See *Weighting schemes* section below.
 #'
-#'  * "HAiFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to `target_S`
+#' @param target_uid Character. Unique identifier used to name intermediate and
+#'   exported files (e.g., `"SITE01_inv_distances.zip"`).
 #'
-#' @param hydroweight_dir File path to write resulting `.zip` file: `character`.
-#' @param target_O Target for iEucO or iFLO: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/sample_point.shp").
-#' @param target_S Target for iEucS or iFLS: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/sample_streams.shp").
-#' @param target_uid Unique identifier to precede intermediate/exported (i.e., "target_uid"_inv_distances.zip): `character`.
-#' @param OS_combine Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use `TRUE` or `FALSE`. If `TRUE`, this allows cells surrounding `target_O` to flow directly into `target_O` rather than be forced through `target_S`.
-#' @param clip_region Spatial inputs will be clipped to this region: `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"). Internally converted to `SpatVector`. If `NULL`, full extent of inputs are returned.
-#' @param dem Digital elevation model raster: `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/dem.tif").
-#' @param flow_accum  Flow accumulation raster (units: # of cells): `RasterLayer`, `SpatRaster`, `PackedSpatRaster` or `character` (full file path with extension, e.g., "C:/Users/Administrator/Desktop/flow_accum.tif"). Should align with `dem`.
-#' @param weighting_scheme One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS").
-#' @param inv_function Inverse function used in `terra:app()` to convert distances to inverse distances. Format is function or named list of functions based on `weighting_scheme` names.  Default: `(X * 0.001 + 1)^-1` assumes projection is in distance units of m and converts to distance units of km.
-#' @param snap Type of snap scheme to use during `terra::crop()`: `character`. One of "near", "in", or "out". Used to align y to the geometry of x. Default is `near`.
-#' @param return_products If `TRUE`, a list containing the file path to write resulting `.zip` file, and `distance_weights` rasters. If `FALSE`, file path only.
-#' @param save_output Should output rasters be saved to a zip file?
-#' @param wrap_return_products Should `return_products` be `terra::wrap()` (necessary for running function in parallel)? If `TRUE`, wrapped.
-#' @param clean_tempfiles Should temporary files be removed? If `TRUE`, temporary files are removed.
+#' @param OS_combine Logical. If `TRUE`, `target_O` and `target_S` are merged
+#'   when producing `"iEucS"`, `"iFLS"`, and `"HAiFLS"` layers.
+#'   This allows flow direction cells adjacent to `target_O` to drain directly
+#'   into it rather than through `target_S`.
 #'
-#' @return Named list of `SpatRaster` or `PackedSpatRaster` (if `wrap_return_products` = `TRUE`) distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
+#' @param clip_region Optional spatial region used to clip all inputs to a
+#'   shared extent. Accepts same formats as `target_O`. If `NULL`, full extents are preserved.
+#'
+#' @param dem Digital elevation model. Must be a `SpatRaster`, `RasterLayer`,
+#'   `PackedSpatRaster`, or a filepath to a raster readable by `terra::rast()`.
+#'
+#' @param flow_accum Flow‑accumulation raster (units = number of cells).
+#'   Must align with the DEM in resolution and extent. Same supported formats
+#'   as `dem`.
+#'
+#' @param weighting_scheme Character vector specifying one or more weighting
+#'   schemes (see **Weighting schemes** section below).
+#'
+#' @param inv_function Inverse‑distance function applied to raw distance rasters.
+#'   May be a single function (applied to all schemes) or a named list of
+#'   functions matching entries in `weighting_scheme`.
+#'   Default: `(x * 0.001 + 1)^-1`, which converts metres to kilometres.
+#'
+#' @param snap Character. Controls how `terra::crop()` aligns the raster grid to the
+#'   clipping geometry (`"near"`, `"in"`, or `"out"`). The choice of snap setting
+#'   controls how raster grids align during cropping, which can shift cell boundaries
+#'   and influence flow‑path continuity, ultimately affecting hydrological distance
+#'   and accumulation calculations. See **Snap Argument** section below.
+#'
+#' @param return_products Logical.
+#'   If `TRUE` (default), the function returns a list containing:
+#'   1) output file location (for `.zip` archive), and
+#'   2) the generated distance‑weighted rasters (wrapped if requested).
+#'   If `FALSE`, only the output file path (or `NULL` if `save_output = FALSE`)
+#'   is returned.
+#'
+#' @param save_output Logical. If `TRUE` (default), the distance‑weighted rasters are
+#'   written to disk and packaged into a `.zip` file in `hydroweight_dir`.
+#'
+#' @param wrap_return_products Logical. If `TRUE` (default), rasters in the returned list
+#'   are wrapped with `terra::wrap()`, improving parallel workflow safety.
+#'
+#' @param clean_tempfiles Logical. If `TRUE` (default), temporary files and the
+#'   working directory are deleted on exit. Set to `FALSE` to retain intermediate
+#'   rasters for debugging.
+#'
+#' @return
+#' A named list where each element is a distance‑weighted `SpatRaster`
+#' (or `PackedSpatRaster` if `wrap_return_products = TRUE`), with names
+#' corresponding to the entries in `weighting_scheme`.
+#'
+#' If `save_output = TRUE`, the function also returns the path to the generated
+#' `"_inv_distances.zip"` archive in `hydroweight_dir`.
+#'
+#' @section Snap Argument:
+#'
+#' The `snap` argument controls how raster grids are aligned when cropping. Choosing
+#' the appropriate snap mode can affect flow‑path distances, watershed
+#' boundaries, and other hydrologically sensitive calculations.
+#' * `"near"` snaps to the closest grid alignment and generally preserves
+#'   hydrologic continuity with minimal distortion—this is the recommended
+#'   setting for hydroweight workflows.
+#' * `"in"` forces the cropped raster to lie entirely inside the clipping
+#'   geometry, which may slightly shrink the effective area.
+#' * `"out"` ensures the cropped raster fully covers the clipping region, which
+#'   may include cells extending beyond the region.
+#'
+#' @seealso
+#' * [hydroweight_attributes()] for attribute summarization
+#' * [process_input()] for spatial alignment and pre‑processing
+#'
 #' @export
-#'
 hydroweight <- function(
     hydroweight_dir = NULL,
     target_O = NULL,

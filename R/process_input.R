@@ -1,52 +1,81 @@
-#' Aligns spatial data for `hydroweight` functions
+#' Align and normalize spatial inputs for hydroweight workflows
 #'
-#' `hydroweight::process_input()` internally aligns spatial data into `SpatVector` or
-#' `SpatRaster` objects depending on the class of `align_to`. The function
-#' normalizes inputs (vectors/rasters or file paths), optionally subsets
-#' variables, aligns to a target object, and optionally clips/masks to a
-#' region.
+#' `process_input()` standardizes spatial inputs (vectors or rasters, or
+#' filepaths to either) into `terra` objects and optionally:
+#' (1) subsets requested variables/layers, (2) aligns to a target geometry,
+#' and (3) clips/masks to a region of interest. The result is a `SpatVector`
+#' or `SpatRaster` ready for downstream use in `hydroweight()` and
+#' `hydroweight_attributes()`.
 #'
-#' @details
-#' **Coercion & alignment behavior (high-level):**
+#' @section Coercion & alignment (high‑level):
+#' * Vector or raster inputs (or filepaths) are coerced to `SpatVector` or
+#'   `SpatRaster` as appropriate.
+#' * If `align_to` is a raster, rasters are reprojected/resampled to match its
+#'   CRS, extent, resolution, and grid. Vectors are projected and, when needed,
+#'   rasterized against the `align_to` grid.
+#' * If `resample_type = "near"`, categorical data are handled using nearest‑neighbor
+#'   semantics; if `"bilinear"`, continuous data are interpolated bilinearly.
+#' * When `clip_region` is supplied, outputs are cropped and (for rasters) masked
+#'   to that region, with grid placement controlled by `snap`.
 #'
-#' \itemize{
-#'   \item If `input` is a raster, `align_to` is a raster, and `resample_type == "bilinear"`
-#'   (e.g., continuous data), the result is a `SpatRaster` with rasterize/warp
-#'   applied as needed.
+#' @param input May be a spatial object (`sf`, `SpatVector`, `RasterLayer`, `SpatRaster`, etc.) or a filepath
+#'   to vector dataset readable by `sf::st_read()` (e.g., Shapefile)
+#'   or raster dataset readable by `terra::rast()` (e.g., GeoTIFF).
 #'
-#'   \item If `input` is a raster, `align_to` is a raster, and `resample_type == "near"`
-#'   (e.g., categorical data), unique values of `input` are coerced into
-#'   separate binary `SpatRaster` layers (1 = category present).
+#' @param input_name Optional label (`character`) used in diagnostic messages.
+#'   Helpful for tracing errors when processing multiple inputs.
 #'
-#'   \item If `input` is a vector and `align_to` is a raster, unique values of
-#'   each variable in `input_variable_names` are coerced into separate binary
-#'   `SpatRaster` layers (1 = category present).
-#' }
+#' @param input_variable_names Optional `character` vector of attribute names
+#'   (for vectors) or layer names (for rasters) to retain. If `NULL`, all
+#'   attributes/layers are kept.
 #'
-#' **Notes:**
-#' \itemize{
-#'   \item `resample_type` affects reprojection/resampling when `align_to`
-#'   is a `SpatRaster`. Use `"bilinear"` for numeric/continuous data and
-#'   `"near"` for categorical data.
-#'   \item `snap` controls how `terra::crop()` aligns the raster grid to the
-#'   clipping geometry (`"near"`, `"in"`, or `"out"`), which can materially
-#'   affect hydrologic analyses.
-#' }
+#' @param align_to Optional **target** to align to: a spatial object or filepath
+#'   (same accepted formats as `input`). If supplied, the returned object is
+#'   projected/resampled to the CRS and grid of `align_to` (for rasters) or
+#'   projected to its CRS (for vectors). If `NULL`, inputs are returned in
+#'   their native geometry after optional subsetting.
 #'
-#' @param input Input spatial data: one of `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/input.shp"`, `"C:/path/input.tif"`).
-#' @param input_name Optional label used in error/warning messages. `NULL` or `character`.
-#' @param input_variable_names Names of variables in `input` to include in the output: one of `NULL` or `character`. If `NULL`, all variables are used.
-#' @param align_to Spatial target to which `input` will be aligned: one of `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/align_to.shp"`, `"C:/path/align_to.tif"`). If `NULL`, the function returns a `SpatVector` or `SpatRaster` in the original input CRS/geometry (after optional subsetting).
-#' @param clip_region Optional region for clipping/masking: one of `NULL`, `sf`, `SpatVector`, `PackedSpatVector`, `RasterLayer`, `SpatRaster`, `PackedSpatRaster`, or a file path (`character`) with a recognized extension (e.g., `"C:/path/clip_region.shp"`, `"C:/path/clip_region.tif"`). Internally converted to `SpatVector`. If `NULL`, the full extent of `input` (after alignment) is returned.
-#' @param resample_type Type of resampling when converting/alignment to raster (typically categorical = `"near"`, numeric = `"bilinear"`): `character`, one of`c("bilinear","near")`. If `"bilinear"` (default), `input_variable_names` are treated as numeric; if `"near"`, they are treated as categorical for resampling/projecting when `align_to` is a `SpatRaster`.
-#' @param snap Snap scheme for `terra::crop()`: `character`, one of `"near"`, `"in"`, or `"out"`. Controls how the raster grid aligns to the clipping geometry. Default is `"near"`.
-#' @param working_dir Folder path for temporary file storage: `NULL` or `character`. If `NULL`, a temporary directory is created internally and may be removed at the end.
-#' @param persist_final Should the final `SpatRaster` or `SpatVector` be written to disk inside `working_dir` and returned as a file-backed object? Logical, default `FALSE`. Set to `TRUE` when reproducible on-disk outputs or file-backed terra objects are required.
-#' @param ... Additional arguments passed to `terra` operations.
+#' @param clip_region Optional spatial object or filepath (same accepted formats as `input`).
+#'   If provided, the result is cropped to `clip_region`; rasters are also masked.
 #'
-#' @return An object of class `SpatVector` or `SpatRaster`, depending on `align_to`.
+#' @param resample_type Character; resampling strategy for raster alignment and/or
+#'   rasterization to `align_to`. One of `"bilinear"` (typical for continuous
+#'   data) or `"near"` (typical for categorical data). Default: `"bilinear"`.
+#'
+#' @param snap Character. Controls how `terra::crop()` aligns the raster grid to the
+#'   clipping geometry (`"near"`, `"in"`, or `"out"`). The choice of snap setting
+#'   controls how raster grids align during cropping, which can shift cell boundaries
+#'   and influence flow‑path continuity, ultimately affecting hydrological distance
+#'   and accumulation calculations. (see *Snap Argument* section below)
+#'
+#' @param working_dir Optional directory path used for temporary files and
+#'   `terra`’s out‑of‑memory operations. If `NULL`, a temporary folder is created.
+#'
+#' @param persist_final Logical; if `TRUE`, the final `SpatRaster`/`SpatVector`
+#'   is written to disk inside `working_dir` and the function returns a
+#'   file‑backed object. Default: `FALSE`.
+#'
+#' @param ... Additional arguments forwarded to underlying `terra` operations
+#'   (e.g., `terra::crop()`, `terra::project()`, `terra::rasterize()`,
+#'   `terra::as.polygons()`).
+#'
+#' @return A `SpatVector` or `SpatRaster` (file‑backed if `persist_final = TRUE`),
+#'   aligned and optionally subsetted and clipped as requested.
+#'
+#' @section Notes:
+#' * `resample_type` controls resampling when aligning to raster targets:
+#'   use `"bilinear"` for numeric/continuous layers and `"near"` for categorical.
+#' * `snap` controls grid placement during cropping and can influence flow‑path
+#'   continuity in hydrologic analyses.
+#' * When aligning a vector to a raster target, categorical attributes may be
+#'   rasterized into multiple binary layers (one per category) when
+#'   `resample_type = "near"`.
+#'
+#' @seealso
+#' * [hydroweight()] for generating distance‑weighted rasters
+#' * [hydroweight_attributes()] for distance‑weighted attribute summaries
+#'
 #' @export
-#'
 process_input <- function(
     input = NULL,
     input_name = NULL,
