@@ -19,8 +19,8 @@
 #'   to that region, with grid placement controlled by `snap`.
 #'
 #' @param input May be a spatial object (`sf`, `SpatVector`, `RasterLayer`, `SpatRaster`, etc.) or a filepath
-#'   to vector dataset readable by `sf::st_read()` (e.g., Shapefile)
-#'   or raster dataset readable by `terra::rast()` (e.g., GeoTIFF).
+#'   to `.shp` dataset readable by `sf::st_read()` (i.e., Shapefile)
+#'   or `.tif` dataset readable by `terra::rast()` (i.e., GeoTIFF).
 #'
 #' @param input_name Optional label (`character`) used in diagnostic messages.
 #'   Helpful for tracing errors when processing multiple inputs.
@@ -95,9 +95,12 @@ process_input <- function(
     return(input)
   }
 
-  ## Match arguments
-  resample_type <- match.arg(resample_type)
-  snap <- match.arg(snap)
+  ## Allowed choices
+  valid_rt   <- c("bilinear", "near")
+  valid_snap <- c("near","in","out")
+
+  resample_type <- match.arg(resample_type, choices = valid_rt)
+  snap <- match.arg(snap, choices = valid_snap, several.ok = FALSE)
 
   ## Use a single stable working directory per call
   working_root <- if (is.null(working_dir)) {
@@ -109,7 +112,7 @@ process_input <- function(
 
   ## Helper for generating temporary file paths
   tmp_file <- function(ext = ".tif") {
-    file.path(working_root, paste0("tmp_", tempfile(), ext))
+    file.path(working_root, paste0("tmp_", basename(tempfile()), ext))
   }
 
   ## Set terra temp directory once
@@ -171,6 +174,7 @@ process_input <- function(
     # Reuse SAME working directory for recursive calls
     align_to <- process_input(
       input = align_to,
+      input_name = "align_to",
       working_dir = working_root
     )
 
