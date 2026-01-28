@@ -37,8 +37,8 @@
 #'
 #' @param target_O Target feature for distance types involving an “O” (iEucO,
 #'   iFLO, HAiFLO). May be a spatial object (`sf`, `SpatVector`, `RasterLayer`, `SpatRaster`, etc.) or a filepath
-#'   to vector dataset readable by `sf::st_read()` (e.g., Shapefile)
-#'   or raster dataset readable by `terra::rast()` (e.g., GeoTIFF).
+#'   to `.shp` dataset readable by `sf::st_read()` (i.e., Shapefile)
+#'   or `.tif` dataset readable by `terra::rast()` (i.e., GeoTIFF).
 #'   Use `NULL` to omit this target. See *Weighting schemes* section below.
 #'
 #' @param target_S Same as `target_O` but used for distance types involving an
@@ -150,9 +150,12 @@ hydroweight <- function(
     stop("'return_products' and 'save_output' cannot both be FALSE")
   }
 
-  ## Match arguments
-  weighting_scheme <- match.arg(weighting_scheme, several.ok = TRUE)
-  snap <- match.arg(snap)
+  ## Allowed choices
+  valid_ws   <- c("lumped","iEucO","iEucS","iFLO","iFLS","HAiFLO","HAiFLS")
+  valid_snap <- c("near","in","out")
+
+  weighting_scheme <- match.arg(weighting_scheme, choices = valid_ws, several.ok = TRUE)
+  snap <- match.arg(snap, choices = valid_snap, several.ok = FALSE)
 
   ## Use a stable unique working subdir
   if (!is.null(hydroweight_dir)) {
@@ -163,7 +166,7 @@ hydroweight <- function(
   dir.create(own_tempdir, recursive = TRUE, showWarnings = FALSE)
 
   ## Set terra tempdir for out-of-memory rasters
-  old_terra_opts <- terra::terraOptions()
+  old_terra_opts <- terra::terraOptions(print = FALSE)
   terra::terraOptions(tempdir = own_tempdir, verbose = FALSE)
 
   ## Ensure cleanup / terra options restoration happen even on error
@@ -200,14 +203,17 @@ hydroweight <- function(
   ## PROCESS INPUTS ------------------------------------------------------------
 
   ## dem
-  dem <- process_input(input = dem, align_to = dem, input_name = "dem", working_dir = own_tempdir)
+  dem <- process_input(input = dem,
+                       align_to = dem,
+                       input_name = "dem",
+                       working_dir = own_tempdir)
   dem <- dem[[1]]
   dem_crs <- terra::crs(dem)
 
   ## clip_region
   clip_region <- process_input(
     input        = clip_region,
-    align_to     = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))", crs = dem_crs),
+    align_to     = terra::vect(sf::st_as_sfc("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))", crs = dem_crs)),
     clip_region  = terra::as.polygons(terra::ext(dem), crs = terra::crs(dem)),
     snap         = snap,
     input_name   = "clip_region",
@@ -322,6 +328,17 @@ hydroweight <- function(
 
   ## Generate iEucO ------------------------------------------------------------
   if ("iEucO" %in% weighting_scheme) {
+
+    ## Fix temp raster for Euc0
+    rO <- terra::rast(file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")))
+
+    ## Force exact Whitebox encoding: {source=1, background=0, NoData unchanged}
+    rO_bin <- rO
+    rO_bin[!is.na(rO_bin) & rO_bin != 0] <- 1  # sources -> 1
+    rO_bin[is.na(rO_bin)] <- 0                 # background -> 0 (WBT prefers 0 background)
+    terra::writeRaster(rO_bin, file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
+                       overwrite = TRUE, gdal = "COMPRESS=NONE")
+
     whitebox::wbt_cost_distance(
       source       = file.path(own_tempdir, paste0(target_uid, "_TEMP_target_O_clip.tif")),
       cost         = file.path(own_tempdir, paste0(target_uid, "_TEMP_dem_clip_cost.tif")),
@@ -346,6 +363,16 @@ hydroweight <- function(
     } else {
       file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif"))
     }
+
+    ## Fix temp raster for EucS
+    rS <- terra::rast(source_eucS)
+
+    ## Force exact Whitebox encoding: {source=1, background=0, NoData unchanged}
+    rS_bin <- rS
+    rS_bin[!is.na(rS_bin) & rS_bin != 0] <- 1
+    rS_bin[is.na(rS_bin)] <- 0
+    terra::writeRaster(rS_bin, file.path(own_tempdir, paste0(target_uid, "_TEMP_target_S_clip.tif")),
+                       overwrite = TRUE, gdal = "COMPRESS=NONE")
 
     whitebox::wbt_cost_distance(
       source       = source_eucS,
@@ -384,7 +411,7 @@ hydroweight <- function(
 
     if ("HAiFLO" %in% weighting_scheme) {
       HAiFLO_inv <- apply_inverse(iFLO, "HAiFLO")
-      HAiFLO_inv <- HAiFLO_inv * flow_accum
+      HAiFLO_inv <- HAiFLO_inv * (flow_accum+1)
       terra::crs(HAiFLO_inv) <- dem_crs
       names(HAiFLO_inv) <- "HAiFLO"
       if (save_output) write_raster_if(HAiFLO_inv, paste0(target_uid, "_TEMP_HAiFLO.tif"))
@@ -418,7 +445,7 @@ hydroweight <- function(
 
     if ("HAiFLS" %in% weighting_scheme) {
       HAiFLS_inv <- apply_inverse(iFLS, "HAiFLS")
-      HAiFLS_inv <- HAiFLS_inv * flow_accum
+      HAiFLS_inv <- HAiFLS_inv * (flow_accum+1)
       if (OS_combine) {
         HAiFLS_inv <- terra::mask(HAiFLS_inv, OS_combine_r, maskvalues = 1)
       } else {
