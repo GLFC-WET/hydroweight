@@ -106,8 +106,10 @@ hydroweight_attributes <- function(
 
   ## SETUP ---------------------------------------------------------------------
 
-  ## Match arguments
-  loi_numeric_stats <- match.arg(loi_numeric_stats, several.ok = TRUE)
+  ## Allowed choices
+  valid_stats   <- c("distwtd_mean", "distwtd_sd", "mean", "sd",
+                     "median", "min", "max", "sum", "cell_count")
+  loi_numeric_stats <- match.arg(loi_numeric_stats, choices = valid_stats, several.ok = TRUE)
 
   ## Assign resampling type
   loi_resample <- ifelse(loi_numeric, "bilinear", "near")
@@ -123,7 +125,7 @@ hydroweight_attributes <- function(
   dir.create(own_tempdir, recursive = TRUE, showWarnings = FALSE)
 
   ## Set terra tempdir for out-of-memory rasters
-  old_terra_opts <- terra::terraOptions()
+  old_terra_opts <- terra::terraOptions(print = FALSE)
   terra::terraOptions(tempdir = own_tempdir, verbose = FALSE)
 
   ## Ensure cleanup / terra options restoration happen even on error

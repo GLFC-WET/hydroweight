@@ -207,8 +207,9 @@ process_input <- function(
               lapply(vects, function(vx) {
                 out_file <- tmp_file(".tif")
                 r <- terra::rasterize(
-                  x = vx, y = align_to, field = "",
-                  overwrite = TRUE, ...
+                  x = vx, y = align_to, field = ""
+                  overwrite = TRUE
+                  ...
                 )
                 terra::writeRaster(r, out_file,
                                    overwrite = TRUE,
@@ -234,8 +235,8 @@ process_input <- function(
               x = output,
               y = align_to,
               field = varname,
-              overwrite = TRUE
-              #...
+              overwrite = TRUE,
+              ...
             )
             terra::writeRaster(r, out_file,
                                overwrite = TRUE,
@@ -304,11 +305,11 @@ process_input <- function(
     }
 
     if (inherits(output, "SpatRaster")) {
-      this <- terra::crop(
+      output <- terra::crop(
         x = output, y = cr, snap = "near",
         mask = TRUE, overwrite = TRUE
       )
-      this <- terra::mask(output, cr, overwrite = TRUE)
+      output <- terra::mask(output, cr, overwrite = TRUE)
     }
   }
 
@@ -316,6 +317,7 @@ process_input <- function(
   if (inherits(output, "SpatRaster") && resample_type == "near") {
 
     bricks <- terra::split(output, names(output))
+    names(bricks) <- names(output)
 
     bricks <- lapply(names(bricks), function(layer_name) {
       lyr <- bricks[[layer_name]]

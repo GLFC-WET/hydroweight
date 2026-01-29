@@ -230,7 +230,7 @@ hydroweight <- function(
     input_name    = "flow_accum",
     working_dir   = own_tempdir
   )
-  flow_accum <- flow_accum[[1]]
+  flow_accum <- flow_accum[[1]] + 1
 
   ## target_O
   target_O <- process_input(
