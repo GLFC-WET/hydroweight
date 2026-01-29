@@ -71,6 +71,11 @@
 #'      to calculate the statistics.
 #'   If `FALSE`, only the summary table is returned.
 #'
+#' @param clean_tempfiles Logical. If `TRUE` (default), temporary files and the
+#' working directory are deleted on exit. Set to `FALSE` to retain intermediate
+#' rasters for debugging.
+
+#'
 #' @return
 #' If `return_products = FALSE`, a tibble containing weighted and unweighted
 #' attribute statistics.
@@ -131,7 +136,11 @@ hydroweight_attributes <- function(
   ## Ensure cleanup / terra options restoration happen even on error
   on.exit({
     # restore terra options
-    do.call(terra::terraOptions, old_terra_opts)
+    opts <- old_terra_opts
+    opts$metadata <- NULL
+    opts$names    <- NULL
+    if (identical(opts$filetype, "")) opts$filetype <- NULL
+    do.call(terra::terraOptions, opts)
 
     if (isTRUE(clean_tempfiles)) {
       unlink(own_tempdir, recursive = TRUE, force = TRUE)
