@@ -188,7 +188,7 @@ hydroweight_attributes <- function(
       terra::rast(x)
     } else {x}
   )
-  names(distance_weights) <- lapply(distance_weights, names)
+  names(distance_weights) <- sapply(distance_weights, names)
 
   dw_ref <- distance_weights[[1]]
 
@@ -254,7 +254,6 @@ hydroweight_attributes <- function(
     resample_type = "near"
   )
 
-  ## Process loi
   loi <- process_input(
     input                 = loi,
     input_name            = "loi",
@@ -369,6 +368,7 @@ hydroweight_attributes <- function(
 
       pct <- unlist(loi_sum) / unlist(dw_sum)
       names(pct) <- paste0(names(loi), "_", names(dw), "_prop")
+
 
       tmp <- list(pct_distwtd = pct)
       if (return_products)

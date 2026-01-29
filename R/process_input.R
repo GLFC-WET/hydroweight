@@ -86,8 +86,7 @@ process_input <- function(
     snap = c("near", "in", "out"),
     working_dir = NULL,
     persist_final = FALSE,
-    ...
-) {
+    ...) {
 
   ## SETUP ---------------------------------------------------------------------
 
@@ -207,8 +206,8 @@ process_input <- function(
               lapply(vects, function(vx) {
                 out_file <- tmp_file(".tif")
                 r <- terra::rasterize(
-                  x = vx, y = align_to, field = ""
-                  overwrite = TRUE
+                  x = vx, y = align_to, field = "",
+                  overwrite = TRUE,
                   ...
                 )
                 terra::writeRaster(r, out_file,
@@ -316,31 +315,103 @@ process_input <- function(
   ## Split categorical rasters for resample_type = "near" ----------------------
   if (inherits(output, "SpatRaster") && resample_type == "near") {
 
-    bricks <- terra::split(output, names(output))
-    names(bricks) <- names(output)
+    if(terra::nlyr(output) > 1){
+      brick_list<-terra::split(output,names(output))
+      names(brick_list)<-names(output)
+    } else {
+      brick_list<-output
+    }
 
-    bricks <- lapply(names(bricks), function(layer_name) {
-      lyr <- bricks[[layer_name]]
-      uvals <- unique(terra::values(lyr))
-      uvals <- uvals[!is.na(uvals) & !is.nan(uvals) & !is.infinite(uvals)]
+    brick_list <- lapply(names(brick_list), function(y){
 
-      if (length(uvals) > 1) {
-        outs <- lapply(uvals, function(v) {
-          vals <- terra::values(lyr)
-          vals[vals != v] <- NA
-          vals[vals == v] <- 1
-          r <- terra::setValues(lyr, vals)
-          names(r) <- paste0(layer_name, "_", v)
-          r
+          b <- as.numeric(brick_list[[y]])
+          f <- brick_list[[y]]
+          (uv <- unlist(terra::unique(b)))
+          (uv <- uv[!sapply(uv,is.nan)])
+          (uv <- uv[!sapply(uv,is.na)])
+          (uv <- uv[!sapply(uv,is.infinite)])
+
+          if (length(uv)>1) {
+            out<-lapply(uv,function(x) {
+              repl <- terra::values(b)
+              repl[repl!=x] <- NA
+              repl[!is.na(repl)]<-1
+              out<-terra::setValues(b,repl)
+              if (length(uv)>1) names(out) <-paste0(y,"_",x)
+              if (length(uv)==1) names(out) <- y
+              return(out)
+            })
+
+            nms <-sapply(out, names)
+            out <- terra::rast(out)
+            names(out) <- nms
+
+
+
+          } else {
+            out<-brick_list[[y]]
+          }
+          return(out)
         })
-        terra::rast(outs)
-      } else {
-        lyr
-      }
-    })
 
-    output <- terra::rast(bricks)
-  }
+        output <- terra::rast(brick_list)
+      }
+
+  #   bricks <- terra::split(output, names(output))
+  #   names(bricks) <- names(output)
+  #
+  #   bricks <- lapply(names(bricks), function(layer_name) {
+  #     lyr <- bricks[[layer_name]]
+  #
+  #     # Pull factor levels (if present) to retrieve human-readable labels
+  #     levs_list <- if (terra::is.factor(lyr)) levels(lyr) else NULL  # base::levels -> terra method
+  #     levs_tbl  <- if (!is.null(levs_list) && length(levs_list) >= 1) levs_list[[1]] else NULL
+  #     if (!is.null(levs_tbl)) {
+  #       id_col  <- if ("ID" %in% names(levs_tbl)) "ID" else names(levs_tbl)[1]
+  #       lab_col <- setdiff(names(levs_tbl), id_col)
+  #       lab_col <- if (length(lab_col) > 0) lab_col[1] else id_col
+  #     }
+  #
+  #     # Present category codes in this (already clipped) layer
+  #     f <- try(terra::freq(lyr), silent = TRUE)     # NOTE: terra::freq() has no 'useNA' arg
+  #     uvals <- if (!inherits(f, "try-error") && !is.null(f) && nrow(f) > 0) {
+  #       f[, "value"]
+  #     } else {
+  #       unique(terra::values(lyr))
+  #     }
+  #     uvals <- uvals[is.finite(uvals)]
+  #
+  #     if (length(uvals) >= 1) {
+  #       # IMPORTANT: also handle the single-class case (length == 1)
+  #       outs <- lapply(uvals, function(v) {
+  #         # Make a binary mask (1/NA) so proportions compute correctly
+  #         r <- terra::ifel(lyr == v, 1L, NA)
+  #
+  #         # Convert to factor, attach a one-row levels() with ID=1 and the label for this class
+  #         r <- terra::as.factor(r)
+  #         lab <- if (!is.null(levs_tbl)) {
+  #           L <- levs_tbl[[lab_col]][levs_tbl[[id_col]] == v]
+  #           if (length(L) == 1 && !is.na(L)) as.character(L) else as.character(v)
+  #         } else {
+  #           as.character(v)
+  #         }
+  #         levels(r) <- list(data.frame(ID = 1L, Class = lab, stringsAsFactors = FALSE))
+  #
+  #         # Name with label for readability (fallback to code if no label)
+  #         safe_lab <- gsub("[^A-Za-z0-9_]+", "_", lab)
+  #         names(r) <- paste0(layer_name, "_", safe_lab)
+  #         r
+  #       })
+  #
+  #       terra::rast(outs)
+  #     } else {
+  #       # Nothing present (all NA) — pass through unchanged
+  #       lyr
+  #     }
+  #   })
+  #
+  #   output <- terra::rast(bricks)
+  # }
 
   ## PREPARE OUTPUTS -----------------------------------------------------------
 
