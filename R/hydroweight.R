@@ -172,10 +172,18 @@ hydroweight <- function(
   ## Ensure cleanup / terra options restoration happen even on error
   on.exit({
     # restore terra options
-    do.call(terra::terraOptions, old_terra_opts)
+    opts <- old_terra_opts
+    opts$metadata <- NULL
+    opts$names    <- NULL
+    if (identical(opts$filetype, "")) opts$filetype <- NULL
+    do.call(terra::terraOptions, opts)
+
     if (isTRUE(clean_tempfiles)) {
       unlink(own_tempdir, recursive = TRUE, force = TRUE)
-      suppressWarnings(terra::tmpFiles(current = TRUE, orphan = TRUE, old = TRUE, remove = TRUE))
+      suppressWarnings(terra::tmpFiles(current = TRUE,
+                                       orphan  = TRUE,
+                                       old     = TRUE,
+                                       remove  = TRUE))
     }
   }, add = TRUE)
 
@@ -414,6 +422,7 @@ hydroweight <- function(
       HAiFLO_inv <- HAiFLO_inv * (flow_accum+1)
       terra::crs(HAiFLO_inv) <- dem_crs
       names(HAiFLO_inv) <- "HAiFLO"
+      HAiFLO_inv <- terra::mask(HAiFLO_inv, target_O, maskvalues = 1)
       if (save_output) write_raster_if(HAiFLO_inv, paste0(target_uid, "_TEMP_HAiFLO.tif"))
     }
   }

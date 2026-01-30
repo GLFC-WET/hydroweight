@@ -278,34 +278,40 @@ hydroweight_attributes <- function(
   names(loi_stats) <- roi_uid_col
   (loi_stats <- list(UID = loi_stats))
 
-  ## Numeric statistics --------------------------------------------------------
   if (loi_numeric) {
 
-    ## Function helper to reduce code burden
+    ## Helper for global stats
     fun_global <- function(x, fun) terra::global(x, fun, na.rm = TRUE) |> unlist()
 
-    if ("mean" %in% loi_numeric_stats) { loi_mean   <- fun_global(loi, "mean") } else { loi_mean <- NULL }
-    if ("sd" %in% loi_numeric_stats) {loi_sd <- fun_global(loi, "sd") } else { loi_sd <- NULL }
-    if ("median" %in% loi_numeric_stats) {loi_median <- terra::global(loi, \(x) stats::median(x, na.rm = TRUE)) |> unlist() |> setNames(object = ., "median") } else {loi_median <- NULL}
-    if ("min"    %in% loi_numeric_stats) {loi_min <- fun_global(loi, "min")} else {loi_min <- NULL}
-    if ("max"    %in% loi_numeric_stats) {loi_max <- fun_global(loi, "max")} else {loi_max <- NULL}
-    if ("sum"    %in% loi_numeric_stats) {loi_sum <- fun_global(loi, "sum")} else {loi_sum <- NULL}
+    if ("mean"   %in% loi_numeric_stats) { loi_mean   <- fun_global(loi, "mean") } else { loi_mean <- NULL }
+    if ("sd"     %in% loi_numeric_stats) { loi_sd     <- fun_global(loi, "sd") }   else { loi_sd   <- NULL }
+    if ("median" %in% loi_numeric_stats) { loi_median <- terra::global(loi, \(x) stats::median(x, na.rm = TRUE)) |> unlist() |> stats::setNames("median") } else { loi_median <- NULL }
+    if ("min"    %in% loi_numeric_stats) { loi_min <- fun_global(loi, "min") } else { loi_min <- NULL }
+    if ("max"    %in% loi_numeric_stats) { loi_max <- fun_global(loi, "max") } else { loi_max <- NULL }
+    if ("sum"    %in% loi_numeric_stats) { loi_sum <- fun_global(loi, "sum") } else { loi_sum <- NULL }
 
     if ("cell_count" %in% loi_numeric_stats) {
       cc <- fun_global(!is.na(loi), "sum")
       loi_cell_count <- cc
-      loi_cell_count <- setNames(loi_cell_count, paste0(rep("cell_count", length(loi_cell_count)), seq(1:length(loi_cell_count))))
-      } else {
+      loi_cell_count <- stats::setNames(
+        loi_cell_count,
+        paste0(rep("cell_count", length(loi_cell_count)), seq_len(length(loi_cell_count)))
+      )
+    } else {
       loi_cell_count <- NULL
     }
 
     if ("NA_cell_count" %in% loi_numeric_stats) {
-      (roi_cc <- terra::global(roi, "sum", na.rm = TRUE))
+      roi_cc <- terra::global(roi, "sum", na.rm = TRUE)
       loi_NA_cell_count <- unlist(rep(roi_cc, length(loi_cell_count))) - unlist(loi_cell_count)
-      loi_NA_cell_count <- setNames(loi_NA_cell_count,
-                                    paste0(rep("NA_cell_count", length(loi_NA_cell_count)),
-                                                              seq(1:length(loi_cell_count))))
-    } else loi_NA_cell_count <- NULL
+      loi_NA_cell_count <- stats::setNames(
+        loi_NA_cell_count,
+        paste0(rep("NA_cell_count", length(loi_NA_cell_count)),
+               seq_len(length(loi_cell_count)))
+      )
+    } else {
+      loi_NA_cell_count <- NULL
+    }
 
     lumped <- list(
       mean = loi_mean,
@@ -318,20 +324,62 @@ hydroweight_attributes <- function(
       NA_cell_count = loi_NA_cell_count
     )
 
-    lumped <- lapply(lumped, function(x){
+    ## ---- Naming fix with fallback ------------------------------------------
+    # 1) Determine labels for each layer: prefer `loi_columns`; otherwise use
+    #    raster layer names; otherwise generate "layer1..layerN".
+    nlyr <- terra::nlyr(loi)
+    fallback_names <- tryCatch(terra::names(loi), error = function(e) NULL)
 
-      if(!is.null(x)){
-      old <- names(x)  # c("min1","min2")
+    label_vec <- if (!is.null(loi_columns)) {
+      if (length(loi_columns) != nlyr) {
+        warning(sprintf(
+          "Length of 'loi_columns' (%d) does not match number of layers (%d). Truncating/recycling.",
+          length(loi_columns), nlyr
+        ))
+      }
+      rep_len(loi_columns, nlyr)
+    } else if (!is.null(fallback_names) && length(fallback_names) == nlyr) {
+      fallback_names
+    } else {
+      paste0("layer", seq_len(nlyr))
+    }
 
-      # Extract numeric index
-      idx <- as.integer(sub(".*?(\\d+)$", "\\1", old))  # c(1, 2)
-      # Non-numeric prefix (metric base: "min")
-      metric_base <- sub("^(.*?)(\\d+)$", "\\1", old)
+    # 2) Apply names to each metric vector safely.
+    #    Handles cases with or without numeric suffixes in 'old' names.
+    lumped <- lapply(lumped, function(x) {
+      if (is.null(x)) return(NULL)
 
-      names(x) <- paste0(loi_columns[idx], "_", metric_base)
-      } else {x <- NULL}
+      old <- names(x)
+      # If no names exist, fabricate indices 1..length(x)
+      if (is.null(old)) {
+        idx <- seq_along(x)
+        metric_base <- ""
+      } else {
+        # Extract numeric index at the end (e.g., min1 -> 1), NA if no number
+        idx <- suppressWarnings(as.integer(sub(".*?(\\d+)$", "\\1", old)))
+        # Extract non-numeric prefix (e.g., "min", "mean", "cell_count")
+        metric_base <- sub("^(.*?)(\\d+)$", "\\1", old)
 
-    return(x)
+        # If there is no numeric suffix (single-layer case), treat all as layer 1
+        idx[is.na(idx)] <- 1
+        # If base didn’t change (i.e., no digits), then base is whole name
+        # but we still want the metric tag (e.g., "median" not "median1")
+        # For safety, strip trailing digits only:
+        metric_base <- sub("\\d+$", "", old)
+      }
+
+      # Ensure indices map into label_vec
+      idx <- pmin(pmax(idx, 1L), length(label_vec))
+
+      # Build "<layer_label>_<metric_base>" ensuring one underscore
+      # Normalize metric base (trim, remove extra underscores)
+      metric_base_clean <- gsub("_+", "_", trimws(metric_base))
+      metric_base_clean <- sub("^_", "", metric_base_clean)  # no leading "_"
+      metric_base_clean <- sub("_$", "", metric_base_clean)  # no trailing "_"
+
+      new_names <- paste0(label_vec[idx], "_", metric_base_clean)
+      names(x) <- new_names
+      x
     })
 
     loi_stats <- c(loi_stats, list(lumped = lumped))
@@ -380,7 +428,7 @@ hydroweight_attributes <- function(
   } else {
 
     ## Categorical statistics --------------------------------------------------
-    distance_weights_attributes <- lapply(distance_weights, function(dw) {
+   distance_weights_attributes <- lapply(distance_weights, function(dw) {
 
       loi_dist <- loi * dw
       names(loi_dist) <- names(loi)
@@ -390,7 +438,6 @@ hydroweight_attributes <- function(
 
       pct <- unlist(loi_sum) / unlist(dw_sum)
       names(pct) <- paste0(names(loi), "_", names(dw), "_prop")
-
 
       tmp <- list(pct_distwtd = pct)
       if (return_products)
