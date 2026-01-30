@@ -286,7 +286,7 @@ hydroweight_attributes <- function(
 
     if ("mean" %in% loi_numeric_stats) { loi_mean   <- fun_global(loi, "mean") } else { loi_mean <- NULL }
     if ("sd" %in% loi_numeric_stats) {loi_sd <- fun_global(loi, "sd") } else { loi_sd <- NULL }
-    if ("median" %in% loi_numeric_stats) {loi_median <- terra::global(loi, \(x) stats::median(x, na.rm = TRUE)) |> unlist() } else {loi_median <- NULL}
+    if ("median" %in% loi_numeric_stats) {loi_median <- terra::global(loi, \(x) stats::median(x, na.rm = TRUE)) |> unlist() |> setNames(object = ., "median") } else {loi_median <- NULL}
     if ("min"    %in% loi_numeric_stats) {loi_min <- fun_global(loi, "min")} else {loi_min <- NULL}
     if ("max"    %in% loi_numeric_stats) {loi_max <- fun_global(loi, "max")} else {loi_max <- NULL}
     if ("sum"    %in% loi_numeric_stats) {loi_sum <- fun_global(loi, "sum")} else {loi_sum <- NULL}
@@ -294,27 +294,47 @@ hydroweight_attributes <- function(
     if ("cell_count" %in% loi_numeric_stats) {
       cc <- fun_global(!is.na(loi), "sum")
       loi_cell_count <- cc
-    } else {
+      loi_cell_count <- setNames(loi_cell_count, paste0(rep("cell_count", length(loi_cell_count)), seq(1:length(loi_cell_count))))
+      } else {
       loi_cell_count <- NULL
     }
 
     if ("NA_cell_count" %in% loi_numeric_stats) {
       (roi_cc <- terra::global(roi, "sum", na.rm = TRUE))
-      loi_NA_cell_count <- roi_cc - unlist(loi_cell_count)
+      loi_NA_cell_count <- unlist(rep(roi_cc, length(loi_cell_count))) - unlist(loi_cell_count)
+      loi_NA_cell_count <- setNames(loi_NA_cell_count,
+                                    paste0(rep("NA_cell_count", length(loi_NA_cell_count)),
+                                                              seq(1:length(loi_cell_count))))
     } else loi_NA_cell_count <- NULL
 
-    loi_stats <- c(loi_stats,
-                   list(lumped = list(
-                     mean = loi_mean,
-                     sd = loi_sd,
-                     median = setNames(loi_median, "median"),
-                     min = loi_min,
-                     max = loi_max,
-                     sum = loi_sum,
-                     cell_count = setNames(loi_cell_count, "cell_count"),
-                     NA_cell_count = setNames(loi_NA_cell_count, "NA_cell_count")
-                   ))
+    lumped <- list(
+      mean = loi_mean,
+      sd = loi_sd,
+      median = loi_median,
+      min = loi_min,
+      max = loi_max,
+      sum = loi_sum,
+      cell_count = loi_cell_count,
+      NA_cell_count = loi_NA_cell_count
     )
+
+    lumped <- lapply(lumped, function(x){
+
+      if(!is.null(x)){
+      old <- names(x)  # c("min1","min2")
+
+      # Extract numeric index
+      idx <- as.integer(sub(".*?(\\d+)$", "\\1", old))  # c(1, 2)
+      # Non-numeric prefix (metric base: "min")
+      metric_base <- sub("^(.*?)(\\d+)$", "\\1", old)
+
+      names(x) <- paste0(loi_columns[idx], "_", metric_base)
+      } else {x <- NULL}
+
+    return(x)
+    })
+
+    loi_stats <- c(loi_stats, list(lumped = lumped))
 
     distance_weights_attributes <- lapply(distance_weights[
       sapply(distance_weights, names) != "lumped"], function(dw) {
@@ -350,6 +370,8 @@ hydroweight_attributes <- function(
 
         tmp
       })
+
+    distance_weights_attributes
 
     if ("lumped" %in% sapply(distance_weights, names)) {
       distance_weights_attributes$lumped <- list(loi_dist_rast = loi)
