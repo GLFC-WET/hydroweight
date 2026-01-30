@@ -99,7 +99,7 @@ hydroweight_attributes <- function(
     loi_columns = NULL,
     loi_numeric,
     loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd",
-                          "median", "min", "max", "sum", "cell_count"),
+                          "median", "min", "max", "sum", "cell_count", "NA_cell_count"),
     roi = NULL,
     roi_uid,
     roi_uid_col = "ID",
@@ -113,7 +113,7 @@ hydroweight_attributes <- function(
 
   ## Allowed choices
   valid_stats   <- c("distwtd_mean", "distwtd_sd", "mean", "sd",
-                     "median", "min", "max", "sum", "cell_count")
+                     "median", "min", "max", "sum", "cell_count", "NA_cell_count")
   loi_numeric_stats <- match.arg(loi_numeric_stats, choices = valid_stats, several.ok = TRUE)
 
   ## Assign resampling type
@@ -246,7 +246,7 @@ hydroweight_attributes <- function(
   }
 
   ## Convert ROI to polygon
-  roi <- process_input(
+  roi_p <- process_input(
     input       = roi,
     input_name  = "roi",
     align_to    = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",
@@ -276,7 +276,7 @@ hydroweight_attributes <- function(
   ## Generate initial table
   loi_stats <- list(stats::setNames(roi_uid, roi_uid_col) |> unlist())
   names(loi_stats) <- roi_uid_col
-  loi_stats <- list(UID = loi_stats)
+  (loi_stats <- list(UID = loi_stats))
 
   ## Numeric statistics --------------------------------------------------------
   if (loi_numeric) {
@@ -299,20 +299,20 @@ hydroweight_attributes <- function(
     }
 
     if ("NA_cell_count" %in% loi_numeric_stats) {
-      roi_cc <- fun_global(roi, "sum")
+      (roi_cc <- terra::global(roi, "sum", na.rm = TRUE))
       loi_NA_cell_count <- roi_cc - unlist(loi_cell_count)
     } else loi_NA_cell_count <- NULL
 
     loi_stats <- c(loi_stats,
-                   list(lummped = list(
+                   list(lumped = list(
                      mean = loi_mean,
                      sd = loi_sd,
-                     median = loi_median,
+                     median = setNames(loi_median, "median"),
                      min = loi_min,
                      max = loi_max,
                      sum = loi_sum,
-                     cell_count = loi_cell_count,
-                     NA_cell_count = loi_NA_cell_count
+                     cell_count = setNames(loi_cell_count, "cell_count"),
+                     NA_cell_count = setNames(loi_NA_cell_count, "NA_cell_count")
                    ))
     )
 
@@ -382,6 +382,8 @@ hydroweight_attributes <- function(
     x[names(x) != "loi_dist_rast"]
   )
   final_out_table <- c(loi_stats, final_out_table)
+
+  final_out_table
 
   final_out_table_nms <- lapply(names(final_out_table), function(x)
     lapply(names(final_out_table[[x]]), function(y)
