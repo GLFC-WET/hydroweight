@@ -210,7 +210,7 @@ hydroweight_attributes <- function(
       working_dir = own_tempdir
     )
 
-    if (inherits(roi, "SpatRaster") && length(roi) > 1) roi <- roi[[1]]
+    if (inherits(roi, "SpatRaster") && nlyr(roi) > 1) roi <- roi[[1]]
     if (inherits(roi, "SpatVector") && ncol(roi) > 1) roi <- roi[, names(roi)[1]]
     names(roi) <- "roi"
   }
@@ -251,7 +251,8 @@ hydroweight_attributes <- function(
     input_name  = "roi",
     align_to    = terra::vect("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))",
                               crs = terra::crs(dw_ref)),
-    resample_type = "near"
+    resample_type = "near",
+    working_dir = own_tempdir
   )
 
   loi <- process_input(

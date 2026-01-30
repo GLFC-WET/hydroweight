@@ -41,17 +41,19 @@ RoxygenNote: 7.3.3
 Depends:
     R (>= 4.5)
 Imports:
-    devtools,
     dplyr,
     sf,
-    stringr,
     tidyr,
-    tidyselect,
+    tibble,
     terra,
     whitebox,
     utils,
     stats,
 Suggests: 
+    tmap,
+    tidyselect,
+    stringr,
+    devtools,
     knitr, 
     rmarkdown
 VignetteBuilder: knitr

@@ -109,13 +109,26 @@ process_input <- function(
   }
   dir.create(working_root, showWarnings = FALSE, recursive = TRUE)
 
+  ## Add a local terraOptions guard and restore it on exit
+  ## Each call to process_input() now isolates its tempdir change and never
+  ## contaminates the rest of the worker, which is crucial when process_input()
+  ## is called recursively or from different places that expect a consistent temp root.
+  old_terra_opts <- terra::terraOptions(print = FALSE)
+  on.exit({
+    opts <- old_terra_opts
+    opts$metadata <- NULL; opts$names <- NULL
+    if (identical(opts$filetype, "")) opts$filetype <- NULL
+    do.call(terra::terraOptions, opts)
+  }, add = TRUE)
+
+  ## Set terra temp directory once for the duration of this call
+  terra::terraOptions(tempdir = working_root, verbose = FALSE)
+
   ## Helper for generating temporary file paths
   tmp_file <- function(ext = ".tif") {
     file.path(working_root, paste0("tmp_", basename(tempfile()), ext))
   }
 
-  ## Set terra temp directory once
-  terra::terraOptions(tempdir = working_root, verbose = FALSE)
 
   ## PROCESS INPUTS ------------------------------------------------------------
 

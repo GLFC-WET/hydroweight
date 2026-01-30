@@ -2,10 +2,10 @@
 % Please edit documentation in R/hydroweight.R
 \name{hydroweight}
 \alias{hydroweight}
-\title{Generate inverse distance-weighted rasters}
+\title{Generate inverse distance–weighted rasters}
 \usage{
 hydroweight(
-  hydroweight_dir,
+  hydroweight_dir = NULL,
   target_O = NULL,
   target_S = NULL,
   target_uid = NULL,
@@ -17,77 +17,142 @@ hydroweight(
   inv_function = function(x) {
      (x * 0.001 + 1)^-1
  },
-  return_products = T,
-  wrap_return_products = T,
-  save_output = T,
-  clean_tempfiles = T,
-  temp_dir = NULL
+  snap = c("near", "in", "out"),
+  return_products = TRUE,
+  wrap_return_products = TRUE,
+  save_output = TRUE,
+  clean_tempfiles = TRUE
 )
 }
 \arguments{
-\item{hydroweight_dir}{character. File path to write resulting \code{*.zip} file.}
+\item{hydroweight_dir}{Character. Directory in which output rasters and the
+final \code{.zip} file (if \code{save_output = TRUE}) will be written. A temporary
+working subdirectory is created inside this folder.}
 
-\item{target_O}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/sample_point.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucO or iFLO.}
+\item{target_O}{Target feature for distance types involving an “O” (iEucO,
+iFLO, HAiFLO). May be a spatial object (\code{sf}, \code{SpatVector}, \code{RasterLayer}, \code{SpatRaster}, etc.) or a filepath
+to \code{.shp} dataset readable by \code{sf::st_read()} (i.e., Shapefile)
+or \code{.tif} dataset readable by \code{terra::rast()} (i.e., GeoTIFF).
+Use \code{NULL} to omit this target. See \emph{Weighting schemes} section below.}
 
-\item{target_S}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/stream_lines.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Target for iEucS or iFLS.}
+\item{target_S}{Same as \code{target_O} but used for distance types involving an
+“S” target (iEucS, iFLS, HAiFLS). See \emph{Weighting schemes} section below.}
 
-\item{target_uid}{character. Unique identifier to precede exported list \code{*.rds} (i.e., "target_uid"_inv_distances.rds)}
+\item{target_uid}{Character. Unique identifier used to name intermediate and
+exported files (e.g., \code{"SITE01_inv_distances.zip"}).}
 
-\item{OS_combine}{logical. Should target_O and target_S be merged as targets for iEucS, iFLS, and/or HAiFLS? Use \code{TRUE} or \code{FALSE}. This allows cells surrounding \code{target_O} to flow directly into \code{target_O} rather than be forced through \code{target_S}.}
+\item{OS_combine}{Logical. If \code{TRUE}, \code{target_O} and \code{target_S} are merged
+when producing \code{"iEucS"}, \code{"iFLS"}, and \code{"HAiFLS"} layers.
+This allows flow direction cells adjacent to \code{target_O} to drain directly
+into it rather than through \code{target_S}.}
 
-\item{clip_region}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/lu.shp"), \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of ESRI Shapefile type or GeoTiFF type only. Region over which distances are calculated.}
+\item{clip_region}{Optional spatial region used to clip all inputs to a
+shared extent. Accepts same formats as \code{target_O}. If \code{NULL}, full extents are preserved.}
 
-\item{dem}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/dem.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster} of GeoTiFF type. Digital elevation model raster.}
+\item{dem}{Digital elevation model. Must be a \code{SpatRaster}, \code{RasterLayer},
+\code{PackedSpatRaster}, or a filepath to a raster readable by \code{terra::rast()}.}
 
-\item{flow_accum}{character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/flow_accum.tif"), \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}  of GeoTiFF type. Flow accumulation raster (units: # of cells).}
+\item{flow_accum}{Flow‑accumulation raster (units = number of cells).
+Must align with the DEM in resolution and extent. Same supported formats
+as \code{dem}.}
 
-\item{weighting_scheme}{character. One or more weighting schemes: c("lumped", "iEucO", "iEucS", "iFLO", "iFLS", "HAiFLO", "HAiFLS").}
+\item{weighting_scheme}{Character vector specifying one or more weighting
+schemes (see \strong{Weighting schemes} section below).}
 
-\item{inv_function}{function or named list of functions based on \code{weighting_scheme} names. Inverse function used in \code{terra::app()} to convert distances to inverse distances. Default: \code{(X * 0.001 + 1)^-1} assumes projection is in distance units of m and converts to distance units of km.}
+\item{inv_function}{Inverse‑distance function applied to raw distance rasters.
+May be a single function (applied to all schemes) or a named list of
+functions matching entries in \code{weighting_scheme}.
+Default: \code{(x * 0.001 + 1)^-1}, which converts metres to kilometres.}
 
-\item{return_products}{logical. If \code{TRUE}, a list containing the file path to write resulting \code{*.zip} file, and \code{distance_weights} raster. If \code{FALSE}, file path only.}
+\item{snap}{Character. Controls how \code{terra::crop()} aligns the raster grid to the
+clipping geometry (\code{"near"}, \code{"in"}, or \code{"out"}). The choice of snap setting
+controls how raster grids align during cropping, which can shift cell boundaries
+and influence flow‑path continuity, ultimately affecting hydrological distance
+and accumulation calculations. See \strong{Snap Argument} section below.}
 
-\item{wrap_return_products}{logical. Should return_products be \code{terra::wrap()} (necessary for running function in parallel)?}
+\item{return_products}{Logical.
+If \code{TRUE} (default), the function returns a list containing:
+\enumerate{
+\item output file location (for \code{.zip} archive), and
+\item the generated distance‑weighted rasters (wrapped if requested).
+If \code{FALSE}, only the output file path (or \code{NULL} if \code{save_output = FALSE})
+is returned.
+}}
 
-\item{save_output}{logical. Should output rasters be saved to a zip file?}
+\item{wrap_return_products}{Logical. If \code{TRUE} (default), rasters in the returned list
+are wrapped with \code{terra::wrap()}, improving parallel workflow safety.}
 
-\item{clean_tempfiles}{logical. Should temporary files be removed?}
+\item{save_output}{Logical. If \code{TRUE} (default), the distance‑weighted rasters are
+written to disk and packaged into a \code{.zip} file in \code{hydroweight_dir}.}
+
+\item{clean_tempfiles}{Logical. If \code{TRUE} (default), temporary files and the
+working directory are deleted on exit. Set to \code{FALSE} to retain intermediate
+rasters for debugging.}
 }
 \value{
-Named list of \code{PackedSpatRaster} distance-weighted rasters and location of accompanying \code{*.zip} in \code{hydroweight_dir}
+A named list where each element is a distance‑weighted \code{SpatRaster}
+(or \code{PackedSpatRaster} if \code{wrap_return_products = TRUE}), with names
+corresponding to the entries in \code{weighting_scheme}.
+
+If \code{save_output = TRUE}, the function also returns the path to the generated
+\code{"_inv_distances.zip"} archive in \code{hydroweight_dir}.
 }
 \description{
-\code{hydroweight::hydroweight()} generates distance-weighted rasters for targets
-on a digital elevation model raster. Examples of targets include single points,
-areas such as lakes, or linear features such as streams. The function outputs
-a list of \code{length(weighting_scheme)} and an accompanying \code{*.rds} file
-of distance-weighted rasters for targets (\code{target_O} is a point/area target as
-in iFLO and \code{target_S} is a stream/linear feature target as in iFLS in
-Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
-IMPORTANTLY, this function acts on a single set of targets but can produce
-multiple weights. The distance-weighted rasters, can be used for generating
-distance-weighted landscape statistics using \code{hydroweight::hydroweight_attributes()} (e.g., \% urban
-cover weighted by flow distance to a point). See https://github.com/bkielstr/hydroweight for workflows.
+\code{hydroweight()} computes inverse‑distance rasters for one or more target
+features using a digital elevation model (\code{dem}), a flow‑accumulation surface
+(\code{flow_accum}), and user‑specified weighting schemes. Targets may be points,
+lines, or polygons (e.g., monitoring sites, streams, lakes). The implementation
+follows the distance‑weighting concepts described in \strong{Peterson et al. (2011)}
+\url{https://doi.org/10.1111/j.1365-2427.2010.02507.x}. The generated rasters represent Euclidean or flow‑path distances to targets,
+optionally modified by hydrologic activity (flow accumulation). These distance
+layers can be used directly or passed to
+\code{hydroweight_attributes()} to compute distance‑weighted landscape statistics
+(e.g., proportion of urban land weighted by flow distance to a site).
 }
 \details{
-Spatial layers should align (i.e., identical coordinate reference systems - CRS).
-Through processing, targets are converted to the resolution and CRS of the
-digital elevation model/flow accumulation CRS. \emph{TEMP}* files are generated in
-\code{hydroweight_dir} depending on processing step and can be overwritten.
+Spatial inputs are internally aligned to the CRS, resolution, and extent of
+the \code{dem} using \code{process_input()}. Temporary rasters (prefixed \verb{_TEMP_}) are
+written to a working subdirectory of \code{hydroweight_dir} and removed unless
+\code{clean_tempfiles = FALSE}.
+}
+\section{Weighting schemes}{
 
-For \code{weighting_scheme}:
 
-"lumped" indicates all weights = 1
+The \code{weighting_scheme} argument may include one or more of:
+\itemize{
+\item \strong{"lumped"} - uniform weighting (all cells = 1)
+\item \strong{"iEucO"} - Euclidean distance to \code{target_O}
+\item \strong{"iEucS"} - Euclidean distance to \code{target_S}
+\item \strong{"iFLO"} - D8 flow‑path distance to \code{target_O}
+\item \strong{"iFLS"} - D8 flow‑path distance to \code{target_S}
+\item \strong{"HAiFLO"} - hydrologically‑active (flow‑accumulation‑weighted) D8 distance to \code{target_O}
+\item \strong{"HAiFLS"} - hydrologically‑active D8 distance to \code{target_S}
+}
 
-"iEucO" indicates Euclidean distance to \code{target_O}
+These represent the same families of distance metrics used in
+\strong{iFLO/iFLS} approaches as in Peterson et al. (2011).
+}
 
-"iEucS" indicates Euclidean distance to \code{target_S}
+\section{Snap Argument}{
 
-"iFLO" indicates d8 flow-path distance to \code{target_O}
 
-"iFLS" indicates d8 flow-path distance to \code{target_S}
+The \code{snap} argument controls how raster grids are aligned when cropping. Choosing
+the appropriate snap mode can affect flow‑path distances, watershed
+boundaries, and other hydrologically sensitive calculations.
+\itemize{
+\item \code{"near"} snaps to the closest grid alignment and generally preserves
+hydrologic continuity with minimal distortion—this is the recommended
+setting for hydroweight workflows.
+\item \code{"in"} forces the cropped raster to lie entirely inside the clipping
+geometry, which may slightly shrink the effective area.
+\item \code{"out"} ensures the cropped raster fully covers the clipping region, which
+may include cells extending beyond the region.
+}
+}
 
-"HAiFLO" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_O}
-
-"HAiFLS" indicates d8 hydrologically-active (proportional to flow accumulation) flow-path distance to \code{target_S}
+\seealso{
+\itemize{
+\item \code{\link[=hydroweight_attributes]{hydroweight_attributes()}} for attribute summarization
+\item \code{\link[=process_input]{process_input()}} for spatial alignment and pre‑processing
+}
 }

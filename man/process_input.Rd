@@ -2,7 +2,7 @@
 % Please edit documentation in R/process_input.R
 \name{process_input}
 \alias{process_input}
-\title{Align spatial data for \verb{hydroweight::} functions}
+\title{Align and normalize spatial inputs for hydroweight workflows}
 \usage{
 process_input(
   input = NULL,
@@ -13,43 +13,95 @@ process_input(
   resample_type = c("bilinear", "near"),
   snap = c("near", "in", "out"),
   working_dir = NULL,
+  persist_final = FALSE,
   ...
 )
 }
 \arguments{
-\item{input}{Input spatial data: \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster}, or character (full file path with extension, e.g., "C:/Users/Administrator/Desktop/input.shp").}
+\item{input}{May be a spatial object (\code{sf}, \code{SpatVector}, \code{RasterLayer}, \code{SpatRaster}, etc.) or a filepath
+to \code{.shp} dataset readable by \code{sf::st_read()} (i.e., Shapefile)
+or \code{.tif} dataset readable by \code{terra::rast()} (i.e., GeoTIFF).}
 
-\item{input_name}{Input name only used in error or warning messages: \code{NULL} or \code{character}.}
+\item{input_name}{Optional label (\code{character}) used in diagnostic messages.
+Helpful for tracing errors when processing multiple inputs.}
 
-\item{input_variable_names}{\code{input} variable names that should be included in output: \code{NULL} or \code{character}. If \code{NULL}, all variables in \code{input} are used.}
+\item{input_variable_names}{Optional \code{character} vector of attribute names
+(for vectors) or layer names (for rasters) to retain. If \code{NULL}, all
+attributes/layers are kept.}
 
-\item{align_to}{Spatial data that \code{input} will be aligned to: \code{NULL}, \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster} or \code{character} (full file path with extension, e.g., "C:/Users/Administrator/Desktop/align_to.tif"). If \code{NULL}, all variables in \code{input} are returned as \code{SpatVector} or \code{SpatRaster}.}
+\item{align_to}{Optional \strong{target} to align to: a spatial object or filepath
+(same accepted formats as \code{input}). If supplied, the returned object is
+projected/resampled to the CRS and grid of \code{align_to} (for rasters) or
+projected to its CRS (for vectors). If \code{NULL}, inputs are returned in
+their native geometry after optional subsetting.}
 
-\item{clip_region}{\code{input} will be clipped and masked to this region: \code{NULL}, \code{sf}, \code{SpatVector}, \code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, \code{PackedSpatRaster}, or \code{character} (full file path with extension, e.g., "C:/Users/Administrator/Desktop/clip_region.shp"). Internally converted to \code{SpatVector}. If \code{NULL}, full extent of \code{input} is returned.}
+\item{clip_region}{Optional spatial object or filepath (same accepted formats as \code{input}).
+If provided, the result is cropped to \code{clip_region}; rasters are also masked.}
 
-\item{resample_type}{\code{character}. If \code{bilinear} (default), the \code{input_variable_names} being coerced are numeric, if \code{'near'}, the \code{input_variable_names} being coerced are categorical, for the purposes of resampling/projecting if \code{align_to} is \code{SpatRaster}.}
+\item{resample_type}{Character; resampling strategy for raster alignment and/or
+rasterization to \code{align_to}. One of \code{"bilinear"} (typical for continuous
+data) or \code{"near"} (typical for categorical data). Default: \code{"bilinear"}.}
 
-\item{snap}{\code{character}. One of "near", "in", or "out". Used to align y to the geometry of x. Default is \code{near}.}
+\item{snap}{Character. Controls how \code{terra::crop()} aligns the raster grid to the
+clipping geometry (\code{"near"}, \code{"in"}, or \code{"out"}). The choice of snap setting
+controls how raster grids align during cropping, which can shift cell boundaries
+and influence flow‑path continuity, ultimately affecting hydrological distance
+and accumulation calculations. (see \emph{Snap Argument} section below)}
 
-\item{working_dir}{Folder path for temporary file storage: \code{NULL} or \code{character}. If \code{NULL}, assigned internally.}
+\item{working_dir}{Optional directory path used for temporary files and
+\code{terra}’s out‑of‑memory operations. If \code{NULL}, a temporary folder is created.}
 
-\item{...}{other variables passed to various \code{terra} functions.}
+\item{persist_final}{Logical; if \code{TRUE}, the final \code{SpatRaster}/\code{SpatVector}
+is written to disk inside \code{working_dir} and the function returns a
+file‑backed object. Default: \code{FALSE}.}
+
+\item{...}{Additional arguments forwarded to underlying \code{terra} operations
+(e.g., \code{terra::crop()}, \code{terra::project()}, \code{terra::rasterize()},
+\code{terra::as.polygons()}).}
 }
 \value{
-an object of class \code{SpatVector} or \code{SpatRaster} depending on \code{align_to}
+A \code{SpatVector} or \code{SpatRaster} (file‑backed if \code{persist_final = TRUE}),
+aligned and optionally subsetted and clipped as requested.
 }
 \description{
-\code{hydroweight::process_input()} is an internal function that aligns spatial data into \code{SpatVector} or \code{SpatRaster} types depending on \code{align_to} class.
+\code{process_input()} standardizes spatial inputs (vectors or rasters, or
+filepaths to either) into \code{terra} objects and optionally:
+(1) subsets requested variables/layers, (2) aligns to a target geometry,
+and (3) clips/masks to a region of interest. The result is a \code{SpatVector}
+or \code{SpatRaster} ready for downstream use in \code{hydroweight()} and
+\code{hydroweight_attributes()}.
 }
-\details{
-\code{input} data is coerced to type \code{SpatVector} or \code{SpatRaster} depending on class of \code{align_to}:
+\section{Coercion & alignment (high‑level)}{
+
 \itemize{
-\item If \code{input} is a raster, \code{align_to} is a raster, and \code{resample_type} == \code{bilinear} (e.g., for continuous data), then class \code{SpatRaster} is output with rasterizing and reprojection occurring as necessary;
-\item If \code{input} is a raster, \code{align_to} is a raster, and \code{resample_type} == \code{near} (e.g., for categorical data), then unique values of \code{input} are coerced into separate binary layers of a \code{SpatRaster}, with 1 indicating the category/value is present;
-\item If \code{input} is a vector, \code{align_to} is a raster, unique values of \code{input_variable_names} are each coerced into separate layers in a \code{SpatRaster}, with 1 indicating the category/value is present.
-, and \code{align_to} is of class \code{SpatRaster}, \code{input} is coerced to class \code{SpatRaster}, rasterizing and/or reprojecting as necessary;
-\item If \code{resample_type} == \code{near}, (e.g., for categorical data), \code{align_to} is of class \code{SpatRaster}, and \code{input} is of class \code{SpatRaster},  and
-\item If \code{input} is of class \code{SpatVector} and \code{align_to} is of class \code{SpatRaster},
-\item If \code{input} is of class \code{SpatVector} and \code{align_to} is
+\item Vector or raster inputs (or filepaths) are coerced to \code{SpatVector} or
+\code{SpatRaster} as appropriate.
+\item If \code{align_to} is a raster, rasters are reprojected/resampled to match its
+CRS, extent, resolution, and grid. Vectors are projected and, when needed,
+rasterized against the \code{align_to} grid.
+\item If \code{resample_type = "near"}, categorical data are handled using nearest‑neighbor
+semantics; if \code{"bilinear"}, continuous data are interpolated bilinearly.
+\item When \code{clip_region} is supplied, outputs are cropped and (for rasters) masked
+to that region, with grid placement controlled by \code{snap}.
+}
+}
+
+\section{Notes}{
+
+\itemize{
+\item \code{resample_type} controls resampling when aligning to raster targets:
+use \code{"bilinear"} for numeric/continuous layers and \code{"near"} for categorical.
+\item \code{snap} controls grid placement during cropping and can influence flow‑path
+continuity in hydrologic analyses.
+\item When aligning a vector to a raster target, categorical attributes may be
+rasterized into multiple binary layers (one per category) when
+\code{resample_type = "near"}.
+}
+}
+
+\seealso{
+\itemize{
+\item \code{\link[=hydroweight]{hydroweight()}} for generating distance‑weighted rasters
+\item \code{\link[=hydroweight_attributes]{hydroweight_attributes()}} for distance‑weighted attribute summaries
 }
 }

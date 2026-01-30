@@ -1,626 +1,997 @@
-hydroweight: Inverse distance-weighted rasters and landscape attributes
+hydroweight: Distance-weighted rasters and landscape attributes
 ================
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+- [hydroweight](#hydroweight)
+  - [0. Learning objectives](#0-learning-objectives)
+  - [1. Why distance-weighted landscape
+    metrics?](#1-why-distance-weighted-landscape-metrics)
+  - [2. Installation & prerequisites](#2-installation--prerequisites)
+  - [3. Tutorial](#3-tutorial)
+    - [3.1 Prepare example terrain
+      data](#31-prepare-example-terrain-data)
+    - [3.2 Create example targets (`target_O`,
+      `target_S`)](#32-create-example-targets-target_o-target_s)
+    - [3.3 Generate distance‑weighted
+      rasters](#33-generate-distanceweighted-rasters)
+    - [3.4 Compute distance‑weighted
+      attributes](#34-compute-distanceweighted-attributes)
+  - [4. Scaling up: multiple sites & layers while looking more closely
+    at data
+    structures](#4-scaling-up-multiple-sites--layers-while-looking-more-closely-at-data-structures)
+    - [4.1 Generate multiple sites and
+      watersheds](#41-generate-multiple-sites-and-watersheds)
+    - [4.2 Run `hydroweight()` across
+      sites](#42-run-hydroweight-across-sites)
+    - [4.2 Generate `loi` lists populated with layer-specific
+      `hydroweight_attributes()`
+      parameters](#42-generate-loi-lists-populated-with-layer-specific-hydroweight_attributes-parameters)
+    - [4.3 Run `hydroweight_attributes()` across sites and
+      layers](#43-run-hydroweight_attributes-across-sites-and-layers)
+    - [4.4 Extract and adjust results data
+      frames](#44-extract-and-adjust-results-data-frames)
+  - [5. Effect of different inverse weighting
+    formulas](#5-effect-of-different-inverse-weighting-formulas)
+  - [6. Quick guide to accessing intermediate files for
+    troubleshooting](#6-quick-guide-to-accessing-intermediate-files-for-troubleshooting)
+  - [7. Using iFLO to derive catchments (alternative to watershed
+    tool)](#7-using-iflo-to-derive-catchments-alternative-to-watershed-tool)
+  - [8. Troubleshooting & performance](#8-troubleshooting--performance)
+  - [9. References](#9-references)
+  - [10. Acknowledgements](#10-acknowledgements)
+  - [11. Development team](#11-development-team)
+  - [12. License](#12-license)
 
-[![DOI](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
+<!-- README.md is generated from this file. Please edit README.Rmd. -->
 
-## Contents
+[![](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
 
--   [1.0 Introduction](#10-introduction)
--   [2.0 System setup and
-    installation](#20-system-setup-and-installation)
--   [3.0 Inverse distance-weighted rasters using
-    `hydroweight()`](#30-inverse-distance-weighted-rasters-using-hydroweight)
--   [3.1 Generate toy terrain dataset](#31-generate-toy-terrain-dataset)
--   [3.2 Generate targets](#32-generate-targets)
--   [3.3 Run `hydroweight()`](#33-run-hydroweight)
--   [3.4 Run `hydroweight()` across a set of
-    sites](#34-run-hydroweight-across-a-set-of-sites)
--   [3.5 Using `iFLO` output as catchment boundaries for
-    `hydroweight_attributes()`](#35-using-iFLO-output-as-catchment-boundaries-for-hydroweight_attributes)
--   [4.0 Inverse distance-weighted rasters using
-    `hydroweight_attributes()`](#40-inverse-distance-weighted-attributes-using-hydroweight_attributes)
--   [4.1 Using a numeric raster layer of
-    interest](#41-using-a-numeric-raster-layer-of-interest)
--   [4.2 Using a categorical raster layer of
-    interest](#42-using-a-categorical-raster-layer-of-interest)
--   [4.3 Using a polygon layer of interest with numeric data in the
-    column](#43-using-a-polygon-layer-of-interest-with-numeric-data-in-the-column)
--   [4.4 Using a polygon layer of interest with categorical data in the
-    column](#44-using-a-polygon-layer-of-interest-with-categorical-data-in-the-column)
--   [5.0 Inverse distance-weighted rasters and attributes across
-    multiple layers and
-    sites](#50-inverse-distance-weighted-rasters-and-attributes-across-multiple-sites-and-layers)
--   [5.1 Run hydroweight across sites](#51-Run-hydroweight-across-sites)
--   [5.2 Generate `loi` lists populated with `hydroweight_attributes()`
-    parameters](#52-generate-loi-lists-populated-with-hydroweight_attributes-parameters)
--   [5.3 Run `hydroweight_attributes()` across sites and
-    layers](#53-run-hydroweight_attributes-across-sites-and-layers)
--   [5.4 Extract and adjust results data
-    frames](#54-extract-and-adjust-results-data-frames)
--   [6.0 Processing large amounts of
-    data](#60-Processing-large-amounts-of-data)
--   [7.0 Future plans](#70-future-plans)
--   [8.0 Acknowledgements](#80-acknowledgements)
--   [9.0 References](#90-references)
--   [10.0 Copyright](#100-copyright)
+# hydroweight
 
-## 1.0 Introduction
+`hydroweight` helps environmental scientists compute
+***distance-weighted*** landscape metrics within hydrologically
+meaningful areas. It implements workflows to compute spatially explicit
+landscape metrics described in Peterson *et al*. (2011). Ultimately, the
+landscape metrics can be used as predictor variables in other models
+(e.g., contaminant modelling).
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="75%" style="display: block; margin: auto;" />
+It provides:
 
-Environmental scientists often want to calculate landscape statistics
-within upstream topographic contributing areas (i.e., catchments) to
-examine their potential effects on a target (e.g., stream network point
-or waterbody). When calculating landscape statistics like the proportion
-of upstream urban cover, practitioners typically use a “lumped”
-approach; this approach gives equal weighting to areas nearby and far
-away from the target (Peterson et al. 2011).
+- `hydroweight()` – used to generate distance-weighted rasters for
+  ***targets*** (points/areas = `target_O`; streams = `target_S`) on a
+  DEM.
+- `hydroweight_attributes()` – used to summarize ***layers of
+  interest*** (rasters or polygons; numeric or categorical) within a
+  ***region of interest*** (e.g., watershed polygon), using the distance
+  weights produced above.
 
-A more spatially explicit approach could be to generate buffers of
-successive distances away from the target and calculate the lumped
-statistics. For example, one could calculate the proportion of urban
-cover in a 250 m buffer and a 1000 m buffer from the target (Kielstra et
-al. 2019).
+The package is designed for transparent, flexible workflows across
+weighting schemes, data types, and multiple sites.
 
-Another approach is to calculate landscape statistics based on distances
-to the target where areas nearby have more weight than those farther
-away (i.e., inverse distance-weighting). A set of inverse distance
-weighting scenarios for stream survey sites was described in Peterson
-*et al.* (2011) that included various types of Euclidean and flow-path
-distances to targets. Tools are implemented as *IDW-Plus* in *ArcGIS*
-(Peterson et al. 2017) as well as in *rdwplus* in *R* through *GRASS
-GIS* (Pearse et al. 2019).
+------------------------------------------------------------------------
 
-***hydroweight*** replicates the above approaches but also provides a
-set of simple and flexible functions to accommodate a wider set of
-scenarios and statistics (e.g., numerical and categorical rasters and
-polygons). It also uses the speedy WhiteboxTools (Lindsay 2016, Wu
-2020).
+## 0. Learning objectives
 
-There are two functions:
+By the end of this tutorial, you will be able to:
 
--   `hydroweight()` generates distance-weighted rasters for targets on a
-    digital elevation model raster. Examples of targets include single
-    points, areas such as lakes, or linear features such as streams. The
-    function outputs a list of `length(weighting_scheme)` and an
-    accompanying `*.rds` file of distance-weighted rasters for targets
-    (`target_O` is a point/area target as in iFLO and `target_S` is a
-    linear feature target as in iFLS in Peterson *et al.* 2011).
-    IMPORTANTLY, this function acts on a single set of targets but can
-    produce multiple weights. The distance-weighted rasters can be used
-    for generating distance-weighted attributes with
-    `hydroweight_attributes()` (e.g., % urban cover weighted by flow
-    distance to a point). See `?hydroweight`.
+- Explain why distance-weighted catchment metrics can outperform simple
+  “lumped” metrics for many applications.
+- Prepare a DEM and hydrologic derivatives (flow directions,
+  accumulation, streams) required by `hydroweight()`.
+- Generate distance-weighted rasters with different schemes (e.g.,
+  iEucO, iFLO, HAiFLS) and interpret their meaning.
+- Compute distance-weighted numeric (i.e., mean) and categorical (i.e.,
+  % cover) attributes with `hydroweight_attributes()`.
+- Scale the workflow to multiple sites and multiple layers.
+- Understand the effect of different inverse weighting formulas.
+- Understand how to extract intermediate products.
+- Troubleshoot common issues and improve performance.
 
--   `hydroweight_attributes()` calculates distance-weighted attributes
-    using distance-weighted rasters generated in `hydroweight()`, an
-    attribute layer (`loi`, e.g., land use raster/polygon), and a region
-    of interest (`roi`, e.g., a catchment polygon). The function outputs
-    an attribute summary table or a list that includes the summary table
-    and layers used for calculation. Summary statistics are calculated
-    as in Peterson *et al.* (2011). IMPORTANTLY, this function only
-    produces one instance of the `loi` x `distance_weights` summary
-    statistics (i.e., one `loi`, one `roi`, and one set of
-    `distance_weights`). See `?hydroweight_attributes`.
+------------------------------------------------------------------------
 
-Workflows are provided below to run these functions across multiple
-sites and layers.
+## 1. Why distance-weighted landscape metrics?
 
-Distance weights defined by Peterson *et al.* (2011) are:
+Traditional “lumped” metrics treat all upstream areas equally.
+Distance-weighted metrics recognize that nearby areas can have more
+influence on a target (e.g., stream site or lake) than distant areas.
+Different weighting schemes represent different distance concepts:
 
-| Distance weight | Definition                                                                                                                          | Input layers required        |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
-| lumped          | all weights = 1                                                                                                                     | `dem`, `target_O`/`target_S` |
-| iEucO           | weighted inverse Euclidean distance to `target_O` (i.e., stream outlet)                                                             | `dem`, `target_O`            |
-| iEucS           | weighted inverse Euclidean distance to `target_S` (i.e., streams)                                                                   | `dem`, `target_S`            |
-| iFLO            | weighted inverse flow-path distance to `target_O` using d8 flow direction                                                           | `dem`, `target_O`            |
-| HAiFLS          | hydrologically-active (proportional to flow accumulation) weighted inverse flow-path distance to `target_S` using d8 flow direction | `dem`, `target_S`, `accum`   |
+- ***Euclidean*** (i.e., as the crow flies) distance to a target
+  (`iEucO`, `iEucS`)
+- ***Flow-path*** distance along the drainage network (`iFLO`, `iFLS`)
+- ***Hydrologically active*** variants that incorporate flow
+  accumulation (`HAiFLO`, `HAiFLS`)
 
-[Back to top](#contents)
+This package reproduces the ideas introduced in IDW-PLUS (Peterson and
+Pearse, 2017; Pearse *et al*., 2025) and related tools, while providing
+a simple, flexible R workflow built on WhiteboxTools.
 
-## 2.0 System setup and installation
+------------------------------------------------------------------------
 
-*WhiteboxTools* and *whitebox* are required for ***hydroweight***. See
-[whiteboxR](https://github.com/giswqs/whiteboxR) or below for
-installation.
+## 2. Installation & prerequisites
+
+You’ll need R packages for geospatial data and WhiteboxTools bindings
+(and a few others used in demonstration here).
 
 ``` r
-## Follow instructions for whitebox installation accordingly
-## devtools::install_github("giswqs/whiteboxR") # For development version
-## whitebox is now available on CRAN
-#install.packages("whitebox")
+# Install CRAN dependencies
+install.packages(c(
+  "terra","sf","dplyr","ggplot2","viridis","foreach","doParallel",
+  "future.apply","purrr","tidyr","readr","whitebox","mapview",
+  "tmap","stars","scales"
+))
 
-library(whitebox)
-
-if (F){
-  install_whitebox()
-  # Possible warning message:
-  # ------------------------------------------------------------------------
-  # Could not find WhiteboxTools!
-  # ------------------------------------------------------------------------
-  #
-  # Your next step is to download and install the WhiteboxTools binary:
-  #     > whitebox::install_whitebox()
-  #
-  # If you have WhiteboxTools installed already run `wbt_init(exe_path=...)`':
-  #    > wbt_init(exe_path='/home/user/path/to/whitebox_tools')
-  #
-  # For whitebox package documentation, ask for help:
-  #    > ??whitebox
-  #
-  # For more information visit https://giswqs.github.io/whiteboxR/
-  #
-  # ------------------------------------------------------------------------
-}
-
-## Install current version of hydroweight
-#devtools::install_github("bkielstr/hydroweight@main")
+# Install hydroweight (replace with your install path/source as needed)
+# install.packages("hydroweight")                         # if on CRAN
+# remotes::install_github("GLFC-WET/hydroweight@dev")   # dev version
 ```
 
-[Back to top](#contents)
-
-## 3.0 Inverse distance-weighted rasters using `hydroweight()`
-
-### 3.1 Generate toy terrain dataset
-
-We begin by bringing in our toy digital elevation model and using it to
-generate terrain products.
-
 ``` r
-## Load libraries
-library(dplyr)
-library(foreach)
-library(future.apply)
 library(hydroweight)
 library(terra)
 library(sf)
-library(viridis)
 library(whitebox)
-library(mapview)
-
-## Import toy_dem from whitebox package
-toy_file<-sample_dem_data()
-toy_file <- system.file("extdata", "DEM.tif", package = "whitebox")
-toy_dem <- rast(x = toy_file) # reading the file from terra directly sometimes crashes R for some reason
-crs(toy_dem) <- "epsg:3161"
-
-## Generate hydroweight_dir as a temporary directory
+library(viridis)
+library(tmap)
+library(tidyr)
+library(purrr)
+library(tibble)
+library(foreach)
+library(doParallel)
+library(future.apply)
+library(scales)
+library(dplyr)
+library(patchwork)
+library(stringr)
+library(ggplot2)
+ 
+## Working directory for outputs (temp for the tutorial)
 hydroweight_dir <- tempdir()
+```
 
-## Write toy_dem to hydroweight_dir
-writeRaster(
-  x = toy_dem, filename = file.path(hydroweight_dir, "toy_dem.tif"),
-  overwrite = TRUE
-)
+> **Additional WhiteboxTools details**
+>
+> - If `whitebox::install_whitebox()` is needed on your machine, run:
+>   `whitebox::install_whitebox()` once.  
+> - If you already have WhiteboxTools, set the path with:
+>   `whitebox::wbt_init(exe_path = "/path/to/whitebox_tools")`.
 
-## Breach depressions to ensure continuous flow
+------------------------------------------------------------------------
+
+## 3. Tutorial
+
+**Workflow at a glance**
+
+    DEM → (Whitebox preprocessing) → hydroweight() → distance-weighted rasters
+                                   → hydroweight_attributes() → summary tables
+
+We’ll start with a toy DEM, create targets, compute distance weights,
+and then summarize layers of interest (numeric and categorical).
+
+Finally, we’ll scale to multiple sites, demonstrate the structure and
+access of intermediate products, and look at effects of different
+inverse weighting formulas and how to access intermediate products.
+
+------------------------------------------------------------------------
+
+### 3.1 Prepare example terrain data
+
+We use the `whitebox` demo DEM to keep this tutorial reproducible.
+
+**What we will create**
+
+- A breached DEM (for continuous flow)
+- D8 flow direction and flow accumulation rasters
+- A stream network derived from accumulation
+
+``` r
+## Load the demo DEM shipped with {whitebox}
+toy_dem <- rast(system.file("extdata", "DEM.tif", package = "whitebox"))
+
+## Persist the DEM for WhiteboxTools
+writeRaster(toy_dem, file.path(hydroweight_dir, "toy_dem.tif"), overwrite = TRUE)
+
+## 1) Breach depressions to ensure continuous flow
 wbt_breach_depressions(
-  dem = file.path(hydroweight_dir, "toy_dem.tif"),
+  dem    = file.path(hydroweight_dir, "toy_dem.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached.tif")
 )
 
-## Generate d8 flow pointer (note: other flow directions are available)
+## 2) Flow direction (D8)
 wbt_d8_pointer(
-  dem = file.path(hydroweight_dir, "toy_dem_breached.tif"),
+  dem    = file.path(hydroweight_dir, "toy_dem_breached.tif"),
   output = file.path(hydroweight_dir, "toy_dem_breached_d8.tif")
 )
 
-## Generate d8 flow accumulation in units of cells (note: other flow directions are available)
+## 3) Flow accumulation (cells)
 wbt_d8_flow_accumulation(
-  input = file.path(hydroweight_dir, "toy_dem_breached.tif"),
-  output = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
+  input    = file.path(hydroweight_dir, "toy_dem_breached.tif"),
+  output   = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
   out_type = "cells"
 )
 
-## Generate streams with a stream initiation threshold of 2000 cells
+## 4) Stream network (threshold = 2000 cells)
 wbt_extract_streams(
   flow_accum = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
-  output = file.path(hydroweight_dir, "toy_dem_streams.tif"),
-  threshold = 2000
+  output     = file.path(hydroweight_dir, "toy_dem_streams.tif"),
+  threshold  = 2000
 )
+
+tg_S <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
 ```
 
-[Back to top](#contents)
+------------------------------------------------------------------------
 
-### 3.2 Generate toy targets
+### 3.2 Create example targets (`target_O`, `target_S`)
 
-Next we generate a few targets below. Users can provide their own vector
-or raster type targets (see `?hydroweight`). Targets are often called
-*pour points* in the literature; here, targets can be a group of raster
-cells, polygons, polylines, or points.
+`hydroweight()` supports two target types:
 
-Our first target is a low lying area we will call a lake (`tg_O`). All
-cells \<220 m elevation are assigned `TRUE` or `1` and those \>220 m are
-assigned `NA`. We also generate its catchment (`tg_O_catchment`) using
-`whitebox::wbt_watershed()`. Our target streams (`tg_S`) are loaded from
-the `whitebox::wbt_extract_streams()` output. Finally, we do some
-manipulation to the stream network raster to generate three points along
-the stream network (`tg_O_multi`) and their catchments
-(`tg_O_multi_catchment`).
+- **`target_O`**: points or areas (e.g., site locations, lakes)  
+- **`target_S`**: streams/linear features (e.g., distance to streams)
+
+We’ll create a small lake polygon (`target_O`) and derive its watershed.
 
 ``` r
-## For hydroweight, there are target_O and target_S
-## target_O is a target point/area for calculating distances
-## target_S is a stream/linear feature target for calculating distances
-
-## Generate target_O, tg_O, representing a lake.
+## Lake polygon (target_O) below 220 m elevation
 tg_O <- toy_dem < 220
-tg_O[tg_O != 1] <- NA
+tg_O <- ifel(tg_O, 1, 0) # to ensure only non-zero, non-NoData cells are used
 writeRaster(tg_O, file.path(hydroweight_dir, "tg_O.tif"), overwrite = TRUE)
-tg_O <- terra::as.polygons(tg_O, dissolve = TRUE)
-tg_O <- sf::st_as_sf(tg_O)
+tg_O <- terra::as.polygons(tg_O, dissolve = TRUE) |> sf::st_as_sf() |> 
+  dplyr::filter(DEM == 1)
 
-## Generate catchment for tg_O
+## Watershed of the lake (`roi` candidate for later)
 wbt_watershed(
   d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"),
   pour_pts = file.path(hydroweight_dir, "tg_O.tif"),
-  output = file.path(hydroweight_dir, "tg_O_catchment.tif")
+  output   = file.path(hydroweight_dir, "tg_O_catchment.tif")
 )
 
-tg_O_catchment <- rast(file.path(hydroweight_dir, "tg_O_catchment.tif"))
-tg_O_catchment <- as.polygons(tg_O_catchment, dissolve = TRUE)
-tg_O_catchment <- st_as_sf(tg_O_catchment)
-names(tg_O_catchment)[1]<-"Lake"
+## Load and clean up
+tg_O_catchment <- rast(file.path(hydroweight_dir, "tg_O_catchment.tif")) |>
+  as.polygons(dissolve = TRUE) |>
+  st_as_sf() |>
+  rename(Lake = "tg_O_catchment")
+```
 
-## Generate target_S, tg_S, representing the stream network
-tg_S <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
+**Quick look**
 
-## Generate target_O, tg_O, representing several points along stream network, and their catchments
-tg_O_multi <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
-tg_O_multi <- as.points(tg_O_multi)
-tg_O_multi <- st_as_sf(tg_O_multi)
-tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[, 1] < 675000, ] # selects single network
-tg_O_multi <- tg_O_multi[c(10, 50, 100), ]
-tg_O_multi$Site <- c(1, 2, 3)
-tg_O_multi<-tg_O_multi[,-c(1)]
+``` r
+## Ensure static output in README
+tmap::tmap_mode("plot")
 
-tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+## Streams palette: NA transparent, stream cells grey
+stream_pal <- c(NA, "grey25")
+
+m_quick <-
+  tm_shape(toy_dem) +
+  tm_raster(col.scale  = tm_scale(values = viridis::viridis(101))) +
+  tm_shape(tg_S) + 
+  tm_raster(                      
+    col.scale  = tm_scale(values = stream_pal),
+    col.legend = tm_legend(show = FALSE)
+  ) +
+  tm_shape(tg_O_catchment) + tm_borders(col = "maroon2", lwd = 2) +
+  tm_shape(tg_O) + tm_fill(col = "blue") + tm_borders(col = "blue") 
+
+m_quick
+```
+
+<img src="man/figures/README-quick-plot-1.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
+
+### 3.3 Generate distance‑weighted rasters
+
+We now compute distance weights with `hydroweight()` for several
+schemes. See `?hydroweight` for specifics on parameter input.
+
+``` r
+## Inverse distance function; 0.001 converts m → km
+myinv <- function(x) (x * 0.001 + 1)^-1
+
+hw <- hydroweight(
+  hydroweight_dir = hydroweight_dir,
+  target_O        = tg_O,
+  target_S        = tg_S,
+  target_uid      = "Lake",
+  # Optional clip region to limit processing area (can speed up large jobs)
+  clip_region     = NULL,
+  OS_combine      = TRUE,  # combine O/S distances for "nearest water" contexts
+  dem             = file.path(hydroweight_dir, "toy_dem_breached.tif"),
+  flow_accum      = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
+  weighting_scheme = c("lumped","iEucO","iFLO","HAiFLO","iEucS","iFLS","HAiFLS"),
+  inv_function    = myinv,
+)
+#> Preparing hydroweight layers @ 2026-01-30 16:18:36.91032
+#> Running distance-weighting @ 2026-01-30 16:18:37.200864
+
+# hw comes in as a list of PackedSpatRaster, ensure elements are SpatRaster for plotting
+hw <- lapply(hw, rast)
+```
+
+**What you get**
+
+- A ***named list*** of rasters, one per weighting scheme.  
+  e.g., `hw$lumped`, `hw$iEucO`, `hw$iFLO`, `hw$HAiFLS`, etc.
+
+**Visualize** (log-transform HA\* variants for contrast)
+
+``` r
+## Crop/mask to the catchment for display & transform HA* for contrast
+hw_vis <- lapply(hw, function(x) crop(x, tg_O_catchment, mask = TRUE))
+hw_vis$HAiFLO <- log(hw_vis$HAiFLO)
+hw_vis$HAiFLS <- log(hw_vis$HAiFLS)
+
+## Map builder function with tight layout and small titles
+make_map <- function(r, ttl){
+  tm_shape(r) +
+    tm_raster(col.scale  = tm_scale_continuous(values = viridis::viridis(101)),
+      col.legend = tm_legend(show = FALSE)) +
+    tm_layout(
+      main.title = ttl,
+      main.title.size = 0.8,
+      frame = FALSE,
+      inner.margins = c(0.01,0.01,0.02,0.01),
+      outer.margins = c(0,0,0,0)
+    )
+}
+
+## Construct maps
+maps <- list(
+  lumped  = make_map(hw_vis$lumped,  "lumped"),
+  iEucO   = make_map(hw_vis$iEucO,   "iEucO"),
+  iEucS   = make_map(hw_vis$iEucS,   "iEucS"),
+  iFLO    = make_map(hw_vis$iFLO,    "iFLO"),
+  iFLS    = make_map(hw_vis$iFLS,    "iFLS"),
+  HAiFLO  = make_map(hw_vis$HAiFLO,  "HAiFLO"),
+  HAiFLS  = make_map(hw_vis$HAiFLS,  "HAiFLS")
+)
+
+## Extract tmap_grobs for use with patchwork
+g <- lapply(maps, tmap_grob)
+
+design <- "
+ABDF
+#CEG
+"
+wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]],
+           D = g[[4]], E = g[[5]], F = g[[6]], 
+           G = g[[7]], design = design)
+```
+
+<img src="man/figures/README-hw-plot-1.png" alt="" width="100%" />
+
+> **Interpretation tips**
+>
+> - *lumped*: equal weighting (all values = 1).  
+> - *iEucO / iEucS*: weights extend to DEM bounds (straight-line
+>   distance).  
+> - *iFLO / iFLS / HAiFLO / HAiFLS*: weights follow contributing flow
+>   paths; non-contributing cells are `NA`.  
+> - In *HA* variants, targets (streams/lake cells) are set to `NA` to
+>   avoid over-emphasizing concentrated flow corridors.
+
+------------------------------------------------------------------------
+
+### 3.4 Compute distance‑weighted attributes
+
+`hydroweight_attributes()` combines:
+
+- a ***distance-weighted raster*** (from `hydroweight()`),
+- a ***layer of interest*** (`loi`; raster or polygon; numeric or
+  categorical),
+- and a ***region of interest*** (`roi`; e.g., a catchment polygon),
+
+to produce ***attribute summaries*** (means, SDs, proportions, etc.).
+Internally, inputs are projected/rasterized to the DEM grid. See
+`?hydroweight_attributes` for specifics on parameter input.
+
+#### Numeric raster example (NDVI)
+
+We’ll create a toy NDVI raster and summarize distance-weighted mean/SD
+within the lake catchment. Note that the lake itself is removed prior to
+calculating statistics.
+
+``` r
+ndvi <- toy_dem
+vals <- rnorm(n = ncell(ndvi), mean = 0.5, sd = 0.25)
+values(ndvi) <- pmin(pmax(vals, 0), 1)
+
+names(ndvi) <- "ndvi"
+
+m_ndvi <- tm_shape(ndvi) +
+  tm_raster(palette = viridis::viridis(101), title = "NDVI") +
+  tm_shape(tg_O_catchment) + tm_borders(col = "maroon2", lwd = 2) +
+  tm_shape(tg_O) + tm_fill(col = "blue") + tm_borders(col = "blue")
+
+m_ndvi
+```
+
+<img src="man/figures/README-attr-numeric-map-1.png" alt="" width="100%" />
+
+``` r
+## See ?hydroweight_attributes for specifics
+
+hwa_num <- hydroweight_attributes(
+  loi                = ndvi,
+  loi_columns        = NULL,
+  loi_numeric        = TRUE,
+  loi_numeric_stats  = c("distwtd_mean","distwtd_sd","mean","sd",
+                         "median","min","max","cell_count","NA_cell_count"),
+  roi                = tg_O_catchment,
+  roi_uid            = "1",
+  roi_uid_col        = "Lake",
+  distance_weights   = hw,
+  remove_region      = tg_O, # removes the lake itself prior to calculating statistics
+  return_products    = TRUE
+)
+names(hwa_num$attribute_table)
+#>  [1] "Lake"                     "ndvi_mean"               
+#>  [3] "ndvi_sd"                  "ndvi_median"             
+#>  [5] "ndvi_min"                 "ndvi_max"                
+#>  [7] "ndvi_cell_count"          "ndvi_NA_cell_count"      
+#>  [9] "ndvi_iEucO_distwtd_mean"  "ndvi_iEucO_distwtd_sd"   
+#> [11] "ndvi_iFLO_distwtd_mean"   "ndvi_iFLO_distwtd_sd"    
+#> [13] "ndvi_HAiFLO_distwtd_mean" "ndvi_HAiFLO_distwtd_sd"  
+#> [15] "ndvi_iEucS_distwtd_mean"  "ndvi_iEucS_distwtd_sd"   
+#> [17] "ndvi_iFLS_distwtd_mean"   "ndvi_iFLS_distwtd_sd"    
+#> [19] "ndvi_HAiFLS_distwtd_mean" "ndvi_HAiFLS_distwtd_sd"
+```
+
+#### Categorical raster example (Land use/Land cover\[LULC\])
+
+We’ll reclassify elevation into categories, then compute
+distance-weighted ***proportions*** by class.
+
+``` r
+## Toy categorical LULC from elevation classes
+lulc <- toy_dem
+rcl  <- matrix(c(0,220,1,  220,300,2,  300,400,3,  400,Inf,4), ncol=3, byrow=TRUE)
+lulc <- classify(lulc, rcl); names(lulc) <- "lulc"
+lulc <- terra::as.factor(lulc)
+
+# Define human-readable labels for each class code
+lulc_levels <- data.frame(
+  ID    = 1:4,
+  Class = c("Lake", "Forest", "Urban", "Agriculture")
+)
+
+levels(lulc) <- lulc_levels
+str(levels(lulc))
+#> List of 1
+#>  $ :'data.frame':    4 obs. of  2 variables:
+#>   ..$ ID   : int [1:4] 1 2 3 4
+#>   ..$ Class: chr [1:4] "Lake" "Forest" "Urban" "Agriculture"
+
+m_lulc <- tm_shape(lulc) +
+  tm_raster(
+    style = "cat",
+    scale = tm_scale_discrete(
+      values = viridis(4),                     
+      labels = levels(lulc)[[1]]$Class        
+    )) +
+  tm_shape(tg_O_catchment) + tm_borders(col = "maroon2", lwd = 2) +
+  #tm_shape(tg_O) + tm_fill(col = "blue") + tm_borders(col = "blue") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+
+m_lulc
+```
+
+<img src="man/figures/README-attr-cat-map-1.png" alt="" width="100%" />
+
   
-  ## Take individual stream point and write to file
+
+``` r
+hwa_cat <- hydroweight_attributes(
+  loi              = lulc,
+  loi_numeric      = FALSE,
+  roi              = tg_O_catchment,
+  roi_uid          = "1",
+  roi_uid_col      = "Lake",
+  distance_weights = hw,
+  remove_region    = tg_O,
+  return_products  = TRUE
+)
+
+# Fix names so they aren't numeric classes according to lulc_levels
+levels_map <- setNames(lulc_levels$Class, as.character(lulc_levels$ID))
+
+hwa_cat$attribute_table <- hwa_cat$attribute_table %>%
+  rename_with(~{
+    id   <- str_match(.x, "^Class_(\\d+)_")[, 2]
+    rest <- str_remove(.x, "^Class_\\d+_")
+    cls  <- levels_map[id]
+    ifelse(!is.na(cls), paste0(cls, "_", rest), .x)
+  })
+names(hwa_cat$attribute_table)
+#>  [1] "Lake"                    "Forest_lumped_prop"     
+#>  [3] "Urban_lumped_prop"       "Agriculture_lumped_prop"
+#>  [5] "Forest_iEucO_prop"       "Urban_iEucO_prop"       
+#>  [7] "Agriculture_iEucO_prop"  "Forest_iFLO_prop"       
+#>  [9] "Urban_iFLO_prop"         "Agriculture_iFLO_prop"  
+#> [11] "Forest_HAiFLO_prop"      "Urban_HAiFLO_prop"      
+#> [13] "Agriculture_HAiFLO_prop" "Forest_iEucS_prop"      
+#> [15] "Urban_iEucS_prop"        "Agriculture_iEucS_prop" 
+#> [17] "Forest_iFLS_prop"        "Urban_iFLS_prop"        
+#> [19] "Agriculture_iFLS_prop"   "Forest_HAiFLS_prop"     
+#> [21] "Urban_HAiFLS_prop"       "Agriculture_HAiFLS_prop"
+```
+
+#### Polygon example (numeric columns)
+
+Treat polygon attributes as numeric rasters under the hood and compute
+distance-weighted statistics.
+
+``` r
+# Polygonize LULC and add numeric attributes
+lulc_p <- as.polygons(lulc, dissolve = TRUE, na.rm = TRUE) |> st_as_sf()
+set.seed(123); lulc_p$BugDensity <- sample(1:6, size = nrow(lulc_p), replace = TRUE)
+set.seed(123); lulc_p$FishDensity <- sample(25:30, size = nrow(lulc_p), replace = TRUE)
+
+m_lulc_p <- tm_shape(lulc_p) +
+    tm_polygons(fill = "BugDensity") +
+    tm_shape(tg_O_catchment) +
+    tm_borders(col = "black") +
+    tm_shape(tg_O_catchment) +
+    tm_borders(col = "maroon2", lwd = 2) +
+    tm_shape(tg_O) +
+    tm_polygons(fill = "blue", col = "blue") +
+  tm_layout(legend.outside = TRUE, frame = FALSE)
+
+m_lulc_p # plot var_1 only
+```
+
+<img src="man/figures/README-attr-polynum-map-1.png" alt="" width="100%" />
+
+``` r
+hwa_poly_num <- hydroweight_attributes(
+  loi               = lulc_p,
+  loi_columns       = c("BugDensity","FishDensity"),
+  loi_numeric       = TRUE,
+  loi_numeric_stats = c("distwtd_mean","distwtd_sd","mean","sd",
+                        "min","max","cell_count","NA_cell_count"),
+  roi               = tg_O_catchment,
+  roi_uid           = "1",
+  roi_uid_col       = "Lake",
+  distance_weights  = hw,
+  remove_region     = tg_O,
+  return_products   = TRUE
+)
+names(hwa_poly_num$attribute_table)
+#>  [1] "Lake"                            "BugDensity_mean"                
+#>  [3] "FishDensity_mean"                "BugDensity_sd"                  
+#>  [5] "FishDensity_sd"                  "BugDensity_min"                 
+#>  [7] "FishDensity_min"                 "BugDensity_max"                 
+#>  [9] "FishDensity_max"                 "BugDensity_cell_count"          
+#> [11] "FishDensity_cell_count"          "BugDensity_NA_cell_count"       
+#> [13] "FishDensity_NA_cell_count"       "BugDensity_iEucO_distwtd_mean"  
+#> [15] "FishDensity_iEucO_distwtd_mean"  "BugDensity_iEucO_distwtd_sd"    
+#> [17] "FishDensity_iEucO_distwtd_sd"    "BugDensity_iFLO_distwtd_mean"   
+#> [19] "FishDensity_iFLO_distwtd_mean"   "BugDensity_iFLO_distwtd_sd"     
+#> [21] "FishDensity_iFLO_distwtd_sd"     "BugDensity_HAiFLO_distwtd_mean" 
+#> [23] "FishDensity_HAiFLO_distwtd_mean" "BugDensity_HAiFLO_distwtd_sd"   
+#> [25] "FishDensity_HAiFLO_distwtd_sd"   "BugDensity_iEucS_distwtd_mean"  
+#> [27] "FishDensity_iEucS_distwtd_mean"  "BugDensity_iEucS_distwtd_sd"    
+#> [29] "FishDensity_iEucS_distwtd_sd"    "BugDensity_iFLS_distwtd_mean"   
+#> [31] "FishDensity_iFLS_distwtd_mean"   "BugDensity_iFLS_distwtd_sd"     
+#> [33] "FishDensity_iFLS_distwtd_sd"     "BugDensity_HAiFLS_distwtd_mean" 
+#> [35] "FishDensity_HAiFLS_distwtd_mean" "BugDensity_HAiFLS_distwtd_sd"   
+#> [37] "FishDensity_HAiFLS_distwtd_sd"
+```
+
+#### Polygon example (categorical columns)
+
+Compute distance-weighted **proportions** for polygon categorical
+fields.
+
+``` r
+# Reuse lulc_p; treat attributes as categorical
+hwa_poly_cat <- hydroweight_attributes(
+  loi              = lulc_p,
+  loi_columns      = c("BugDensity","FishDensity"),
+  loi_numeric      = FALSE,
+  roi              = tg_O_catchment,
+  roi_uid          = "1",
+  roi_uid_col      = "Lake",
+  distance_weights = hw,
+  remove_region    = tg_O,
+  return_products  = TRUE
+)
+names(hwa_poly_cat$attribute_table) # reads as "BugDensity.cat#_lumped_prop
+#>  [1] "Lake"                       "BugDensity.2_lumped_prop"  
+#>  [3] "BugDensity.3_lumped_prop"   "BugDensity.6_lumped_prop"  
+#>  [5] "FishDensity.26_lumped_prop" "FishDensity.27_lumped_prop"
+#>  [7] "FishDensity.30_lumped_prop" "BugDensity.2_iEucO_prop"   
+#>  [9] "BugDensity.3_iEucO_prop"    "BugDensity.6_iEucO_prop"   
+#> [11] "FishDensity.26_iEucO_prop"  "FishDensity.27_iEucO_prop" 
+#> [13] "FishDensity.30_iEucO_prop"  "BugDensity.2_iFLO_prop"    
+#> [15] "BugDensity.3_iFLO_prop"     "BugDensity.6_iFLO_prop"    
+#> [17] "FishDensity.26_iFLO_prop"   "FishDensity.27_iFLO_prop"  
+#> [19] "FishDensity.30_iFLO_prop"   "BugDensity.2_HAiFLO_prop"  
+#> [21] "BugDensity.3_HAiFLO_prop"   "BugDensity.6_HAiFLO_prop"  
+#> [23] "FishDensity.26_HAiFLO_prop" "FishDensity.27_HAiFLO_prop"
+#> [25] "FishDensity.30_HAiFLO_prop" "BugDensity.2_iEucS_prop"   
+#> [27] "BugDensity.3_iEucS_prop"    "BugDensity.6_iEucS_prop"   
+#> [29] "FishDensity.26_iEucS_prop"  "FishDensity.27_iEucS_prop" 
+#> [31] "FishDensity.30_iEucS_prop"  "BugDensity.2_iFLS_prop"    
+#> [33] "BugDensity.3_iFLS_prop"     "BugDensity.6_iFLS_prop"    
+#> [35] "FishDensity.26_iFLS_prop"   "FishDensity.27_iFLS_prop"  
+#> [37] "FishDensity.30_iFLS_prop"   "BugDensity.2_HAiFLS_prop"  
+#> [39] "BugDensity.3_HAiFLS_prop"   "BugDensity.6_HAiFLS_prop"  
+#> [41] "FishDensity.26_HAiFLS_prop" "FishDensity.27_HAiFLS_prop"
+#> [43] "FishDensity.30_HAiFLS_prop"
+```
+
+------------------------------------------------------------------------
+
+## 4. Scaling up: multiple sites & layers while looking more closely at data structures
+
+The package returns explicit intermediate objects to support batch
+processing and troubleshooting. Here, we will take a little bit of extra
+space to become familiar with the results structure of `hydroweight()`
+and `hydroweight_attributes()` while demonstrating how to chain an
+analysis together across sites, distances weights, and layers of
+interest.
+
+The basic chain looks like this this:
+
+- For each site: Run `hydroweight()`
+- For each layer of interest: Run `hydroweight_attributes()`
+
+Here, we try to make the code easier to troubleshoot rather than make it
+look pretty - recognizing lots of opportunity to clean up
+
+### 4.1 Generate multiple sites and watersheds
+
+``` r
+## Example: take 3 points along the stream network as sites (targets_O)
+tg_O_multi <- as.points(rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))) |> st_as_sf()
+tg_O_multi <- tg_O_multi[st_coordinates(tg_O_multi)[,1] < 675000, ]  # choose one network
+tg_O_multi <- tg_O_multi[c(10, 50, 100), ]
+tg_O_multi$Site <- c(1,2,3)
+tg_O_multi <- tg_O_multi[, -1] # drop default column
+
+# Watersheds for each site, demonstration of foreach approach
+tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
   sel <- tg_O_multi[xx, ]
   st_write(sel, file.path(hydroweight_dir, "tg_O_multi_single.shp"),
-           delete_layer = TRUE, quiet = TRUE
-  )
-  
-  ## Run watershed operation on stream point
+           delete_layer = TRUE, quiet = TRUE)
   wbt_watershed(
     d8_pntr = file.path(hydroweight_dir, "toy_dem_breached_d8.tif"),
     pour_pts = file.path(hydroweight_dir, "tg_O_multi_single.shp"),
-    output = file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif")
+    output   = file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif")
   )
-  
-  ## Load catchment and convert to polygon with Site code.
-  sel_catchment_r <- rast(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif"))
-  sel_catchment_r <- as.polygons(sel_catchment_r, dissolve = TRUE)
-  sel_catchment_r$Site <- sel$Site
-  sel_catchment_r <- st_as_sf(sel_catchment_r)
-  
-  return(sel_catchment_r)
-}
-tg_O_multi_catchment <- bind_rows(tg_O_multi_catchment)
-
-## Plot locations
-par(mfrow = c(1, 1))
-plot(toy_dem, legend = TRUE, col = viridis(101), cex.axis = 0.75, axis.args = list(cex.axis = 0.75))
-plot(tg_S, col = "grey", add = TRUE, legend = FALSE)
-plot(st_geometry(tg_O), col = "red", add = TRUE)
-plot(st_geometry(tg_O_multi), col = "red", pch = 25, add = TRUE)
-plot(st_geometry(tg_O_multi_catchment), col = NA, border = "red", add = TRUE)
-legend("bottom", legend = c("target_O sites", "target_S"), fill = c("red", "grey"), horiz = TRUE, bty = "n", cex = 0.75)
+  sel_cth <- rast(file.path(hydroweight_dir, "tg_O_multi_single_catchment.tif")) |>
+    as.polygons(dissolve = TRUE) 
+  sel_cth$Site <- sel$Site
+  st_as_sf(sel_cth)
+} |> dplyr::bind_rows()
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
-
-[Back to top](#contents)
-
-### 3.3 Run `hydroweight()`
-
-Below, `hydroweight()` is run using our lake as `target_O` for iEucO,
-iFLO, and HAiFLO, and using our streams as `target_S` for iEucS, iFLS,
-and HAiFLS. For export of the distance-weighted rasters, we use “Lake”;
-the .rds exported from `hydroweight()` to `hydroweight_dir` will now be
-called “Lake_inv_distances.rds”. Since our DEM is small, we decide to
-not clip our region (i.e., `clip_region = NULL`). Using
-`OS_combine = TRUE`, we indicate that distances to the nearest water
-feature will be either the lake or stream. Furthermore, for HAiFLO or
-HAiFLS, both the lake and streams will be set to NoData for their
-calculation as these represent areas of concentrated flow rather than
-areas of direct terrestrial-aquatic interaction (see Peterson *et al.*
-2011). Our `dem` and `flow_accum` are assigned using character strings
-with the `.tif` files located in `hydroweight_dir`. Weighting schemes
-and the inverse function are indicated.
-
-Note that these distance-weighted rasters will eventually be clipped to
-an `roi` - a region of interest like a site’s catchment - in
-`hydroweight_attributes()`. The value for `clipped_region` is really
-meant to decrease processing time of large rasters.
-
-See `?hydroweight` for more details.
+**Quick look**
 
 ``` r
-## Generate inverse distance-weighting function
-myinv <- function(x) {
-  (x * 0.001 + 1)^-1
-} ## 0.001 multiplier turns m to km
+## Ensure static output in README
+tmap::tmap_mode("plot")
 
-## Plot inverse distance-weighting function
-par(mfrow = c(1, 1))
-x <- seq(from = 0, to = 10000, by = 100)
-y <- myinv(x)
-plot((x / 1000), y, type = "l", xlab = "Distance (km)", ylab = "Weight", bty = "L", cex.axis = 0.75, cex.lab = 0.75)
-text(6, 0.8, expression("(Distance + 1)"^-1), cex = 0.75)
+## Streams palette: NA transparent, stream cells grey
+stream_pal <- c(NA, "grey25")
+
+multi_quick <-
+  tm_shape(toy_dem) +
+  tm_raster(col.scale  = tm_scale(values = viridis::viridis(101))) +
+  tm_shape(tg_S) + 
+  tm_raster(                      
+    col.scale  = tm_scale(values = stream_pal),
+    col.legend = tm_legend(show = FALSE)
+  ) +
+  tm_shape(tg_O_multi_catchment) + tm_borders(col = "maroon2", lwd = 2) +
+  tm_shape(tg_O_multi) + tm_symbols(
+    col = "white",
+    shape = 21,      # circle
+    size = 0.5,        # make it big
+    border.col = "blue")
+
+multi_quick
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
+<img src="man/figures/README-quick-multi-1.png" alt="" width="100%" />
+
+### 4.2 Run `hydroweight()` across sites
 
 ``` r
-## Run hydroweight::hydroweight()
-hw_test_1 <- hydroweight(
-  hydroweight_dir = hydroweight_dir,
-  target_O = tg_O,
-  target_S = tg_S,
-  target_uid = "Lake",
-  clip_region = tg_O_multi_catchment[1,1],
-  OS_combine = TRUE,
-  dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
-  flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-  weighting_scheme = c(
-    "lumped", "iEucO", "iFLO", "HAiFLO",
-    "iEucS", "iFLS", "HAiFLS"
-  ),
-  inv_function = myinv,
-  clean_tempfiles=F
-)
+## Sites and catchments
+# tg_O_multi              # sites (sf)
+# tg_O_multi_catchment    # catchments (sf or SpatVector)
+# tg_S                    # optional S-targets (sf/SpatVector)
 
-hw_test_1<-lapply(hw_test_1,rast)
+# Example inverse function (adjust as needed)
+myinv <- function(x) { (x * 0.001 + 1)^-1 }
 
-## Resultant structure:
-# length(hw_test_1) ## 1 set of targets and 7 distance-weighted rasters
-# hw_test_1[[1]] ## lumped
-# hw_test_1[[2]] ## iEucO
-# hw_test_1[[3]] ## iFLO
-# hw_test_1[[4]] ## HAiFLO
-# hw_test_1[[5]] ## iEucS
-# hw_test_1[[6]] ## iFLS
-# hw_test_1[[7]] ## HAiFLS
-# or
-# hw_test_1[["lumped"]]
-# hw_test_1[["iEucO"]] etc.
+sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
 
-## Plot different weighting schemes; where purple --> yellow == low --> high weight
-hw_test_1$HAiFLO<-log(hw_test_1$HAiFLO) # These two weighting schemes can get vary high weights due to flow accumulation,
-hw_test_1$HAiFLS<-log(hw_test_1$HAiFLS) #  log transformation improves visualization
+  ## Distance-weighted raster component
+  message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
 
-plot(rast(c(hw_test_1[1:4],hw_test_1$lumped,hw_test_1[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1.25,1.25,1.25,1.25),reset=T,cex.main = 1.25)
-```
+  ## Select individual site and its catchment
+  sel     <- tg_O_multi[xx, ]
+  sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
-
-Important things to note from this plot:
-
--   Lumped is equal weighting where all values = 1.
--   iEucO and iEucS distances extend outward to the extent of the DEM.
--   For iFLO/HAiFLO/iFLS/HAiFLS, only distances in cells contributing to
-    the areas of interest are included.
--   As in Peterson *et al.* (2011), for HAiFLS, the targets are set to
-    NoData (i.e., NA) since they likely represent concentrated flow
-    areas.
-
-A few options to consider:
-
-``` r
-## Ignoring target_O
-hw_test_2 <- hydroweight(
-  hydroweight_dir = hydroweight_dir,
-  target_S = tg_S,
-  target_uid = "Lake",
-  clip_region = NULL,
-  dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
-  flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-  weighting_scheme = c("lumped", "iEucS", "iFLS", "HAiFLS"),
-  inv_function = myinv
-)
-
-hw_test_2<-lapply(hw_test_2,rast)
-## Resultant structure:
-# length(hw_test_3) ## 1 set of targets and 4 distance-weighted rasters
-# hw_test_2[[1]] ## lumped
-# hw_test_2[[2]] ## iEucS
-# hw_test_2[[3]] ## iFLS
-# hw_test_2[[4]] ## HAiFLS
-
-## Ignoring target_S
-hw_test_3 <- hydroweight(
-  hydroweight_dir = hydroweight_dir,
-  target_O = tg_O,
-  target_uid = "Lake",
-  dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
-  flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-  weighting_scheme = c("lumped", "iEucO", "iFLO", "HAiFLO"),
-  inv_function = myinv
-)
-
-hw_test_3<-lapply(hw_test_3,rast)
-
-# length(hw_test_3) ## 1 set of targets and 4 distance-weighted rasters
-# hw_test_3[[1]] ## lumped
-# hw_test_3[[2]] ## iEucO
-# hw_test_3[[3]] ## iFLO
-# hw_test_3[[4]] ## HAiFLO
-
-## Setting a clip region
-hw_test_4 <- hydroweight(
-  hydroweight_dir = hydroweight_dir,
-  target_O = tg_O,
-  target_S = tg_S,
-  target_uid = "Lake",
-  clip_region = sf::st_buffer(tg_O,8000),
-  OS_combine = TRUE,
-  dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
-  flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-  weighting_scheme = c(
-    "lumped", "iEucO", "iFLO", "HAiFLO",
-    "iEucS", "iFLS", "HAiFLS"
-  ),
-  inv_function = myinv
-)
-
-hw_test_4<-lapply(hw_test_4,rast)
-
-## Plot
-hw_test_4$HAiFLO<-log(hw_test_4$HAiFLO) # These two weighting schemes can get vary high weights due to flow accumulation,
-hw_test_4$HAiFLS<-log(hw_test_4$HAiFLS) #  log transformation improves visualization
-
-plot(rast(c(hw_test_4[1:4],hw_test_4$lumped,hw_test_4[5:7])),
-     legend=F,axes=F,col=viridis(101),nc=4,mar=c(1,1,1,1),reset=T,cex.main = 1.25)
-```
-
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
-
-[Back to top](#contents)
-
-### 3.4 Run `hydroweight()` across a set of sites
-
-We wanted users to access intermediate products and also anticipated
-that layers and/or errors may be very case-specific. For these reasons,
-we don’t *yet* provide an all-in-one solution for multiple sites and/or
-layers of interest but provide workflows instead.
-
-We advocate using `foreach` since it is `lapply`-like but passes along
-errors to allow for later fixing. Linking `foreach` with `doParallel`
-allows for parallel processing. (e.g., `foreach(...) %dopar%`). We have
-not tested `whitebox` using parallel processing. However
-`hydroweight_attributes()` can be run in parallel.
-
-Since `hydroweight()` exports an `.rds` of its result to
-`hydroweight_dir`, it allows users to assign the results of
-`hydroweight()` to an object in the current environment or to run
-`hydroweight()` alone and upload the `.rds` afterwards.
-
-``` r
-## Run hydroweight across sites found in stream points tg_O_multi/tg_O_multi_catchment
-hw_test_5 <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
-  message("Running hydroweight for site ", xx, " at ", Sys.time())
-  
-  hw_test_xx <- hydroweight(
+  ## Run hydroweight (returns a named list of distance-weighted rasters)
+  site_weights <- hydroweight::hydroweight(
     hydroweight_dir = hydroweight_dir,
-    target_O = tg_O_multi[xx, ], ## Important to change
-    target_S = tg_S,
-    target_uid = tg_O_multi$Site[xx], ## Important to change
-    clip_region = NULL,
-    OS_combine = TRUE,
-    dem =  file.path(hydroweight_dir,"toy_dem_breached.tif"),
-    flow_accum =  file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-    weighting_scheme = c(
-      "lumped", "iEucO", "iFLO", "HAiFLO",
-      "iEucS", "iFLS", "HAiFLS"
-    ),
-    inv_function = myinv
+    target_O        = sel,                 # O-target for this site
+    target_S        = tg_S,                # optional S-targets (can be NULL)
+    target_uid      = as.character(sel$Site[1]),
+    clip_region     = NULL,
+    OS_combine      = TRUE,
+    dem             = file.path(hydroweight_dir, "toy_dem_breached.tif"),
+    flow_accum      = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
+    weighting_scheme = c("lumped","iEucO","iFLO","HAiFLO","iEucS","iFLS","HAiFLS"),
+    inv_function     = myinv,
+    return_products  = TRUE,   # keep rasters in the returned list
+    wrap_return_products = FALSE, # note not wrapping, better access for display
+    save_output      = FALSE,   # also write individual .tif and a *_inv_distances.zip
+    clean_tempfiles  = TRUE
   )
-  
-  return(hw_test_xx)
 }
-#> Running hydroweight for site 1 at 2022-09-23 12:19:43
-#> Running hydroweight for site 2 at 2022-09-23 12:20:31
-#> Running hydroweight for site 3 at 2022-09-23 12:21:33
-
-hw_test_5<-lapply(hw_test_5,function(x) lapply(x,rast))
-## Resultant structure:
-## length(hw_test_5) # 3 sites
-## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site
-## hw_test_5[[1]][[1]] # site 1, lumped
-## hw_test_5[[1]][[2]] # site 1, iEucO
-## hw_test_5[[1]][[3]] # site 1, iFLO
-## hw_test_5[[1]][[4]] # site 1, HAiFLO
-## hw_test_5[[1]][[5]] # site 1, iEucS
-## hw_test_5[[1]][[6]] # site 1, iFLS
-## hw_test_5[[1]][[7]] # site 1, HAiFLS
-## ...
-## ...
-## ...
-## hw_test_5[[3]][[7]] # site 3, HAiFLS
-
-## Loading up data from .zip file
-inv_distance_collect <- file.path(hydroweight_dir, paste0(tg_O_multi$Site, "_inv_distances.zip"))
-inv_distance_collect <- lapply(inv_distance_collect, function(x) {
-  fls<-unzip(x,list=T)
-  fls<-file.path("/vsizip",x,fls$Name)
-  x<-lapply(fls,terra::rast)
-  names(x)<-sapply(x,names)
-  return(x)
-})
+names(sites_weights) <- tg_O_multi$Site
 
 ## Resultant structure:
-## length(hw_test_5) # 3 sites
-## length(hw_test_5[[1]]) # 7 distance-weighted rasters for each site
-## hw_test_5[[1]][[1]] # site 1, lumped
-## hw_test_5[[1]][[2]] # site 1, iEucO
-## hw_test_5[[1]][[3]] # site 1, iFLO
-## hw_test_5[[1]][[4]] # site 1, HAiFLO
-## hw_test_5[[1]][[5]] # site 1, iEucS
-## hw_test_5[[1]][[6]] # site 1, iFLS
-## hw_test_5[[1]][[7]] # site 1, HAiFLS
-## ...
-## ...
-## ...
-## hw_test_5[[3]][[7]] # site 3, HAiFLS
-
-## Plot sites, their catchments, and their respective distance-weighted iFLO rasters
-
-par(mfrow = c(1, 3), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0))
-plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 1 - iFLO")
-plot(hw_test_5[[1]][[3]], axes = F, legend = F, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 2 - iFLO")
-plot(hw_test_5[[2]][[3]], axes = F, legend = F, col = viridis(101), add = T)
-plot(st_geometry(tg_O_multi_catchment), col = "grey", border = "white", main = "Site 3 - iFLO")
-plot(hw_test_5[[3]][[3]], axes = F, legend = F, col = viridis(101), add = T)
+## length(sites_weights)            # 3 sites
+## length(sites_weights[[1]])       # 7 distance-weighted rasters for each site
+## sites_weights[[1]][[1]]          # site 1, lumped
+## sites_weights[[1]][[2]]          # site 1, iEucO
+## sites_weights[[1]][[3]]          # site 1, iFLO
+## sites_weights[[2]][[4]]          # site 2, HAiFLO
+## sites_weights[[2]][[5]]          # site 2, iEucS
+## sites_weights[[2]][[6]]          # site 2, iFLS
+## sites_weights[[2]][[7]]          # site 2, HAiFLS
 ```
 
-<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
-
-[Back to top](#contents)
-
-### 3.5 Using `iFLO` output as catchment boundaries for `hydroweight_attributes()`
-
-An advantage of using `hydroweight()` is that an iFLO-derived product
-can be used as a catchment boundary in subsequent operations. iFLO uses
-`whitebox::wbt_downslope_distance_to_stream` that uses a D8 flow-routing
-algorithm to trace the flow path. Converting all non-`NA` iFLO distances
-will yield a catchment boundary analogous to
-`whitebox::wbt_watershed()`. However, we have noticed minor
-inconsistencies when comparing catchments derived from the two
-procedures when catchment boundaries fall along DEM edges. The procedure
-for deriving the catchment boundary for Site 3 is below.
+**Quick look**
 
 ``` r
-## Pull out iFLO from Site 3, convert non-NA values to 1, then to polygons, then to sf
-site3_catchment <- hw_test_5[[3]][["iFLO"]]
-site3_catchment[!is.na(site3_catchment)] <- 1
-site3_catchment <- as.polygons(site3_catchment, dissolve = T)
-site3_catchment <- st_as_sf(site3_catchment)
+## Visualize iFLO and iFLS products
 
-## Compare
-par(mfrow = c(1, 3))
-plot(st_geometry(tg_O_multi_catchment[3, ]),
-     col = adjustcolor("blue", alpha.f = 0.5),
-     main = "Site 3 catchment \n wbt_watershed-derived"
-)
-plot(st_geometry(site3_catchment),
-     col = adjustcolor("red", alpha.f = 0.5),
-     main = "Site 3 catchment \n hydroweight-derived"
-)
-plot(st_geometry(site3_catchment), col = adjustcolor("blue", alpha.f = 0.5), main = "Overlap")
-plot(st_geometry(tg_O_multi_catchment[3, ]), col = adjustcolor("red", alpha.f = 0.5), main = "Overlap", add = T)
+# If wrapped, unwrap the distance-weight rasters (iFLO is [[3]] in the structure)
+r1 <- sites_weights[[1]][["iFLO"]]
+r2 <- sites_weights[[2]][["iFLO"]]
+r3 <- sites_weights[[3]][["iFLO"]]
+r4 <- sites_weights[[1]][["iFLS"]]
+r5 <- sites_weights[[2]][["iFLS"]]
+r6 <- sites_weights[[3]][["iFLS"]]
+
+# Consistent palette and tmap mode
+pal <- viridisLite::viridis(101)
+tmap_mode("plot")
+
+# A small helper to avoid repetition
+site_map <- function(r, title) {
+  tm_shape(r) +
+    tm_raster(palette = pal, title = "iFLO", legend.show = FALSE) +
+    tm_layout(
+      title = title,
+      frame = FALSE,
+      outer.margins = c(0,0,0,0),
+      inner.margins = c(0,0,0,0),
+      legend.show = FALSE
+    )
+}
+
+m1 <- (site_map(r1, "Site 1 — iFLO"))
+m2 <- (site_map(r2, "Site 2 — iFLO"))
+m3 <- (site_map(r3, "Site 3 — iFLO"))
+
+tmap_arrange(m1, m2, m3, ncol = 3)
 ```
 
-<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
 
-[Back to top](#contents)
+### 4.2 Generate `loi` lists populated with layer-specific `hydroweight_attributes()` parameters
 
-## 4.0 Inverse distance-weighted attributes using `hydroweight_attributes()`
+``` r
+## Layers of interest
+# ndvi ## numeric raster
+# lulc ## categorical raster
+# lulc_p_n ## polygon with variables var_1 and var_2 as numeric
+# lulc_p_c ## polygon with variables var_1 and var_2 as categorical
+
+## ndvi: numeric raster (single layer)
+loi_ndvi <- list(
+  loi = ndvi,
+  loi_numeric = TRUE,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
+)
+
+## lulc: categorical raster
+loi_lulc <- list(
+  loi = lulc,
+  loi_numeric = FALSE
+)
+
+## lulc_p used twice:
+##   a) numeric attributes var_1, var_2
+loi_lulc_p_n <- list(
+  loi = lulc_p,                        # same object
+  loi_columns = c("BugDensity", "FishDensity"),
+  loi_numeric = TRUE,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
+)
+
+##   b) categorical attributes var_1, var_2
+loi_lulc_p_c <- list(
+  loi = lulc_p,                        # same object
+  loi_columns = c("BugDensity", "FishDensity"),
+  loi_numeric = FALSE
+)
+
+## Bundle
+loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
+```
+
+### 4.3 Run `hydroweight_attributes()` across sites and layers
+
+``` r
+sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
+
+  message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
+
+  ## Select individual site, ROI, and weights
+  sel         <- tg_O_multi[xx, ]
+  sel_roi     <- subset(tg_O_multi_catchment, Site == sel$Site)
+  sel_weights <- sites_weights[[sel$Site]]  # list of SpatRasters, e.g., "lumped","iEucO","iFLO",...
+
+  ## Arguments shared by all LOIs for this site
+  loi_consist <- list(
+    roi = sel_roi,
+    distance_weights = sel_weights,
+    remove_region = NULL,
+    return_products = TRUE,
+    roi_uid = sel$Site,
+    roi_uid_col = "Site"
+    # attributes_dir = "/path/if/you/want/tmp/here"  # optional
+  )
+
+  ## Run hydroweight_attributes() for each LOI
+  sel_layers_hwa <- foreach(yy = 1:length(loi_variable), .errorhandling = "pass") %do% {
+    args <- c(loi_variable[[yy]], loi_consist)
+    do.call(hydroweight::hydroweight_attributes, args)
+  }
+
+  sel_layers_hwa
+}
+
+## Sanity checks
+length(sites_attributes_products)                             # one list per site (3)
+#> [1] 3
+length(sites_attributes_products[[1]])                        # one list per LOI (4)
+#> [1] 4
+length(sites_attributes_products[[1]][[1]])                   # components for site 1, LOI 1
+#> [1] 2
+names(sites_attributes_products[[1]][[1]]$attribute_table)    # columns in attribute table
+#>  [1] "Site"                     "ndvi_mean"               
+#>  [3] "ndvi_sd"                  "ndvi_min"                
+#>  [5] "ndvi_max"                 "ndvi_cell_count"         
+#>  [7] "ndvi_iEucO_distwtd_mean"  "ndvi_iEucO_distwtd_sd"   
+#>  [9] "ndvi_iFLO_distwtd_mean"   "ndvi_iFLO_distwtd_sd"    
+#> [11] "ndvi_HAiFLO_distwtd_mean" "ndvi_HAiFLO_distwtd_sd"  
+#> [13] "ndvi_iEucS_distwtd_mean"  "ndvi_iEucS_distwtd_sd"   
+#> [15] "ndvi_iFLS_distwtd_mean"   "ndvi_iFLS_distwtd_sd"    
+#> [17] "ndvi_HAiFLS_distwtd_mean" "ndvi_HAiFLS_distwtd_sd"
+names(sites_attributes_products[[1]][[1]]$return_products)    # products by distance-weight scheme
+#> [1] "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS" "lumped"
+```
+
+### 4.4 Extract and adjust results data frames
+
+Now - like any good environmental scientist - you will have more
+variables and/or metrics than sites.
+
+``` r
+sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do% {
+
+  ## Selects an individual site
+  sel_site <- sites_attributes_products[[xx]]
+
+  ## Selects distance-weighted raster results set
+  site_stats <- foreach(yy = 1:length(sel_site), .errorhandling = "pass") %do% {
+    sel_site[[yy]]$attribute_table
+  }
+
+  ## Merges the distance-weighted raster-specific datasets
+  site_stats <- Reduce(merge, site_stats)
+
+  return(site_stats)
+}
+
+## Bind rows
+sites_attributes_df <- bind_rows(sites_attributes_list)
+
+## If a raster category was missing in a site's catchment but was present in another site's,
+## that record would be filled with NA according to bind_rows. Need to fix this.
+## This is only true for columns containing "prop".
+sites_attributes_df[, grep("prop", colnames(sites_attributes_df))][is.na(sites_attributes_df[, grep("prop", colnames(sites_attributes_df))])] <- 0
+
+## Change "Class_" attributes to their factor values
+sites_attributes_df <- sites_attributes_df %>%
+  rename_with(~{
+    id   <- str_match(.x, "^Class_(\\d+)_")[, 2]
+    rest <- str_remove(.x, "^Class_\\d+_")
+    cls  <- levels_map[id]
+    ifelse(!is.na(cls), paste0(cls, "_", rest), .x)
+  })
+
+## Final data frame
+names(sites_attributes_df)
+#>   [1] "Site"                            "ndvi_mean"                      
+#>   [3] "ndvi_sd"                         "ndvi_min"                       
+#>   [5] "ndvi_max"                        "ndvi_cell_count"                
+#>   [7] "ndvi_iEucO_distwtd_mean"         "ndvi_iEucO_distwtd_sd"          
+#>   [9] "ndvi_iFLO_distwtd_mean"          "ndvi_iFLO_distwtd_sd"           
+#>  [11] "ndvi_HAiFLO_distwtd_mean"        "ndvi_HAiFLO_distwtd_sd"         
+#>  [13] "ndvi_iEucS_distwtd_mean"         "ndvi_iEucS_distwtd_sd"          
+#>  [15] "ndvi_iFLS_distwtd_mean"          "ndvi_iFLS_distwtd_sd"           
+#>  [17] "ndvi_HAiFLS_distwtd_mean"        "ndvi_HAiFLS_distwtd_sd"         
+#>  [19] "Lake_lumped_prop"                "Forest_lumped_prop"             
+#>  [21] "Urban_lumped_prop"               "Agriculture_lumped_prop"        
+#>  [23] "Lake_iEucO_prop"                 "Forest_iEucO_prop"              
+#>  [25] "Urban_iEucO_prop"                "Agriculture_iEucO_prop"         
+#>  [27] "Lake_iFLO_prop"                  "Forest_iFLO_prop"               
+#>  [29] "Urban_iFLO_prop"                 "Agriculture_iFLO_prop"          
+#>  [31] "Lake_HAiFLO_prop"                "Forest_HAiFLO_prop"             
+#>  [33] "Urban_HAiFLO_prop"               "Agriculture_HAiFLO_prop"        
+#>  [35] "Lake_iEucS_prop"                 "Forest_iEucS_prop"              
+#>  [37] "Urban_iEucS_prop"                "Agriculture_iEucS_prop"         
+#>  [39] "Lake_iFLS_prop"                  "Forest_iFLS_prop"               
+#>  [41] "Urban_iFLS_prop"                 "Agriculture_iFLS_prop"          
+#>  [43] "Lake_HAiFLS_prop"                "Forest_HAiFLS_prop"             
+#>  [45] "Urban_HAiFLS_prop"               "Agriculture_HAiFLS_prop"        
+#>  [47] "BugDensity_mean"                 "FishDensity_mean"               
+#>  [49] "BugDensity_sd"                   "FishDensity_sd"                 
+#>  [51] "BugDensity_min"                  "FishDensity_min"                
+#>  [53] "BugDensity_max"                  "FishDensity_max"                
+#>  [55] "BugDensity_cell_count"           "FishDensity_cell_count"         
+#>  [57] "BugDensity_iEucO_distwtd_mean"   "FishDensity_iEucO_distwtd_mean" 
+#>  [59] "BugDensity_iEucO_distwtd_sd"     "FishDensity_iEucO_distwtd_sd"   
+#>  [61] "BugDensity_iFLO_distwtd_mean"    "FishDensity_iFLO_distwtd_mean"  
+#>  [63] "BugDensity_iFLO_distwtd_sd"      "FishDensity_iFLO_distwtd_sd"    
+#>  [65] "BugDensity_HAiFLO_distwtd_mean"  "FishDensity_HAiFLO_distwtd_mean"
+#>  [67] "BugDensity_HAiFLO_distwtd_sd"    "FishDensity_HAiFLO_distwtd_sd"  
+#>  [69] "BugDensity_iEucS_distwtd_mean"   "FishDensity_iEucS_distwtd_mean" 
+#>  [71] "BugDensity_iEucS_distwtd_sd"     "FishDensity_iEucS_distwtd_sd"   
+#>  [73] "BugDensity_iFLS_distwtd_mean"    "FishDensity_iFLS_distwtd_mean"  
+#>  [75] "BugDensity_iFLS_distwtd_sd"      "FishDensity_iFLS_distwtd_sd"    
+#>  [77] "BugDensity_HAiFLS_distwtd_mean"  "FishDensity_HAiFLS_distwtd_mean"
+#>  [79] "BugDensity_HAiFLS_distwtd_sd"    "FishDensity_HAiFLS_distwtd_sd"  
+#>  [81] "BugDensity.2_lumped_prop"        "BugDensity.3_lumped_prop"       
+#>  [83] "BugDensity.6_lumped_prop"        "FishDensity.26_lumped_prop"     
+#>  [85] "FishDensity.27_lumped_prop"      "FishDensity.30_lumped_prop"     
+#>  [87] "BugDensity.2_iEucO_prop"         "BugDensity.3_iEucO_prop"        
+#>  [89] "BugDensity.6_iEucO_prop"         "FishDensity.26_iEucO_prop"      
+#>  [91] "FishDensity.27_iEucO_prop"       "FishDensity.30_iEucO_prop"      
+#>  [93] "BugDensity.2_iFLO_prop"          "BugDensity.3_iFLO_prop"         
+#>  [95] "BugDensity.6_iFLO_prop"          "FishDensity.26_iFLO_prop"       
+#>  [97] "FishDensity.27_iFLO_prop"        "FishDensity.30_iFLO_prop"       
+#>  [99] "BugDensity.2_HAiFLO_prop"        "BugDensity.3_HAiFLO_prop"       
+#> [101] "BugDensity.6_HAiFLO_prop"        "FishDensity.26_HAiFLO_prop"     
+#> [103] "FishDensity.27_HAiFLO_prop"      "FishDensity.30_HAiFLO_prop"     
+#> [105] "BugDensity.2_iEucS_prop"         "BugDensity.3_iEucS_prop"        
+#> [107] "BugDensity.6_iEucS_prop"         "FishDensity.26_iEucS_prop"      
+#> [109] "FishDensity.27_iEucS_prop"       "FishDensity.30_iEucS_prop"      
+#> [111] "BugDensity.2_iFLS_prop"          "BugDensity.3_iFLS_prop"         
+#> [113] "BugDensity.6_iFLS_prop"          "FishDensity.26_iFLS_prop"       
+#> [115] "FishDensity.27_iFLS_prop"        "FishDensity.30_iFLS_prop"       
+#> [117] "BugDensity.2_HAiFLS_prop"        "BugDensity.3_HAiFLS_prop"       
+#> [119] "BugDensity.6_HAiFLS_prop"        "FishDensity.26_HAiFLS_prop"     
+#> [121] "FishDensity.27_HAiFLS_prop"      "FishDensity.30_HAiFLS_prop"
+```
+
+## 5. Effect of different inverse weighting formulas
+
+The `inv_function` argument in `hydroweight()` controls *how rapidly
+weights decay with distance*. Regardless of whether those distances are
+Euclidean or flow‑path, the formula you choose determines how strongly
+distant areas contribute to your summaries.
 
 `hydroweight_attributes()` uses `hydroweight()` output and layers of
 interest (`loi`) to calculate distance-weighted attributes within a
@@ -631,14 +1002,11 @@ spatial resolution of the `hydroweight()` output (i.e., the original
 DEM).
 
 For numeric inputs, the distance-weighted mean and standard deviation
-for each `roi`:`loi` combination are calculated using
+for each `roi`:`loi` combination are calculated using:
 
-<p align="center">
-<img width="150" height="75" src="./man/figures/WeightedAvg.svg">
-</p>
-<p align="center">
-<img width="225" height="113" src="./man/figures/WeightedStd.svg">
-</p>
+<img src="./man/figures/WeightedAvg.svg" width="150" height="75"/>
+
+<img src="./man/figures/WeightedStd.svg" width="225" height="113"/>
 
 where ![n](https://latex.codecogs.com/png.latex?n "n") is the number of
 cells, ![w_i](https://latex.codecogs.com/png.latex?w_i "w_i") are the
@@ -649,9 +1017,7 @@ is the number or non-zero weights, and
 is the weighted mean. For categorical inputs, the proportion for each
 `roi`:`loi` combination is calculated using
 
-<p align="center">
-<img width="150" height="75" src="./man/figures/WeightedProp.svg">
-</p>
+<img src="./man/figures/WeightedProp.svg" width="150" height="75"/>
 
 where
 ![I(k_i)=1](https://latex.codecogs.com/png.latex?I%28k_i%29%3D1 "I(k_i)=1")
@@ -671,770 +1037,277 @@ of `NA` cells whereas other columns would be their respective
 distance-weighted `NA` proportions. This could allow the user to
 re-calculate proportions using non-`NA` values only.
 
-### 4.1 Using a numeric raster layer of interest
+Below we visualize several common choices:
 
-Using the results of `hydroweight()` (i.e., a list of distance-weighted
-rasters), we generate distance-weighted attributes for a single site
-across the weighting schemes.
+- Basic inverse:
+  ![(d + 1)^{-1}](https://latex.codecogs.com/png.latex?%28d%20%2B%201%29%5E%7B-1%7D "(d + 1)^{-1}")  
+- Steeper decay (local emphasis):
+  ![(d + 1)^{-2}](https://latex.codecogs.com/png.latex?%28d%20%2B%201%29%5E%7B-2%7D "(d + 1)^{-2}")  
+- Flatter decay (broad influence):
+  ![(d + 1)^{-0.5}](https://latex.codecogs.com/png.latex?%28d%20%2B%201%29%5E%7B-0.5%7D "(d + 1)^{-0.5}")  
+- Scaled inverse (controls effective range):
+  ![(c \cdot d + 1)^{-1}](https://latex.codecogs.com/png.latex?%28c%20%5Ccdot%20d%20%2B%201%29%5E%7B-1%7D "(c \cdot d + 1)^{-1}")
+  with
+  ![c = 0.0005](https://latex.codecogs.com/png.latex?c%20%3D%200.0005 "c = 0.0005")
+  vs ![0.001](https://latex.codecogs.com/png.latex?0.001 "0.001")  
+- Exponential decay:
+  ![\exp(-k d)](https://latex.codecogs.com/png.latex?%5Cexp%28-k%20d%29 "\exp(-k d)")
+  (here
+  ![k = 0.002](https://latex.codecogs.com/png.latex?k%20%3D%200.002 "k = 0.002"))  
+- Log‑based inverse:
+  ![1 / \log(d\_{\mathrm{km}} + 2)](https://latex.codecogs.com/png.latex?1%20%2F%20%5Clog%28d_%7B%5Cmathrm%7Bkm%7D%7D%20%2B%202%29 "1 / \log(d_{\mathrm{km}} + 2)")
 
-First, we generate a numeric raster layer of interest `loi = ndvi` and
-then summarize those cells falling within the region of interest,
-`roi = tg_O_catchment`, for each distance-weighted raster in `tw_test_1`
-(all weighting schemes, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how
-results are returned.
-
-``` r
-## Construct continuous dataset
-ndvi <- toy_dem
-values(ndvi) <- runif(n = (dim(ndvi)[1] * dim(ndvi)[2]), min = 0, max = 1)
-names(ndvi) <- "ndvi"
-
-hwa_test_numeric <- hydroweight_attributes(
-  #loi = ndvi,
-  loi = rast(list(setNames(ndvi,"ndvi1"),setNames(ndvi,"ndvi2"))),
-  loi_columns=c("ndvi1","ndvi2"),
-  loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "cell_count"),
-  roi = tg_O_catchment,
-  roi_uid = "1",
-  roi_uid_col = "Lake",
-  distance_weights = hw_test_1,#file.path(hydroweight_dir,"Lake_inv_distances.zip"),
-  remove_region = tg_O,
-  return_products = TRUE
-)
-names(hwa_test_numeric$attribute_table)
-#>  [1] "Lake"                      "ndvi1_lumped_mean"        
-#>  [3] "ndvi2_lumped_mean"         "ndvi1_lumped_sd"          
-#>  [5] "ndvi2_lumped_sd"           "ndvi1_lumped_median"      
-#>  [7] "ndvi2_lumped_median"       "ndvi1_lumped_min"         
-#>  [9] "ndvi2_lumped_min"          "ndvi1_lumped_max"         
-#> [11] "ndvi2_lumped_max"          "ndvi1_lumped_cell_count"  
-#> [13] "ndvi2_lumped_cell_count"   "ndvi1_iEucO_distwtd_mean" 
-#> [15] "ndvi2_iEucO_distwtd_mean"  "ndvi1_iEucO_distwtd_sd"   
-#> [17] "ndvi2_iEucO_distwtd_sd"    "ndvi1_iFLO_distwtd_mean"  
-#> [19] "ndvi2_iFLO_distwtd_mean"   "ndvi1_iFLO_distwtd_sd"    
-#> [21] "ndvi2_iFLO_distwtd_sd"     "ndvi1_HAiFLO_distwtd_mean"
-#> [23] "ndvi2_HAiFLO_distwtd_mean" "ndvi1_HAiFLO_distwtd_sd"  
-#> [25] "ndvi2_HAiFLO_distwtd_sd"   "ndvi1_iEucS_distwtd_mean" 
-#> [27] "ndvi2_iEucS_distwtd_mean"  "ndvi1_iEucS_distwtd_sd"   
-#> [29] "ndvi2_iEucS_distwtd_sd"    "ndvi1_iFLS_distwtd_mean"  
-#> [31] "ndvi2_iFLS_distwtd_mean"   "ndvi1_iFLS_distwtd_sd"    
-#> [33] "ndvi2_iFLS_distwtd_sd"     "ndvi1_HAiFLS_distwtd_mean"
-#> [35] "ndvi2_HAiFLS_distwtd_mean" "ndvi1_HAiFLS_distwtd_sd"  
-#> [37] "ndvi2_HAiFLS_distwtd_sd"
-
-hwa_test_numeric$return_products<-lapply(hwa_test_numeric$return_products,function(x) lapply(x,rast))
-
-## Resultant structure
-## length(hw_test_numeric) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric[[1]] == hw_test_numeric$attribute_table # Attribute table
-## hw_test_numeric[[2]] == hw_test_numeric$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_numeric$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_numeric$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## Plot
-par(mfrow = c(1, 1))
-plot(ndvi, axes = F, legend = F, col = viridis(101), main = "Toy NDVI")
-plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
-plot(st_geometry(tg_O), col = "red", add = T)
-plot(tg_S, col = "blue", add = T, legend = FALSE)
-legend("bottom",
-       legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
-       fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75
-)
-```
-
-<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
+Distances on the x‑axis are in metres. For functions that use
+kilometres, we convert internally as shown.
 
 ``` r
-## Plot results
+# Distance vector (metres)
+d_m <- seq(0, 10000, by = 50)  # 0 to 10 km
 
-plot(
-  rast(
-    list(
-      hw_test_1$lumped,hwa_test_numeric$return_products$lumped$loi_dist_rast[[1]],
-      hw_test_1$iFLO,hwa_test_numeric$return_products$iFLO$loi_dist_rast[[1]],
-      hw_test_1$HAiFLS,hwa_test_numeric$return_products$HAiFLS$loi_dist_rast[[1]]
-    )),
-  col=viridis(50),
-  main=c("Lumped - distance_weights","Lumped - distance_weights * ndvi",
-         "iFLO - distance_weights","iFLO - distance_weights * ndvi",
-         "HAiFLS - distance_weights","HAiFLS - distance_weights * ndvi"),
-  axes = F, legend = F,cex.main = 1.25,
-  nc=2,mar=c(1.5,1.5,1.5,1.5),reset=T)
-```
+# Helper conversions
+d_km <- d_m / 1000
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+# Define formulas
+f_inv_1       <- (d_km + 1)^-1
+f_inv_2       <- (d_km + 1)^-2          # steeper
+f_inv_0.5     <- (d_km + 1)^-0.5        # flatter
+f_inv_c_slow  <- (0.0005 * d_m + 1)^-1  # scaled, slower decay
+f_inv_c_fast  <- (0.001  * d_m + 1)^-1  # scaled, faster decay (typical default)
+f_exp         <- exp(-0.002 * d_m)      # exponential (metres)
+f_log         <- 1 / log(d_km + 2)      # log-based (avoid log(1)=0 by +2)
 
-[Back to top](#contents)
+# Assemble data
+df <- tibble(
+  distance_m = d_m,
+  `Inverse 1/(d_km+1)`           = f_inv_1,
+  `Inverse 1/(d_km+1)^2`         = f_inv_2,
+  `Inverse 1/(d_km+1)^0.5`       = f_inv_0.5,
+  `Scaled 1/(0.0005*d_m+1)`      = f_inv_c_slow,
+  `Scaled 1/(0.001*d_m+1)`       = f_inv_c_fast,
+  `Exponential exp(-0.002*d_m)`  = f_exp,
+  `Log 1/log(d_km+2)`            = f_log
+) |>
+  pivot_longer(-distance_m, names_to = "formula", values_to = "weight")
 
-### 4.2 Using a categorical raster layer of interest
-
-Here, we generate a categorical raster layer of interest `loi = lulc`
-and then summarize those cells falling within the region of interest,
-`roi = tg_O_catchment`, for each distance-weighted raster in `tw_test_1`
-(all weighting schemes, see above). See `?hydroweight_attributes` for
-`loi_`- and `roi_`-specific information indicating type of data and how
-results are returned.
-
-``` r
-## Construct categorical dataset by reclassify elevation values into categories
-## All values > 0 and <= 220 become 1, etc. 
-lulc <- toy_dem
-m <- c(0, 220, 1, 220, 300, 2, 300, 400, 3, 400, Inf, 4) 
-rclmat <- matrix(m, ncol = 3, byrow = TRUE)
-lulc <- classify(lulc, rclmat)
-names(lulc)<-"lulc"
-
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc
-hwa_test_categorical <- hydroweight_attributes(
-  loi = rast(list(setNames(lulc,"lulc1"),setNames(lulc,"lulc2"))),
-  loi_numeric = FALSE,
-  roi = tg_O_catchment,
-  roi_uid = "1",
-  roi_uid_col = "Lake",
-  distance_weights = hw_test_1,
-  remove_region = tg_O,
-  return_products = TRUE
-)
-names(hwa_test_categorical$attribute_table)
-#>  [1] "Lake"                "lulc1_1_iEucO_prop"  "lulc1_2_iEucO_prop" 
-#>  [4] "lulc1_3_iEucO_prop"  "lulc1_4_iEucO_prop"  "lulc2_1_iEucO_prop" 
-#>  [7] "lulc2_2_iEucO_prop"  "lulc2_3_iEucO_prop"  "lulc2_4_iEucO_prop" 
-#> [10] "lulc1_1_iFLO_prop"   "lulc1_2_iFLO_prop"   "lulc1_3_iFLO_prop"  
-#> [13] "lulc1_4_iFLO_prop"   "lulc2_1_iFLO_prop"   "lulc2_2_iFLO_prop"  
-#> [16] "lulc2_3_iFLO_prop"   "lulc2_4_iFLO_prop"   "lulc1_1_HAiFLO_prop"
-#> [19] "lulc1_2_HAiFLO_prop" "lulc1_3_HAiFLO_prop" "lulc1_4_HAiFLO_prop"
-#> [22] "lulc2_1_HAiFLO_prop" "lulc2_2_HAiFLO_prop" "lulc2_3_HAiFLO_prop"
-#> [25] "lulc2_4_HAiFLO_prop" "lulc1_1_iEucS_prop"  "lulc1_2_iEucS_prop" 
-#> [28] "lulc1_3_iEucS_prop"  "lulc1_4_iEucS_prop"  "lulc2_1_iEucS_prop" 
-#> [31] "lulc2_2_iEucS_prop"  "lulc2_3_iEucS_prop"  "lulc2_4_iEucS_prop" 
-#> [34] "lulc1_1_iFLS_prop"   "lulc1_2_iFLS_prop"   "lulc1_3_iFLS_prop"  
-#> [37] "lulc1_4_iFLS_prop"   "lulc2_1_iFLS_prop"   "lulc2_2_iFLS_prop"  
-#> [40] "lulc2_3_iFLS_prop"   "lulc2_4_iFLS_prop"   "lulc1_1_HAiFLS_prop"
-#> [43] "lulc1_2_HAiFLS_prop" "lulc1_3_HAiFLS_prop" "lulc1_4_HAiFLS_prop"
-#> [46] "lulc2_1_HAiFLS_prop" "lulc2_2_HAiFLS_prop" "lulc2_3_HAiFLS_prop"
-#> [49] "lulc2_4_HAiFLS_prop"
-
-hwa_test_categorical$return_products<-lapply(hwa_test_categorical$return_products,function(x) lapply(x,rast))
-
-## Resultant structure
-## length(hw_test_categorical) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_categorical[[1]] == hw_test_categorical$attribute_table # Attribute table
-## hw_test_categorical[[2]] == hw_test_categorical$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_categorical$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_categorical$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_categorical$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_categorical$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
-
-## Plot
-par(mfrow = c(1, 1))
-plot(lulc, axes = F, legend = F, col = viridis(4), main = "Toy LULC")
-plot(st_geometry(tg_O_catchment), col = adjustcolor("grey", alpha.f = 0.5), add = T)
-plot(tg_O, col = "red", add = T, legend = FALSE)
-plot(tg_S, col = "blue", add = T, legend = FALSE)
-legend("bottom",
-       legend = c("target_O = tg_O", "target_S = tg_S", "catchment"),
-       fill = c("red", "blue", adjustcolor("grey", alpha.f = 0.5)), horiz = TRUE, bty = "n", cex = 0.75
-)
-```
-
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
-
-``` r
-## Plot results
-par(mfrow = c(3, 4), mar = c(1, 1, 1, 1), oma = c(0, 0, 0, 0), cex = 0.75)
-
-## Lumped
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped")
-plot(hw_test_1$lumped,
-     axes = F, legend = F, col = "yellow", add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "Lumped - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$lumped$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-
-## iEucO
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO")
-plot(hw_test_1$iEucO,
-     axes = F, legend = F, col = "yellow", add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "iEucO - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$iEucO$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-
-## HAiFLS
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS")
-plot(hw_test_1$HAiFLS,
-     axes = F, legend = F, col = "yellow", add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 4)")
-plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_4,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 3)")
-plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_3,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-plot(st_as_sfc(st_bbox(tg_O_catchment)), border = "white", main = "HAiFLS - loi * lulc (cat: 2)")
-plot(hwa_test_categorical$return_products$HAiFLS$loi_dist_rast$lulc1_2,
-     axes = F, legend = F, col = viridis(101), add = TRUE
-)
-```
-
-<img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" />
-
-[Back to top](#contents)
-
-### 4.3 Using a polygon layer of interest with numeric data in the column
-
-Here, we use `lulc` and polygonize the raster to `lulc_p`. We then
-generate some numeric data in the polygon layer called `var_1` and
-`var_2`. We then spatially summarize the numeric data in those two
-columns using `hydroweight_attributes()`.
-
-Internally, the `lulc` polygons are rasterized using `distance_weights`
-as the template. This basically treats the columns as if they were
-individual numeric raster layers. Landscape statistics are calculated
-accordingly (e.g., distance-weighted mean). Those cells falling within
-the region of interest, `roi = tg_O_catchment`, for each
-distance-weighted raster in `tw_test_1` (all weighting schemes, see
-above). See `?hydroweight_attributes` for `loi_`- and `roi_`-specific
-information indicating type of data and how results are returned.
-
-``` r
-## Construct polygons with numeric data by converting lulc to polygons and assigning values to columns
-lulc_p <- as.polygons(lulc, dissolve = T, na.rm = T)
-lulc_p <- st_as_sf(lulc_p)
-
-set.seed(123)
-lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
-set.seed(123)
-lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
-
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
-hwa_test_numeric_polygon <- hydroweight_attributes(
-  loi = lulc_p,
-  loi_columns = c("var_1", "var_2"),
-  loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count"),
-  roi = tg_O_catchment,
-  roi_uid = "1",
-  roi_uid_col = "Lake",
-  distance_weights = hw_test_1,
-  remove_region = tg_O,
-  return_products = TRUE
-)
-#> Warning in sqrt(unlist(term1)/unlist(term2)): NaNs produced
-names(hwa_test_numeric_polygon$attribute_table)
-#>  [1] "Lake"                      "var_1_lumped_mean"        
-#>  [3] "var_2_lumped_mean"         "var_1_lumped_sd"          
-#>  [5] "var_2_lumped_sd"           "var_1_lumped_min"         
-#>  [7] "var_2_lumped_min"          "var_1_lumped_max"         
-#>  [9] "var_2_lumped_max"          "var_1_lumped_cell_count"  
-#> [11] "var_2_lumped_cell_count"   "var_1_iEucO_distwtd_mean" 
-#> [13] "var_2_iEucO_distwtd_mean"  "var_1_iEucO_distwtd_sd"   
-#> [15] "var_2_iEucO_distwtd_sd"    "var_1_iFLO_distwtd_mean"  
-#> [17] "var_2_iFLO_distwtd_mean"   "var_1_iFLO_distwtd_sd"    
-#> [19] "var_2_iFLO_distwtd_sd"     "var_1_HAiFLO_distwtd_mean"
-#> [21] "var_2_HAiFLO_distwtd_mean" "var_1_HAiFLO_distwtd_sd"  
-#> [23] "var_2_HAiFLO_distwtd_sd"   "var_1_iEucS_distwtd_mean" 
-#> [25] "var_2_iEucS_distwtd_mean"  "var_1_iEucS_distwtd_sd"   
-#> [27] "var_2_iEucS_distwtd_sd"    "var_1_iFLS_distwtd_mean"  
-#> [29] "var_2_iFLS_distwtd_mean"   "var_1_iFLS_distwtd_sd"    
-#> [31] "var_2_iFLS_distwtd_sd"     "var_1_HAiFLS_distwtd_mean"
-#> [33] "var_2_HAiFLS_distwtd_mean" "var_1_HAiFLS_distwtd_sd"  
-#> [35] "var_2_HAiFLS_distwtd_sd"
-hwa_test_numeric_polygon$return_products<-lapply(hwa_test_numeric_polygon$return_products,function(x) lapply(x,rast))
-
-## Resultant structure
-## length(hw_test_numeric_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric_polygon[[1]] == hw_test_numeric_polygon$attribute_table # Attribute table
-## hw_test_numeric_polygon[[2]] == hw_test_numeric_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_numeric_polygon$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_numeric_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_numeric_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_numeric_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
-```
-
-[Back to top](#contents)
-
-### 4.4 Using a polygon layer of interest with categorical data in the column
-
-Here, we continue to use `lulc_p` but specify `loi_numeric = FALSE`
-indicating the data are categorical rather than numeric. Note the final
-number in the column names of the summary table is the “category” that
-was summarized.
-
-``` r
-## Construct polygons with categorical data by converting lulc to polygons and assigning values to columns
-lulc_p <- as.polygons(lulc, dissolve = T, na.rm = T)
-lulc_p <- st_as_sf(lulc_p)
-
-set.seed(123)
-lulc_p$var_1 <- sample(c(1:10), size = 4, replace = TRUE)
-set.seed(123)
-lulc_p$var_2 <- sample(c(20:30), size = 4, replace = TRUE)
-
-## For each distance weight from hydroweight_test above, calculate the landscape statistics for lulc_p
-hwa_test_categorical_polygon <- hydroweight_attributes(
-  loi = lulc_p,
-  loi_columns = c("var_1", "var_2"),
-  loi_numeric = FALSE,
-  roi = tg_O_catchment,
-  roi_uid = "1",
-  roi_uid_col = "Lake",
-  distance_weights = hw_test_1,
-  remove_region = tg_O,
-  return_products = TRUE
-)
-names(hwa_test_categorical_polygon$attribute_table)
-#>  [1] "Lake"                 "var_1_2_iEucO_prop"   "var_1_3_iEucO_prop"  
-#>  [4] "var_1_10_iEucO_prop"  "var_2_21_iEucO_prop"  "var_2_22_iEucO_prop" 
-#>  [7] "var_2_29_iEucO_prop"  "var_1_2_iFLO_prop"    "var_1_3_iFLO_prop"   
-#> [10] "var_1_10_iFLO_prop"   "var_2_21_iFLO_prop"   "var_2_22_iFLO_prop"  
-#> [13] "var_2_29_iFLO_prop"   "var_1_2_HAiFLO_prop"  "var_1_3_HAiFLO_prop" 
-#> [16] "var_1_10_HAiFLO_prop" "var_2_21_HAiFLO_prop" "var_2_22_HAiFLO_prop"
-#> [19] "var_2_29_HAiFLO_prop" "var_1_2_iEucS_prop"   "var_1_3_iEucS_prop"  
-#> [22] "var_1_10_iEucS_prop"  "var_2_21_iEucS_prop"  "var_2_22_iEucS_prop" 
-#> [25] "var_2_29_iEucS_prop"  "var_1_2_iFLS_prop"    "var_1_3_iFLS_prop"   
-#> [28] "var_1_10_iFLS_prop"   "var_2_21_iFLS_prop"   "var_2_22_iFLS_prop"  
-#> [31] "var_2_29_iFLS_prop"   "var_1_2_HAiFLS_prop"  "var_1_3_HAiFLS_prop" 
-#> [34] "var_1_10_HAiFLS_prop" "var_2_21_HAiFLS_prop" "var_2_22_HAiFLS_prop"
-#> [37] "var_2_29_HAiFLS_prop"
-
-## Resultant structure
-## length(hw_test_categorical_polygon) # Length 2; 1) attribute table, 2) processing components for 7 inputted distance-weighted rasters
-## hw_test_categorical_polygon[[1]] == hw_test_categorical_polygon$attribute_table # Attribute table
-## hw_test_categorical_polygon[[2]] == hw_test_categorical_polygon$return_products # Processing components for 7 inputted distance-weighted rasters
-## hw_test_categorical_polygon$return_products$lumped # Processing components used in calculating lumped statistics
-## hwa_test_categorical_polygon$return_products$lumped$`loi_Raster*_bounded` # Processed loi used in calculating lumped attribute statistics
-## hwa_test_categorical_polygon$return_products$lumped$distance_weights_bounded # Processed distance-weighted raster used in calculating lumped attribute statistics
-## ...
-## ...
-## ...
-## hwa_test_categorical_polygon$return_products$HAiFLS$distance_weights_bounded # Processed distance-weighted raster used in calculating HAiFLS attribute statistics
-```
-
-[Back to top](#contents)
-
-## 5.0 Inverse distance-weighted rasters and attributes across multiple sites and layers
-
-Now that we are familiar with the results structure of `hydroweight()`
-and `hydroweight_attributes()`, we use our stream points to demonstrate
-how to chain an analysis together across sites, distances weights, and
-layers of interest.
-
-The basic chain looks like this this:
-
--   For each site: Run `hydroweight()`
--   For each layer of interest: Run `hydroweight_attributes()`
-
-Here, we try to make the code easier to troubleshoot rather than make it
-look pretty:
-
-### 5.1 Run `hydroweight()` across sites
-
-``` r
-## Sites and catchments
-# tg_O_multi ## sites
-# tg_O_multi_catchment ## catchments
-
-cl <- parallel::makeCluster(3)
-doParallel::registerDoParallel(cl)
-
-sites_weights <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %dopar% { 
-  #note other parallel backends work as well (i.e., future.apply)
-  #when running in with foreach parallel, must specify libraries in function call
-  require(sf)
-  require(terra)
-  require(hydroweight)
-  
-  ## Distance-weighted raster component
-  message("\n******Running hydroweight() on Site ", xx, " of ", nrow(tg_O_multi), " ", Sys.time(), "******")
-  
-  ## Select individual sites and catchments
-  sel <- tg_O_multi[xx, ]
-  write_sf(sel,file.path(hydroweight_dir,paste0("Site_",sel$Site,".shp"))) #parallel execution is best done with file paths rather than objects
-  
-  sel_roi <- subset(tg_O_multi_catchment, Site == sel$Site)
-  write_sf(sel_roi,file.path(hydroweight_dir,paste0("ROI_",sel$Site,".shp"))) #parallel execution is best done with file paths rather than objects
-  
-  ## Run hydroweight
-  site_weights <- hydroweight(
-    hydroweight_dir = hydroweight_dir,
-    target_O = file.path(hydroweight_dir,paste0("Site_",sel$Site,".shp")), ## Important to change
-    target_S = file.path(hydroweight_dir, "toy_dem_streams.tif"),
-    target_uid = sel$Site[xx], ## Important to change
-    clip_region =file.path(hydroweight_dir,paste0("ROI_",sel$Site,".shp")),
-    OS_combine = TRUE,
-    dem = file.path(hydroweight_dir,"toy_dem_breached.tif"),
-    flow_accum = file.path(hydroweight_dir,"toy_dem_breached_accum.tif"),
-    weighting_scheme = c(
-      "lumped", "iEucO", "iFLO", "HAiFLO",
-      "iEucS", "iFLS", "HAiFLS"
-    ),
-    inv_function = myinv
-  )
-}
-
-parallel::stopCluster(cl)
-
-names(sites_weights) <- tg_O_multi$Site
-
-## Resultant structure:
-## length(sites_weights) # 3 sites
-## length(sites_weights[[1]]) # 7 distance-weighted rasters for each site
-## sites_weights[[1]][[1]] # site 1, lumped
-## sites_weights[[1]][[2]] # site 1, iEucO
-## sites_weights[[1]][[3]] # site 1, iFLO
-## sites_weights[[1]][[4]] # site 1, HAiFLO
-## sites_weights[[1]][[5]] # site 1, iEucS
-## sites_weights[[1]][[6]] # site 1, iFLS
-## sites_weights[[1]][[7]] # site 1, HAiFLS
-## ...
-## ...
-## ...
-## sites_weights[[3]][[7]] # site 3, HAiFLS
-```
-
-### 5.2 Generate `loi` lists populated with `hydroweight_attributes()` parameters
-
-``` r
-## Layers of interest
-# ndvi ## numeric raster
-# lulc ## categorical raster
-# lulc_p_n ## polygon with variables var_1 and var_2 as numeric
-# lulc_p_c ## polygon with variables var_1 and var_2 as categorical
-
-loi_ndvi <- list(
-  loi = ndvi, loi_attr_col = "ndvi", loi_numeric = TRUE,
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
-)
-
-loi_lulc <- list(
-  loi = lulc, loi_attr_col = "lulc", loi_numeric = FALSE
-)
-
-loi_lulc_p_n <- list(
-  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = TRUE,
-  loi_columns = c("var_1", "var_2"),
-  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max", "cell_count")
-)
-
-loi_lulc_p_c <- list(
-  loi = lulc_p, loi_attr_col = "lulc", loi_numeric = FALSE,
-  loi_columns = c("var_1", "var_2")
-)
-
-## These are combined into a list of lists
-loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
-
-
-# To save processing time, convert all inputs into rasters matching DEM
-## Numeric Rasters
-numeric_rasts<-loi_variable[sapply(loi_variable,function(x) x$loi_numeric)]
-numeric_rasts<-lapply(numeric_rasts,function(x) 
-  process_input(input=x$loi,
-                target=file.path(hydroweight_dir,"toy_dem_breached.tif"),
-                variable_names=x$loi_columns,
-                resample_type="bilinear"))
-numeric_rasts<-rast(numeric_rasts)
-writeRaster(numeric_rasts,file.path(hydroweight_dir,"numeric_rasters.tif"),overwrite=T)
-
-## Categorical Rasters
-cat_rasts<-loi_variable[sapply(loi_variable,function(x) !x$loi_numeric)]
-cat_rasts<-lapply(cat_rasts,function(x) 
-  process_input(input=x$loi,
-                target=file.path(hydroweight_dir,"toy_dem_breached.tif"),
-                variable_names=x$loi_columns,
-                resample_type="near"))
-cat_rasts<-rast(cat_rasts)
-writeRaster(cat_rasts,file.path(hydroweight_dir,"cat_rasters.tif"),overwrite=T)
-
-# Combine into final loi variables
-## loi is specified as a file path to allow parallel processing
-## to pass loi as an in memory raster for parallel processing, use terra::wrap() (note this can be inefficient for large raster)
-## if not using parallel processing, loi can be given as an in memory raster object (terra or raster)
-loi_variable_final<-list(
-  numeric=list(
-    loi = file.path(hydroweight_dir,"numeric_rasters.tif"),
-    loi_numeric = TRUE,
-    loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "min", "max")
-  ),
-  categorical=list(
-    loi = file.path(hydroweight_dir,"cat_rasters.tif"),
-    loi_numeric = FALSE
+# Order facets for readability
+df$formula <- factor(
+  df$formula,
+  levels = c(
+    "Inverse 1/(d_km+1)",
+    "Inverse 1/(d_km+1)^2",
+    "Inverse 1/(d_km+1)^0.5",
+    "Exponential exp(-0.002*d_m)",
+    "Log 1/log(d_km+2)",
+    "Scaled 1/(0.0005*d_m+1)",
+    "Scaled 1/(0.001*d_m+1)"
   )
 )
-```
 
-### 5.3 Run `hydroweight_attributes()` across sites and layers
-
-For efficiency, combine all numerical layers and all categorical layers
-together
-
-``` r
-
-library(future.apply)
-
-availableCores()
-#> system 
-#>      8
-
-plan(list( #nested loop - note can be memory intensive
-  tweak(multisession, workers = 3)), # split site processing across 3 cores
-  tweak(multisession, workers = 2) # split loi processing across 2 cores
-)
-
-sites_attributes_products<-future_lapply(split(tg_O_multi_catchment,tg_O_multi_catchment$Site), function(xx){
-  
-  write_sf(xx,file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")))
-  
-  ## Consistent arguments to hydroweight_attributes, not loi-specific. See ?hydroweight_attributes
-  loi_consist <- list(
-    roi = file.path(hydroweight_dir,paste0("Site_",xx$Site,".shp")),
-    distance_weights = file.path(hydroweight_dir,paste0(xx$Site,"_inv_distances.zip")),
-    remove_region = NULL,
-    return_products = TRUE, #set this to FALSE to decrease memory and space requirement
-    roi_uid = xx$Site,
-    roi_uid_col = "Site"
+# Plot
+ggplot(df, aes(x = distance_m/1000, y = weight, color = formula)) +
+  geom_line(linewidth = 0.9, show.legend = FALSE) +
+  facet_wrap(~ formula, ncol = 3, scales = "free_y") +
+  scale_x_continuous("Distance (km)", breaks = pretty_breaks()) +
+  scale_y_continuous("Weight", breaks = pretty_breaks()) +
+  theme_minimal(base_size = 11) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(5, 5, 5, 5)
   )
-  
-  future_lapply(loi_variable_final, function(yy) {
-    ## Combine loi_variable[[y]] with loi_consist
-    loi_combined <- c(yy, loi_consist)
-    
-    ## Run hydroweight_attributes using arguments in loi_combined
-    do.call(hydroweight_attributes, loi_combined)
-  })
-  
-})
-
-
-names(sites_attributes_products) ## List of results; one list per site
-#> [1] "1" "2" "3"
-names(sites_attributes_products[[1]]) ## List of results for site 1; one list of results per loi
-#> [1] "numeric"     "categorical"
-names(sites_attributes_products[[1]][[1]]) ## List of results for site 1 and loi 1
-#> [1] "attribute_table" "return_products"
-names(sites_attributes_products[[1]][[1]]$attribute_table) ## Attribute table for site 1 and loi 1
-#>  [1] "Site"                      "ndvi_lumped_mean"         
-#>  [3] "var_1_lumped_mean"         "var_2_lumped_mean"        
-#>  [5] "ndvi_lumped_sd"            "var_1_lumped_sd"          
-#>  [7] "var_2_lumped_sd"           "ndvi_lumped_min"          
-#>  [9] "var_1_lumped_min"          "var_2_lumped_min"         
-#> [11] "ndvi_lumped_max"           "var_1_lumped_max"         
-#> [13] "var_2_lumped_max"          "ndvi_iEucO_distwtd_mean"  
-#> [15] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
-#> [17] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
-#> [19] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
-#> [21] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
-#> [23] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
-#> [25] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
-#> [27] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
-#> [29] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
-#> [31] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
-#> [33] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
-#> [35] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
-#> [37] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
-#> [39] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
-#> [41] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
-#> [43] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
-#> [45] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
-#> [47] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
-#> [49] "var_2_HAiFLS_distwtd_sd"
-names(sites_attributes_products[[1]][[1]]$return_products) ## Return products for site 1 and loi 1 per distance-weighted raster
-#> [1] "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS" "lumped"
 ```
 
-### 5.4 Extract and adjust results data frames
+<img src="man/figures/README-inv-formulas-ggplot-1.png" alt="" width="100%" />
+
+**How to choose a formula:**
+
+- **Stronger local emphasis** → larger exponent or exponential  
+  *Use when near‑target processes dominate (e.g., near‑stream
+  sources).*  
+- **Balanced** →
+  ![(d + 1)^{-1}](https://latex.codecogs.com/png.latex?%28d%20%2B%201%29%5E%7B-1%7D "(d + 1)^{-1}")  
+  *Good general‑purpose default; nearby cells matter most, but distant
+  cells still count.*  
+- **Broad influence** → smaller exponent or log‑based  
+  *Use when distant parts of a watershed retain meaningful influence.*  
+- **Adjust range** → scale constant
+  ![c](https://latex.codecogs.com/png.latex?c "c") in
+  ![(c \cdot d + 1)^{-1}](https://latex.codecogs.com/png.latex?%28c%20%5Ccdot%20d%20%2B%201%29%5E%7B-1%7D "(c \cdot d + 1)^{-1}")  
+  *Lower* ![c](https://latex.codecogs.com/png.latex?c "c") flattens
+  decay (longer effective range); higher
+  ![c](https://latex.codecogs.com/png.latex?c "c") steepens decay.
+
+> **Tip:** In `hydroweight()`, set your function via
+> `inv_function = myinv`. You can parameterize it, e.g.:
+>
+> ``` r
+> inv_pow <- function(p = 1, c_scale = 0.001) {
+>   function(d_m) (c_scale * d_m + 1)^(-p)
+> }
+> # Examples:
+> # hydroweight(..., inv_function = inv_pow(p = 1, c_scale = 0.001))  # balanced
+> # hydroweight(..., inv_function = inv_pow(p = 2, c_scale = 0.001))  # local
+> # hydroweight(..., inv_function = inv_pow(p = 0.5, c_scale = 0.0005))  # broad
+> ```
+
+------------------------------------------------------------------------
+
+## 6. Quick guide to accessing intermediate files for troubleshooting
 
 ``` r
+## Quick access to a hydroweight output  
+## hw[[1]] or hw[["lumped"]] # index depends on weights input order
+## hw[[2]] or hw[["iEucO"]] 
 
-require(tidyverse)
+## Quick access to a hydroweight attribute table 
+## hwa_cat$attribute_table
 
-sites_attributes_df<-map_dfr(sites_attributes_products, #rbind sites
-                             ~map(.,~as_tibble(.$attribute_table)) %>% 
-                               reduce(left_join) # join numeric and categorical summaries
-)
+## Quick access to hydroweight attribute intermmediate products (if return_products = TRUE) 
+## This is the loi * weight product
+## rast(hwa_cat$return_products$iEucO$loi_dist_rast)
 
-## Final data frame
-colnames(sites_attributes_df)
-#>   [1] "Site"                      "ndvi_lumped_mean"         
-#>   [3] "var_1_lumped_mean"         "var_2_lumped_mean"        
-#>   [5] "ndvi_lumped_sd"            "var_1_lumped_sd"          
-#>   [7] "var_2_lumped_sd"           "ndvi_lumped_min"          
-#>   [9] "var_1_lumped_min"          "var_2_lumped_min"         
-#>  [11] "ndvi_lumped_max"           "var_1_lumped_max"         
-#>  [13] "var_2_lumped_max"          "ndvi_iEucO_distwtd_mean"  
-#>  [15] "var_1_iEucO_distwtd_mean"  "var_2_iEucO_distwtd_mean" 
-#>  [17] "ndvi_iEucO_distwtd_sd"     "var_1_iEucO_distwtd_sd"   
-#>  [19] "var_2_iEucO_distwtd_sd"    "ndvi_iFLO_distwtd_mean"   
-#>  [21] "var_1_iFLO_distwtd_mean"   "var_2_iFLO_distwtd_mean"  
-#>  [23] "ndvi_iFLO_distwtd_sd"      "var_1_iFLO_distwtd_sd"    
-#>  [25] "var_2_iFLO_distwtd_sd"     "ndvi_HAiFLO_distwtd_mean" 
-#>  [27] "var_1_HAiFLO_distwtd_mean" "var_2_HAiFLO_distwtd_mean"
-#>  [29] "ndvi_HAiFLO_distwtd_sd"    "var_1_HAiFLO_distwtd_sd"  
-#>  [31] "var_2_HAiFLO_distwtd_sd"   "ndvi_iEucS_distwtd_mean"  
-#>  [33] "var_1_iEucS_distwtd_mean"  "var_2_iEucS_distwtd_mean" 
-#>  [35] "ndvi_iEucS_distwtd_sd"     "var_1_iEucS_distwtd_sd"   
-#>  [37] "var_2_iEucS_distwtd_sd"    "ndvi_iFLS_distwtd_mean"   
-#>  [39] "var_1_iFLS_distwtd_mean"   "var_2_iFLS_distwtd_mean"  
-#>  [41] "ndvi_iFLS_distwtd_sd"      "var_1_iFLS_distwtd_sd"    
-#>  [43] "var_2_iFLS_distwtd_sd"     "ndvi_HAiFLS_distwtd_mean" 
-#>  [45] "var_1_HAiFLS_distwtd_mean" "var_2_HAiFLS_distwtd_mean"
-#>  [47] "ndvi_HAiFLS_distwtd_sd"    "var_1_HAiFLS_distwtd_sd"  
-#>  [49] "var_2_HAiFLS_distwtd_sd"   "lulc_1_iEucO_prop"        
-#>  [51] "lulc_2_iEucO_prop"         "lulc_3_iEucO_prop"        
-#>  [53] "lulc_4_iEucO_prop"         "var_1_2_iEucO_prop"       
-#>  [55] "var_1_3_iEucO_prop"        "var_1_10_iEucO_prop"      
-#>  [57] "var_2_21_iEucO_prop"       "var_2_22_iEucO_prop"      
-#>  [59] "var_2_29_iEucO_prop"       "lulc_1_iFLO_prop"         
-#>  [61] "lulc_2_iFLO_prop"          "lulc_3_iFLO_prop"         
-#>  [63] "lulc_4_iFLO_prop"          "var_1_2_iFLO_prop"        
-#>  [65] "var_1_3_iFLO_prop"         "var_1_10_iFLO_prop"       
-#>  [67] "var_2_21_iFLO_prop"        "var_2_22_iFLO_prop"       
-#>  [69] "var_2_29_iFLO_prop"        "lulc_1_HAiFLO_prop"       
-#>  [71] "lulc_2_HAiFLO_prop"        "lulc_3_HAiFLO_prop"       
-#>  [73] "lulc_4_HAiFLO_prop"        "var_1_2_HAiFLO_prop"      
-#>  [75] "var_1_3_HAiFLO_prop"       "var_1_10_HAiFLO_prop"     
-#>  [77] "var_2_21_HAiFLO_prop"      "var_2_22_HAiFLO_prop"     
-#>  [79] "var_2_29_HAiFLO_prop"      "lulc_1_iEucS_prop"        
-#>  [81] "lulc_2_iEucS_prop"         "lulc_3_iEucS_prop"        
-#>  [83] "lulc_4_iEucS_prop"         "var_1_2_iEucS_prop"       
-#>  [85] "var_1_3_iEucS_prop"        "var_1_10_iEucS_prop"      
-#>  [87] "var_2_21_iEucS_prop"       "var_2_22_iEucS_prop"      
-#>  [89] "var_2_29_iEucS_prop"       "lulc_1_iFLS_prop"         
-#>  [91] "lulc_2_iFLS_prop"          "lulc_3_iFLS_prop"         
-#>  [93] "lulc_4_iFLS_prop"          "var_1_2_iFLS_prop"        
-#>  [95] "var_1_3_iFLS_prop"         "var_1_10_iFLS_prop"       
-#>  [97] "var_2_21_iFLS_prop"        "var_2_22_iFLS_prop"       
-#>  [99] "var_2_29_iFLS_prop"        "lulc_1_HAiFLS_prop"       
-#> [101] "lulc_2_HAiFLS_prop"        "lulc_3_HAiFLS_prop"       
-#> [103] "lulc_4_HAiFLS_prop"        "var_1_2_HAiFLS_prop"      
-#> [105] "var_1_3_HAiFLS_prop"       "var_1_10_HAiFLS_prop"     
-#> [107] "var_2_21_HAiFLS_prop"      "var_2_22_HAiFLS_prop"     
-#> [109] "var_2_29_HAiFLS_prop"
+## Access to a chained-together process can vary depending on analysis needs. But here:
+
+## sites_weights
+## length(sites_weights)            # 3 sites
+## length(sites_weights[[1]])       # 7 distance-weighted rasters for each site
+## sites_weights[[1]][[1]]          # site 1, lumped
+## sites_weights[[1]][[2]]          # site 1, iEucO
+## sites_weights[[1]][[3]]          # site 1, iFLO
+## sites_weights[[2]][[4]]          # site 2, HAiFLO
+## sites_weights[[2]][[5]]          # site 2, iEucS
+## sites_weights[[2]][[6]]          # site 2, iFLS
+## sites_weights[[2]][[7]]          # site 2, HAiFLS
+
+## sites_attributes_products
+## length(sites_attributes_products)        # 3 sites 
+## length(sites_attributes_products[[1]])   # site 1, 4 loi 
+## length(sites_attributes_products[[1]][[1]]) # site 1, ndvi loi, 2 items (attribute tables, distance products)
+## sites_attributes_products[[1]][[1]]$attribute_table # site 1, ndvi loi, attribute table 
+## sites_attributes_products[[1]][[1]]$return_products # site 1, ndvi loi, distance products
+## sites_attributes_products[[1]][[1]]$return_products[["lumped"]] # site 1, ndvi loi, lumped distance products
 ```
 
-Now - like any good environmental scientist - you have more variables
-and/or metrics than sites.
+------------------------------------------------------------------------
 
-[Back to top](#contents)
+## 7. Using iFLO to derive catchments (alternative to watershed tool)
 
-## 6.0 Processing large amounts of data
-
-Processing large amounts of data (both in number of predictor variables
-and sites) can be challenging. The fastest method depends on the size of
-the region, the spatial resolution, numbers of predictors and sites, and
-available memory.
+A practical trick: the **non-NA** domain of an iFLO raster approximates
+the contributing area to the target site. You can convert iFLO to
+polygons and use it as a catchment boundary, noting that minor
+differences can occur near DEM edges.
 
 ``` r
+# Example using current hw$iFLO
+site3_catchment <- hw$iFLO
+site3_catchment[!is.na(site3_catchment)] <- 1
+site3_catchment <- as.polygons(site3_catchment, dissolve = TRUE) |> st_as_sf()
 
-# Coming soon!!!
+m_ws <- tm_shape(tg_O_catchment) + tm_fill(col = "blue", alpha = 0.5) +
+  tm_layout(main.title = "Watershed-derived", frame = FALSE)
+
+m_hw <- tm_shape(site3_catchment) + tm_fill(col = "red", alpha = 0.5) +
+  tm_layout(main.title = "hydroweight-derived", frame = FALSE)
+
+m_overlap <- tm_shape(site3_catchment) + tm_fill(col = "blue", alpha = 0.5) +
+  tm_shape(tg_O_catchment) + tm_fill(col = "red", alpha = 0.5) +
+  tm_layout(main.title = "Overlap", frame = FALSE)
+
+tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 ```
 
-[Back to top](#contents)
+<img src="man/figures/README-iflo-catchment-1.png" alt="" width="100%" />
 
-## 7.0 Future plans
+------------------------------------------------------------------------
 
-This package was implemented to mostly serve our purposes and is
-functional enough. There is probably lots of room for improvement that
-we don’t see yet.
+## 8. Troubleshooting & performance
 
-The core functions should stay the same but we would like to:
+**Potential issues**
 
-1.  Optimize for speed based on user/my own feedback.
-2.  Potentially use less in-memory `raster` functions in favour of
-    `WhiteboxTools` functions.
-3.  Work on moving multi-site/multi-layer capability into their own
-    functions based on feedback.
-4.  Implement tidier data handling and results structures.
-5.  … as things come up.
+- **WhiteboxTools not found**  
+  Run `whitebox::install_whitebox()` once, or point to your binary with
+  `whitebox::wbt_init(exe_path=...)`.
 
-[Back to top](#contents)
+- **CRS / resolution mismatches**  
+  `hydroweight_attributes()` will internally align inputs to the DEM
+  grid, but large on-the-fly resampling can be expensive. Pre-process
+  LOIs to the DEM grid when possible.
 
-## 8.0 Acknowledgements
+- **Memory pressure on large rasters**  
+  Prefer file-backed rasters (write intermediates to disk); set
+  `return_products = FALSE` when you only need summary tables.
 
-Thank you to for early review/testing (alphabetical order):
+- **Parallelization choices**  
+  A future consideration that hasn’t been fully resolved yet.
 
-Darren McCormick, Courtney Mondoux, Emily Smenderovac
+**Performance tips**
 
-We acknowledge the funding support of Natural Resources Canada, the
-Ontario Ministry of Natural Resources, and a Natural Sciences and
-Engineering Research Council of Canada Strategic Partnership Grant
-(STPGP 521405-2018).
+- Limit the `clip_region` in `hydroweight()` to reduce processing.
+- Batch **numeric** and **categorical** rasters separately.
+- Cache reprojected/rasterized LOIs so they can be reused across sites.
 
-[Back to top](#contents)
+------------------------------------------------------------------------
 
-## 9.0 References
+## 9. References
 
-Kielstra, B. W., Chau, J., & Richardson, J. S. (2019). Measuring
-function and structure of urban headwater streams with citizen
-scientists. Ecosphere, 10(4):e02720. <https://doi.org/10.1002/ecs2.2720>
+- Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
+  analysis. *Computers & Geosciences*, 95: 75–84.
+  <https://doi.org/10.1016/j.cageo.2016.07.003>
 
-Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
-analysis. Computers & Geosciences, 95: 75-84.
-<https://doi.org/10.1016/j.cageo.2016.07.003>
+- Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D.
+  (2011). A comparison of spatially explicit landscape representation
+  methods and their relationship to stream condition. *Freshwater
+  Biology*, 56(3), 590–610.
+  <https://doi.org/10.1111/j.1365-2427.2010.02507.x>
 
-Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D.
-(2011). A comparison of spatially explicit landscape representation
-methods and their relationship to stream condition. Freshwater Biology,
-56(3), 590–610. <https://doi.org/10.1111/j.1365-2427.2010.02507.x>
+- Peterson, E. E., & Pearse, A. R. (2017). IDW-Plus: An ArcGIS Toolset
+  for calculating spatially explicit watershed attributes for survey
+  sites. *JAWRA*, 53(5): 1241–1249.
+  <https://doi.org/10.1111/1752-1688.12558>
 
-Peterson, E. E. & Pearse, A. R. (2017). IDW‐Plus: An ArcGIS Toolset for
-calculating spatially explicit watershed attributes for survey sites.
-Journal of the American Water Resources Association, 53(5): 1241–1249.
-<https://doi.org/10.1111/1752-1688.12558>
+- Pearse, A., Heron, G., & Peterson, E. (2025). *rdwplus*: An
+  Implementation of IDW-PLUS. R package v1.0.1.
+  <a href="10.32614/CRAN.package.rdwplus"
+  class="uri">10.32614/CRAN.package.rdwplus</a>
 
-Pearse, A., Heron, G., & Peterson, E. (2019). rdwplus: An Implementation
-of IDW-PLUS. R package version 0.1.0.
-<https://CRAN.R-project.org/package=rdwplus>
+- R Core Team (2021). R: A language and environment for statistical
+  computing. R Foundation for Statistical Computing, Vienna, Austria.
+  <https://www.R-project.org/>
 
-R Core Team (2021). R: A language and environment for statistical
-computing. R Foundation for Statistical Computing, Vienna, Austria.
-<https://www.R-project.org/>
+- Wickham, H., & Bryan, J. (2021). *R Packages* (2nd ed.).
+  <https://r-pkgs.org/>
 
-Wickham, H., Bryan, J. (2021). R Packages. 2nd edition.
-<https://r-pkgs.org/>.
+- Wu, Q. (2020). *whitebox*: ‘WhiteboxTools’ R Frontend. R package
+  v1.4.0. <https://github.com/giswqs/whiteboxR>
 
-Wu, Q. (2020). whitebox: ‘WhiteboxTools’ R Frontend. R package version
-1.4.0. <https://github.com/giswqs/whiteboxR>
+------------------------------------------------------------------------
 
-[Back to top](#contents)
+## 10. Acknowledgements
 
-## 10.0 Copyright
+Early review/testing (alphabetical): Darren McCormick, Courtney Mondoux,
+Emily Smenderovac
 
-Copyright (C) 2021 Her Majesty the Queen in Right of Canada, as
-represented by the Minister of Natural Resources Canada
+Funding: Natural Resources Canada, Ontario Ministry of Natural
+Resources, and NSERC Strategic Partnership Grant (STPGP 521405-2018).
+
+------------------------------------------------------------------------
+
+## 11. Development team
+
+The development of this package is a collaborative project led and
+developed by Dr. Erik Emilson with planning and conceptual contributions
+from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles.
+
+To date, the coding and development of this package has been completed
+by Dr. Brian Kielstra and Dr. Erik Emilson, with minor maintenance and
+updates being incorporated by Emily Smenderovac and other WETlab
+members. Version \>2.0 was greatly enhanced by major contributions from
+Patrick Schaeffer.
+
+------------------------------------------------------------------------
+
+## 12. License
+
+Copyright (C) 2026  
+His Majesty the King in Right of Canada, as represented by the Minister
+of Natural Resources
