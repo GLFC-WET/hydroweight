@@ -1,47 +1,18 @@
-hydroweight: Distance-weighted rasters and landscape attributes
-================
-
-- [hydroweight](#hydroweight)
-  - [0. Learning objectives](#0-learning-objectives)
-  - [1. Why distance-weighted landscape
-    metrics?](#1-why-distance-weighted-landscape-metrics)
-  - [2. Installation & prerequisites](#2-installation--prerequisites)
-  - [3. Tutorial](#3-tutorial)
-    - [3.1 Prepare example terrain
-      data](#31-prepare-example-terrain-data)
-    - [3.2 Create example targets (`target_O`,
-      `target_S`)](#32-create-example-targets-target_o-target_s)
-    - [3.3 Generate distance‑weighted
-      rasters](#33-generate-distanceweighted-rasters)
-    - [3.4 Compute distance‑weighted
-      attributes](#34-compute-distanceweighted-attributes)
-  - [4. Scaling up: multiple sites & layers while looking more closely
-    at data
-    structures](#4-scaling-up-multiple-sites--layers-while-looking-more-closely-at-data-structures)
-    - [4.1 Generate multiple sites and
-      watersheds](#41-generate-multiple-sites-and-watersheds)
-    - [4.2 Run `hydroweight()` across
-      sites](#42-run-hydroweight-across-sites)
-    - [4.2 Generate `loi` lists populated with layer-specific
-      `hydroweight_attributes()`
-      parameters](#42-generate-loi-lists-populated-with-layer-specific-hydroweight_attributes-parameters)
-    - [4.3 Run `hydroweight_attributes()` across sites and
-      layers](#43-run-hydroweight_attributes-across-sites-and-layers)
-    - [4.4 Extract and adjust results data
-      frames](#44-extract-and-adjust-results-data-frames)
-  - [5. Effect of different inverse weighting
-    formulas](#5-effect-of-different-inverse-weighting-formulas)
-  - [6. Quick guide to accessing intermediate files for
-    troubleshooting](#6-quick-guide-to-accessing-intermediate-files-for-troubleshooting)
-  - [7. Using iFLO to derive catchments (alternative to watershed
-    tool)](#7-using-iflo-to-derive-catchments-alternative-to-watershed-tool)
-  - [8. Troubleshooting & performance](#8-troubleshooting--performance)
-  - [9. References](#9-references)
-  - [10. Acknowledgements](#10-acknowledgements)
-  - [11. Development team](#11-development-team)
-  - [12. License](#12-license)
+---
+title: "hydroweight: Distance-weighted rasters and landscape attributes"
+output:
+  github_document:
+    toc: true
+    toc_depth: 3
+    pandoc_args: --webtex
+editor_options:
+  markdown:
+    wrap: 72
+---
 
 <!-- README.md is generated from this file. Please edit README.Rmd. -->
+
+
 
 [![](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
 
@@ -56,13 +27,13 @@ landscape metrics can be used as predictor variables in other models
 
 It provides:
 
-- `hydroweight()` – used to generate distance-weighted rasters for
-  ***targets*** (points/areas = `target_O`; streams = `target_S`) on a
-  DEM.
-- `hydroweight_attributes()` – used to summarize ***layers of
-  interest*** (rasters or polygons; numeric or categorical) within a
-  ***region of interest*** (e.g., watershed polygon), using the distance
-  weights produced above.
+-   `hydroweight()` – used to generate distance-weighted rasters for
+    ***targets*** (points/areas = `target_O`; streams = `target_S`) on a
+    DEM.
+-   `hydroweight_attributes()` – used to summarize ***layers of
+    interest*** (rasters or polygons; numeric or categorical) within a
+    ***region of interest*** (e.g., watershed polygon), using the
+    distance weights produced above.
 
 The package is designed for transparent, flexible workflows across
 weighting schemes, data types, and multiple sites.
@@ -73,18 +44,18 @@ weighting schemes, data types, and multiple sites.
 
 By the end of this tutorial, you will be able to:
 
-- Explain why distance-weighted catchment metrics can outperform simple
-  “lumped” metrics for many applications.
-- Prepare a DEM and hydrologic derivatives (flow directions,
-  accumulation, streams) required by `hydroweight()`.
-- Generate distance-weighted rasters with different schemes (e.g.,
-  iEucO, iFLO, HAiFLS) and interpret their meaning.
-- Compute distance-weighted numeric (i.e., mean) and categorical (i.e.,
-  % cover) attributes with `hydroweight_attributes()`.
-- Scale the workflow to multiple sites and multiple layers.
-- Understand the effect of different inverse weighting formulas.
-- Understand how to extract intermediate products.
-- Troubleshoot common issues and improve performance.
+-   Explain why distance-weighted catchment metrics can outperform
+    simple “lumped” metrics for many applications.
+-   Prepare a DEM and hydrologic derivatives (flow directions,
+    accumulation, streams) required by `hydroweight()`.
+-   Generate distance-weighted rasters with different schemes (e.g.,
+    iEucO, iFLO, HAiFLS) and interpret their meaning.
+-   Compute distance-weighted numeric (i.e., mean) and categorical
+    (i.e., % cover) attributes with `hydroweight_attributes()`.
+-   Scale the workflow to multiple sites and multiple layers.
+-   Understand the effect of different inverse weighting formulas.
+-   Understand how to extract intermediate products.
+-   Troubleshoot common issues and improve performance.
 
 ------------------------------------------------------------------------
 
@@ -95,11 +66,11 @@ Distance-weighted metrics recognize that nearby areas can have more
 influence on a target (e.g., stream site or lake) than distant areas.
 Different weighting schemes represent different distance concepts:
 
-- ***Euclidean*** (i.e., as the crow flies) distance to a target
-  (`iEucO`, `iEucS`)
-- ***Flow-path*** distance along the drainage network (`iFLO`, `iFLS`)
-- ***Hydrologically active*** variants that incorporate flow
-  accumulation (`HAiFLO`, `HAiFLS`)
+-   ***Euclidean*** (i.e., as the crow flies) distance to a target
+    (`iEucO`, `iEucS`)
+-   ***Flow-path*** distance along the drainage network (`iFLO`, `iFLS`)
+-   ***Hydrologically active*** variants that incorporate flow
+    accumulation (`HAiFLO`, `HAiFLS`)
 
 This package reproduces the ideas introduced in IDW-PLUS (Peterson and
 Pearse, 2017; Pearse *et al*., 2025) and related tools, while providing
@@ -111,6 +82,7 @@ a simple, flexible R workflow built on WhiteboxTools.
 
 You’ll need R packages for geospatial data and WhiteboxTools bindings
 (and a few others used in demonstration here).
+
 
 ``` r
 # Install CRAN dependencies
@@ -124,6 +96,7 @@ install.packages(c(
 # install.packages("hydroweight")                         # if on CRAN
 # remotes::install_github("GLFC-WET/hydroweight@dev")   # dev version
 ```
+
 
 ``` r
 library(hydroweight)
@@ -150,10 +123,10 @@ hydroweight_dir <- tempdir()
 
 > **Additional WhiteboxTools details**
 >
-> - If `whitebox::install_whitebox()` is needed on your machine, run:
->   `whitebox::install_whitebox()` once.  
-> - If you already have WhiteboxTools, set the path with:
->   `whitebox::wbt_init(exe_path = "/path/to/whitebox_tools")`.
+> -   If `whitebox::install_whitebox()` is needed on your machine, run:
+>     `whitebox::install_whitebox()` once.\
+> -   If you already have WhiteboxTools, set the path with:
+>     `whitebox::wbt_init(exe_path = "/path/to/whitebox_tools")`.
 
 ------------------------------------------------------------------------
 
@@ -161,8 +134,10 @@ hydroweight_dir <- tempdir()
 
 **Workflow at a glance**
 
-    DEM → (Whitebox preprocessing) → hydroweight() → distance-weighted rasters
-                                   → hydroweight_attributes() → summary tables
+```         
+DEM → (Whitebox preprocessing) → hydroweight() → distance-weighted rasters
+                               → hydroweight_attributes() → summary tables
+```
 
 We’ll start with a toy DEM, create targets, compute distance weights,
 and then summarize layers of interest (numeric and categorical).
@@ -179,9 +154,10 @@ We use the `whitebox` demo DEM to keep this tutorial reproducible.
 
 **What we will create**
 
-- A breached DEM (for continuous flow)
-- D8 flow direction and flow accumulation rasters
-- A stream network derived from accumulation
+-   A breached DEM (for continuous flow)
+-   D8 flow direction and flow accumulation rasters
+-   A stream network derived from accumulation
+
 
 ``` r
 ## Load the demo DEM shipped with {whitebox}
@@ -225,10 +201,11 @@ tg_S <- rast(file.path(hydroweight_dir, "toy_dem_streams.tif"))
 
 `hydroweight()` supports two target types:
 
-- **`target_O`**: points or areas (e.g., site locations, lakes)  
-- **`target_S`**: streams/linear features (e.g., distance to streams)
+-   **`target_O`**: points or areas (e.g., site locations, lakes)\
+-   **`target_S`**: streams/linear features (e.g., distance to streams)
 
 We’ll create a small lake polygon (`target_O`) and derive its watershed.
+
 
 ``` r
 ## Lake polygon (target_O) below 220 m elevation
@@ -253,6 +230,7 @@ tg_O_catchment <- rast(file.path(hydroweight_dir, "tg_O_catchment.tif")) |>
 ```
 
 **Quick look**
+
 
 ``` r
 ## Ensure static output in README
@@ -284,6 +262,7 @@ m_quick
 We now compute distance weights with `hydroweight()` for several
 schemes. See `?hydroweight` for specifics on parameter input.
 
+
 ``` r
 ## Inverse distance function; 0.001 converts m → km
 myinv <- function(x) (x * 0.001 + 1)^-1
@@ -306,14 +285,16 @@ hw <- hydroweight(
 
 # hw comes in as a list of PackedSpatRaster, ensure elements are SpatRaster for plotting
 hw <- lapply(hw, rast)
+
 ```
 
 **What you get**
 
-- A ***named list*** of rasters, one per weighting scheme.  
-  e.g., `hw$lumped`, `hw$iEucO`, `hw$iFLO`, `hw$HAiFLS`, etc.
+-   A ***named list*** of rasters, one per weighting scheme.\
+    e.g., `hw$lumped`, `hw$iEucO`, `hw$iFLO`, `hw$HAiFLS`, etc.
 
 **Visualize** (log-transform HA\* variants for contrast)
+
 
 ``` r
 ## Crop/mask to the catchment for display & transform HA* for contrast
@@ -366,13 +347,13 @@ wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]],
 
 > **Interpretation tips**
 >
-> - *lumped*: equal weighting (all values = 1).  
-> - *iEucO / iEucS*: weights extend to DEM bounds (straight-line
->   distance).  
-> - *iFLO / iFLS / HAiFLO / HAiFLS*: weights follow contributing flow
->   paths; non-contributing cells are `NA`.  
-> - In *HA* variants, targets (streams/lake cells) are set to `NA` to
->   avoid over-emphasizing concentrated flow corridors.
+> -   *lumped*: equal weighting (all values = 1).\
+> -   *iEucO / iEucS*: weights extend to DEM bounds (straight-line
+>     distance).\
+> -   *iFLO / iFLS / HAiFLO / HAiFLS*: weights follow contributing flow
+>     paths; non-contributing cells are `NA`.\
+> -   In *HA* variants, targets (streams/lake cells) are set to `NA` to
+>     avoid over-emphasizing concentrated flow corridors.
 
 ------------------------------------------------------------------------
 
@@ -380,10 +361,10 @@ wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]],
 
 `hydroweight_attributes()` combines:
 
-- a ***distance-weighted raster*** (from `hydroweight()`),
-- a ***layer of interest*** (`loi`; raster or polygon; numeric or
-  categorical),
-- and a ***region of interest*** (`roi`; e.g., a catchment polygon),
+-   a ***distance-weighted raster*** (from `hydroweight()`),
+-   a ***layer of interest*** (`loi`; raster or polygon; numeric or
+    categorical),
+-   and a ***region of interest*** (`roi`; e.g., a catchment polygon),
 
 to produce ***attribute summaries*** (means, SDs, proportions, etc.).
 Internally, inputs are projected/rasterized to the DEM grid. See
@@ -394,6 +375,7 @@ Internally, inputs are projected/rasterized to the DEM grid. See
 We’ll create a toy NDVI raster and summarize distance-weighted mean/SD
 within the lake catchment. Note that the lake itself is removed prior to
 calculating statistics.
+
 
 ``` r
 ndvi <- toy_dem
@@ -412,6 +394,7 @@ m_ndvi
 ```
 
 <img src="man/figures/README-attr-numeric-map-1.png" alt="" width="100%" />
+
 
 ``` r
 ## See ?hydroweight_attributes for specifics
@@ -442,10 +425,11 @@ names(hwa_num$attribute_table)
 #> [19] "ndvi_HAiFLS_distwtd_mean" "ndvi_HAiFLS_distwtd_sd"
 ```
 
-#### Categorical raster example (Land use/Land cover \[LULC\])
+#### Categorical raster example (Land use/Land cover [LULC])
 
 We’ll reclassify elevation into made up land use categories, then
 compute distance-weighted ***proportions*** by class.
+
 
 ``` r
 ## Toy categorical LULC from elevation classes
@@ -463,7 +447,7 @@ lulc_levels <- data.frame(
 levels(lulc) <- lulc_levels
 str(levels(lulc))
 #> List of 1
-#>  $ :'data.frame':    4 obs. of  2 variables:
+#>  $ :'data.frame':	4 obs. of  2 variables:
 #>   ..$ ID   : int [1:4] 1 2 3 4
 #>   ..$ Class: chr [1:4] "Lake" "Forest" "Urban" "Agriculture"
 
@@ -478,6 +462,7 @@ m_lulc
 ```
 
 <img src="man/figures/README-attr-cat-map-1.png" alt="" width="100%" />
+
 
 ``` r
 hwa_cat <- hydroweight_attributes(
@@ -520,6 +505,7 @@ names(hwa_cat$attribute_table)
 Treat polygon attributes as numeric rasters under the hood and compute
 distance-weighted statistics.
 
+
 ``` r
 # Polygonize LULC and add numeric attributes
 lulc_p <- as.polygons(lulc, dissolve = TRUE, na.rm = TRUE) |> st_as_sf()
@@ -543,6 +529,7 @@ m_lulc_p # plot var_1 only
 ```
 
 <img src="man/figures/README-attr-polynum-map-1.png" alt="" width="100%" />
+
 
 ``` r
 hwa_poly_num <- hydroweight_attributes(
@@ -584,6 +571,7 @@ names(hwa_poly_num$attribute_table)
 
 Compute distance-weighted **proportions** for polygon categorical
 fields.
+
 
 ``` r
 # Reuse lulc_p; treat attributes as categorical
@@ -636,13 +624,14 @@ interest.
 
 The basic chain looks like this this:
 
-- For each site: Run `hydroweight()`
-- For each layer of interest: Run `hydroweight_attributes()`
+-   For each site: Run `hydroweight()`
+-   For each layer of interest: Run `hydroweight_attributes()`
 
 Here, we try to make the code easier to troubleshoot rather than make it
 look pretty - recognizing lots of opportunity to clean up
 
 ### 4.1 Generate multiple sites and watersheds
+
 
 ``` r
 ## Example: take 3 points along the stream network as sites (targets_O)
@@ -670,6 +659,7 @@ tg_O_multi_catchment <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass"
 ```
 
 **Quick look**
+
 
 ``` r
 ## Ensure static output in README
@@ -700,6 +690,7 @@ multi_quick
 <img src="man/figures/README-quick-multi-1.png" alt="" width="100%" />
 
 ### 4.2 Run `hydroweight()` across sites
+
 
 ``` r
 ## Sites and catchments
@@ -753,6 +744,7 @@ names(sites_weights) <- tg_O_multi$Site
 
 **Quick look**
 
+
 ``` r
 ## Visualize iFLO products, using earlier weights_map function
 
@@ -772,6 +764,7 @@ wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]])
 <img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
 
 ### 4.2 Generate `loi` lists populated with layer-specific `hydroweight_attributes()` parameters
+
 
 ``` r
 ## Layers of interest
@@ -814,6 +807,7 @@ loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
 ```
 
 ### 4.3 Run `hydroweight_attributes()` across sites and layers
+
 
 ``` r
 sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
@@ -870,6 +864,7 @@ names(sites_attributes_products[[1]][[1]]$return_products)    # products by dist
 
 Now - like any good environmental scientist - you will have more
 variables and/or metrics than sites.
+
 
 ``` r
 sites_attributes_list <- foreach(xx = 1:length(sites_attributes_products), .errorhandling = "pass") %do% {
@@ -993,22 +988,14 @@ for each `roi`:`loi` combination are calculated using:
 
 <img src="./man/figures/WeightedStd.svg" width="225" height="113"/>
 
-where ![n](https://latex.codecogs.com/png.latex?n "n") is the number of
-cells, ![w_i](https://latex.codecogs.com/png.latex?w_i "w_i") are the
-cell weights, and ![x_i](https://latex.codecogs.com/png.latex?x_i "x_i")
-are `loi` cell values, ![m](https://latex.codecogs.com/png.latex?m "m")
-is the number or non-zero weights, and
-![\bar{x}^\*](https://latex.codecogs.com/png.latex?%5Cbar%7Bx%7D%5E%2A "\bar{x}^*")
-is the weighted mean. For categorical inputs, the proportion for each
-`roi`:`loi` combination is calculated using
+where $n$ is the number of cells, $w_i$ are the cell weights, and $x_i$
+are `loi` cell values, $m$ is the number or non-zero weights, and
+$\bar{x}^*$ is the weighted mean. For categorical inputs, the proportion
+for each `roi`:`loi` combination is calculated using
 
 <img src="./man/figures/WeightedProp.svg" width="150" height="75"/>
 
-where
-![I(k_i)=1](https://latex.codecogs.com/png.latex?I%28k_i%29%3D1 "I(k_i)=1")
-when category ![k](https://latex.codecogs.com/png.latex?k "k") is
-present in a cell or
-![I(k_i)=0](https://latex.codecogs.com/png.latex?I%28k_i%29%3D0 "I(k_i)=0")
+where $I(k_i)=1$ when category $k$ is present in a cell or $I(k_i)=0$
 when not.
 
 Finally, `loi` `NA` values are handled differently depending on `loi`
@@ -1025,21 +1012,19 @@ re-calculate proportions using non-`NA` values only.
 Here we show three potential options, recognizing that this is highly
 generalized:
 
-- *Balanced* (default): keeps distant influence but emphasizes nearby
-  cells  
-  ![(d\_\text{km} + 1)^{-1}](https://latex.codecogs.com/png.latex?%28d_%5Ctext%7Bkm%7D%20%2B%201%29%5E%7B-1%7D "(d_\text{km} + 1)^{-1}");
-  scaled variant
-  ![(2 \cdot d\_\text{km} + 1)^{-1}](https://latex.codecogs.com/png.latex?%282%20%5Ccdot%20d_%5Ctext%7Bkm%7D%20%2B%201%29%5E%7B-1%7D "(2 \cdot d_\text{km} + 1)^{-1}")
+-   *Balanced* (default): keeps distant influence but emphasizes nearby
+    cells\
+    $(d_\text{km} + 1)^{-1}$; scaled variant
+    $(2 \cdot d_\text{km} + 1)^{-1}$
 
-- *Local influence* (steeper decay): strongly down‑weights distant
-  areas  
-  ![(d\_\text{km} + 1)^{-2}](https://latex.codecogs.com/png.latex?%28d_%5Ctext%7Bkm%7D%20%2B%201%29%5E%7B-2%7D "(d_\text{km} + 1)^{-2}");
-  ![e^{-k d\_\text{km}}](https://latex.codecogs.com/png.latex?e%5E%7B-k%20d_%5Ctext%7Bkm%7D%7D "e^{-k d_\text{km}}")
+-   *Local influence* (steeper decay): strongly down‑weights distant
+    areas\
+    $(d_\text{km} + 1)^{-2}$; $e^{-k d_\text{km}}$
 
-- *Broad influence* (flatter decay): slowly changing weights with
-  distance  
-  ![(d\_\text{km} + 1)^{-0.5}](https://latex.codecogs.com/png.latex?%28d_%5Ctext%7Bkm%7D%20%2B%201%29%5E%7B-0.5%7D "(d_\text{km} + 1)^{-0.5}");
-  ![log(d\_\text{km} + 2)^{-1}](https://latex.codecogs.com/png.latex?log%28d_%5Ctext%7Bkm%7D%20%2B%202%29%5E%7B-1%7D "log(d_\text{km} + 2)^{-1}")
+-   *Broad influence* (flatter decay): slowly changing weights with
+    distance\
+    $(d_\text{km} + 1)^{-0.5}$; $log(d_\text{km} + 2)^{-1}$
+
 
 ``` r
 ## Distances: 0–10 km in 0.05 km steps
@@ -1115,6 +1100,7 @@ ggplot(df, aes(x = distance_km, y = weight, color = formula)) +
 
 ## 6. Quick guide to accessing intermediate files for troubleshooting
 
+
 ``` r
 ## Quick access to a hydroweight output  
 ## hw[[1]] or hw[["lumped"]] # index depends on weights input order
@@ -1158,6 +1144,7 @@ the contributing area to the target site. You can convert iFLO to
 polygons and use it as a catchment boundary, noting that minor
 differences can occur near DEM edges.
 
+
 ``` r
 # Example using current hw$iFLO
 site3_catchment <- hw$iFLO
@@ -1185,61 +1172,61 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 **Potential issues**
 
-- **WhiteboxTools not found**  
-  Run `whitebox::install_whitebox()` once, or point to your binary with
-  `whitebox::wbt_init(exe_path=...)`.
+-   **WhiteboxTools not found**\
+    Run `whitebox::install_whitebox()` once, or point to your binary
+    with `whitebox::wbt_init(exe_path=...)`.
 
-- **CRS / resolution mismatches**  
-  `hydroweight_attributes()` will internally align inputs to the DEM
-  grid, but large on-the-fly resampling can be resource expensive.
-  Pre-process LOIs to the DEM grid when possible.
+-   **CRS / resolution mismatches**\
+    `hydroweight_attributes()` will internally align inputs to the DEM
+    grid, but large on-the-fly resampling can be resource expensive.
+    Pre-process LOIs to the DEM grid when possible.
 
-- **Memory pressure on large rasters**  
-  Prefer file-backed rasters (write intermediates to disk); set
-  `return_products = FALSE` when you only need summary tables.
+-   **Memory pressure on large rasters**\
+    Prefer file-backed rasters (write intermediates to disk); set
+    `return_products = FALSE` when you only need summary tables.
 
-- **Parallelization choices**  
-  A future consideration that hasn’t been fully resolved yet.
+-   **Parallelization choices**\
+    A future consideration that hasn't been fully resolved yet.
 
 **Performance tips**
 
-- Limit by `clip_region` in `hydroweight()` to reduce processing.
-- Batch **numeric** and **categorical** rasters separately.
-- Cache reprojected/rasterized LOIs so they can be reused across sites.
+-   Limit by `clip_region` in `hydroweight()` to reduce processing.
+-   Batch **numeric** and **categorical** rasters separately.
+-   Cache reprojected/rasterized LOIs so they can be reused across
+    sites.
 
 ------------------------------------------------------------------------
 
 ## 9. References
 
-- Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
-  analysis. *Computers & Geosciences*, 95: 75–84.
-  <https://doi.org/10.1016/j.cageo.2016.07.003>
+-   Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
+    analysis. *Computers & Geosciences*, 95: 75–84.
+    <https://doi.org/10.1016/j.cageo.2016.07.003>
 
-- Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., & Harch, B. D.
-  (2011). A comparison of spatially explicit landscape representation
-  methods and their relationship to stream condition. *Freshwater
-  Biology*, 56(3), 590–610.
-  <https://doi.org/10.1111/j.1365-2427.2010.02507.x>
+-   Peterson, E. E., Sheldon, F., Darnell, R., Bunn, S. E., &
+    Harch, B. D. (2011). A comparison of spatially explicit landscape
+    representation methods and their relationship to stream condition.
+    *Freshwater Biology*, 56(3), 590–610.
+    <https://doi.org/10.1111/j.1365-2427.2010.02507.x>
 
-- Peterson, E. E., & Pearse, A. R. (2017). IDW-Plus: An ArcGIS Toolset
-  for calculating spatially explicit watershed attributes for survey
-  sites. *JAWRA*, 53(5): 1241–1249.
-  <https://doi.org/10.1111/1752-1688.12558>
+-   Peterson, E. E., & Pearse, A. R. (2017). IDW-Plus: An ArcGIS Toolset
+    for calculating spatially explicit watershed attributes for survey
+    sites. *JAWRA*, 53(5): 1241–1249.
+    <https://doi.org/10.1111/1752-1688.12558>
 
-- Pearse, A., Heron, G., & Peterson, E. (2025). *rdwplus*: An
-  Implementation of IDW-PLUS. R package v1.0.1.
-  <a href="10.32614/CRAN.package.rdwplus"
-  class="uri">10.32614/CRAN.package.rdwplus</a>
+-   Pearse, A., Heron, G., & Peterson, E. (2025). *rdwplus*: An
+    Implementation of IDW-PLUS. R package v1.0.1.
+    [10.32614/CRAN.package.rdwplus](10.32614/CRAN.package.rdwplus){.uri}
 
-- R Core Team (2021). R: A language and environment for statistical
-  computing. R Foundation for Statistical Computing, Vienna, Austria.
-  <https://www.R-project.org/>
+-   R Core Team (2021). R: A language and environment for statistical
+    computing. R Foundation for Statistical Computing, Vienna, Austria.
+    <https://www.R-project.org/>
 
-- Wickham, H., & Bryan, J. (2021). *R Packages* (2nd ed.).
-  <https://r-pkgs.org/>
+-   Wickham, H., & Bryan, J. (2021). *R Packages* (2nd ed.).
+    <https://r-pkgs.org/>
 
-- Wu, Q. (2020). *whitebox*: ‘WhiteboxTools’ R Frontend. R package
-  v1.4.0. <https://github.com/giswqs/whiteboxR>
+-   Wu, Q. (2020). *whitebox*: 'WhiteboxTools' R Frontend. R package
+    v1.4.0. <https://github.com/giswqs/whiteboxR>
 
 ------------------------------------------------------------------------
 
@@ -1256,11 +1243,11 @@ Resources, and NSERC Strategic Partnership Grant (STPGP 521405-2018).
 ## 11. Development team
 
 The development of this package is a collaborative project led and
-developed by Dr. Erik Emilson with planning and conceptual contributions
-from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles.
+developed by Dr. Erik Emilson with planning and conceptual contributions
+from Dr. Brian Kielstra, Dr. Robert Mackereth and, Dr Stephanie Melles.
 
 To date, the coding and development of this package has been completed
-by Dr. Brian Kielstra and Dr. Erik Emilson, with minor maintenance and
+by Dr. Brian Kielstra and Dr. Erik Emilson, with minor maintenance and
 updates being incorporated by Emily Smenderovac and other WETlab
 members. Version \>2.0 was greatly enhanced by major contributions from
 Patrick Schaeffer.
@@ -1269,6 +1256,6 @@ Patrick Schaeffer.
 
 ## 12. License
 
-Copyright (C) 2026  
+Copyright (C) 2026\
 His Majesty the King in Right of Canada, as represented by the Minister
 of Natural Resources

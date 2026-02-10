@@ -301,28 +301,32 @@ hw_vis$HAiFLO <- log(hw_vis$HAiFLO)
 hw_vis$HAiFLS <- log(hw_vis$HAiFLS)
 
 ## Map builder function with tight layout and small titles
-make_map <- function(r, ttl){
+weights_map <- function(r, ttl){
   tm_shape(r) +
-    tm_raster(col.scale  = tm_scale_continuous(values = viridis::viridis(101)),
-      col.legend = tm_legend(show = FALSE)) +
+    tm_raster(
+      col.scale  = tm_scale_continuous(values = viridis::viridis(101)),
+      col.legend = tm_legend(show = FALSE)
+    ) +
+    # Outside, centered title
+    tm_title(ttl, size = 0.8, position = tm_pos_out("center", "top")) +
     tm_layout(
-      main.title = ttl,
-      main.title.size = 0.8,
       frame = FALSE,
-      inner.margins = c(0.01,0.01,0.02,0.01),
-      outer.margins = c(0,0,0,0)
+      inner.margins = c(0.01, 0.01, 0.02, 0.01),
+      # Give the outside title space above the map:
+      outer.margins = c(0.08, 0, 0, 0)
     )
 }
 
+
 ## Construct maps
 maps <- list(
-  lumped  = make_map(hw_vis$lumped,  "lumped"),
-  iEucO   = make_map(hw_vis$iEucO,   "iEucO"),
-  iEucS   = make_map(hw_vis$iEucS,   "iEucS"),
-  iFLO    = make_map(hw_vis$iFLO,    "iFLO"),
-  iFLS    = make_map(hw_vis$iFLS,    "iFLS"),
-  HAiFLO  = make_map(hw_vis$HAiFLO,  "HAiFLO"),
-  HAiFLS  = make_map(hw_vis$HAiFLS,  "HAiFLS")
+  lumped  = weights_map(hw_vis$lumped,  "lumped"),
+  iEucO   = weights_map(hw_vis$iEucO,   "iEucO"),
+  iEucS   = weights_map(hw_vis$iEucS,   "iEucS"),
+  iFLO    = weights_map(hw_vis$iFLO,    "iFLO"),
+  iFLS    = weights_map(hw_vis$iFLS,    "iFLS"),
+  HAiFLO  = weights_map(hw_vis$HAiFLO,  "HAiFLO"),
+  HAiFLS  = weights_map(hw_vis$HAiFLS,  "HAiFLS")
 )
 
 ## Extract tmap_grobs for use with patchwork
@@ -376,9 +380,10 @@ values(ndvi) <- pmin(pmax(vals, 0), 1)
 names(ndvi) <- "ndvi"
 
 m_ndvi <- tm_shape(ndvi) +
-  tm_raster(palette = viridis::viridis(101), title = "NDVI") +
+  tm_raster(col.scale  = tm_scale_continuous(values = viridis::viridis(101)),
+            col.legend = tm_legend(title = "NDVI")) +
   tm_shape(tg_O_catchment) + tm_borders(col = "maroon2", lwd = 2) +
-  tm_shape(tg_O) + tm_fill(col = "blue") + tm_borders(col = "blue")
+  tm_shape(tg_O) + tm_polygons(fill = "blue", col = "blue")
 
 m_ndvi
 ```
@@ -402,10 +407,10 @@ hwa_num <- hydroweight_attributes(
 names(hwa_num$attribute_table)
 ```
 
-#### Categorical raster example (Land use/Land cover[LULC])
+#### Categorical raster example (Land use/Land cover [LULC])
 
-We’ll reclassify elevation into categories, then compute
-distance-weighted ***proportions*** by class.
+We’ll reclassify elevation into made up land use categories, then
+compute distance-weighted ***proportions*** by class.
 
 ```{r attr-cat-map, fig.width=6, fig.height=5, message = FALSE}
 ## Toy categorical LULC from elevation classes
@@ -424,20 +429,14 @@ levels(lulc) <- lulc_levels
 str(levels(lulc))
 
 m_lulc <- tm_shape(lulc) +
-  tm_raster(
-    style = "cat",
-    scale = tm_scale_discrete(
-      values = viridis(4),                     
-      labels = levels(lulc)[[1]]$Class        
-    )) +
+  tm_raster(col.scale  = tm_scale_categorical(values = viridis(4),
+                                              labels = levels(lulc)[[1]]$Class),
+    col.legend = tm_legend(position = tm_pos_out("right"))) +
   tm_shape(tg_O_catchment) + tm_borders(col = "maroon2", lwd = 2) +
-  #tm_shape(tg_O) + tm_fill(col = "blue") + tm_borders(col = "blue") +
-  tm_layout(legend.outside = TRUE, frame = FALSE)
+  tm_layout(frame = FALSE)
 
 m_lulc
 ```
-
-\
 
 ```{r attr-cat-run}
 hwa_cat <- hydroweight_attributes(
@@ -476,14 +475,17 @@ set.seed(123); lulc_p$BugDensity <- sample(1:6, size = nrow(lulc_p), replace = T
 set.seed(123); lulc_p$FishDensity <- sample(25:30, size = nrow(lulc_p), replace = TRUE)
 
 m_lulc_p <- tm_shape(lulc_p) +
-    tm_polygons(fill = "BugDensity") +
-    tm_shape(tg_O_catchment) +
-    tm_borders(col = "black") +
-    tm_shape(tg_O_catchment) +
-    tm_borders(col = "maroon2", lwd = 2) +
-    tm_shape(tg_O) +
-    tm_polygons(fill = "blue", col = "blue") +
-  tm_layout(legend.outside = TRUE, frame = FALSE)
+  tm_polygons(fill = "BugDensity",
+              fill.scale  = tm_scale_categorical(values = viridisLite::viridis(6)),
+              fill.legend = tm_legend(title = "Bug Density", 
+                                      position = tm_pos_out("right"))) +
+  tm_shape(tg_O_catchment) +
+  tm_borders(col = "black") +
+  tm_shape(tg_O_catchment) +
+  tm_borders(col = "maroon2", lwd = 2) +
+  tm_shape(tg_O) +
+  tm_polygons(fill = "blue", col = "blue") +
+  tm_layout(frame = FALSE)
 
 m_lulc_p # plot var_1 only
 ```
@@ -591,10 +593,11 @@ multi_quick <-
   ) +
   tm_shape(tg_O_multi_catchment) + tm_borders(col = "maroon2", lwd = 2) +
   tm_shape(tg_O_multi) + tm_symbols(
-    col = "white",
-    shape = 21,      # circle
-    size = 0.5,        # make it big
-    border.col = "blue")
+  fill = "white",
+  col  = "blue",   # border color in v4
+  shape = 21,
+  size  = 0.5
+)
 
 multi_quick
 ```
@@ -654,38 +657,19 @@ names(sites_weights) <- tg_O_multi$Site
 **Quick look**
 
 ```{r, fig.width=8, fig.height=3, message = FALSE}
-## Visualize iFLO and iFLS products
+## Visualize iFLO products, using earlier weights_map function
 
-# If wrapped, unwrap the distance-weight rasters (iFLO is [[3]] in the structure)
-r1 <- sites_weights[[1]][["iFLO"]]
-r2 <- sites_weights[[2]][["iFLO"]]
-r3 <- sites_weights[[3]][["iFLO"]]
-r4 <- sites_weights[[1]][["iFLS"]]
-r5 <- sites_weights[[2]][["iFLS"]]
-r6 <- sites_weights[[3]][["iFLS"]]
+## Construct maps
+maps <- list(
+  s1_iFLO <- weights_map(sites_weights[[1]]$iFLO,  "Site 1"), 
+  s2_iFLO <- weights_map(sites_weights[[2]]$iFLO,  "Site 2"), 
+  s3_iFLO <- weights_map(sites_weights[[3]]$iFLO,  "Site 3")
+)
 
-# Consistent palette and tmap mode
-pal <- viridisLite::viridis(101)
-tmap_mode("plot")
+## Extract tmap_grobs for use with patchwork
+g <- lapply(maps, tmap_grob)
 
-# A small helper to avoid repetition
-site_map <- function(r, title) {
-  tm_shape(r) +
-    tm_raster(palette = pal, title = "iFLO", legend.show = FALSE) +
-    tm_layout(
-      title = title,
-      frame = FALSE,
-      outer.margins = c(0,0,0,0),
-      inner.margins = c(0,0,0,0),
-      legend.show = FALSE
-    )
-}
-
-m1 <- (site_map(r1, "Site 1 — iFLO"))
-m2 <- (site_map(r2, "Site 2 — iFLO"))
-m3 <- (site_map(r3, "Site 3 — iFLO"))
-
-tmap_arrange(m1, m2, m3, ncol = 3)
+wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]])
 ```
 
 ### 4.2 Generate `loi` lists populated with layer-specific `hydroweight_attributes()` parameters
@@ -815,10 +799,11 @@ names(sites_attributes_df)
 
 ## 5. Effect of different inverse weighting formulas
 
-The `inv_function` argument in `hydroweight()` controls *how rapidly
-weights decay with distance*. Regardless of whether those distances are
-Euclidean or flow‑path, the formula you choose determines how strongly
-distant areas contribute to your summaries.
+The `inv_function` in `hydroweight()` controls *how rapidly weights
+decay with distance*, which in turn governs how strongly distant parts
+of the watershed influence your summaries. Below, we visualize common
+choices, ordered from *balanced* to *local emphasis* to *broad
+influence*.
 
 `hydroweight_attributes()` uses `hydroweight()` output and layers of
 interest (`loi`) to calculate distance-weighted attributes within a
@@ -856,64 +841,65 @@ of `NA` cells whereas other columns would be their respective
 distance-weighted `NA` proportions. This could allow the user to
 re-calculate proportions using non-`NA` values only.
 
-Below we visualize several common choices:
+Here we show three potential options, recognizing that this is highly
+generalized:
 
--   Basic inverse: $(d + 1)^{-1}$\
--   Steeper decay (local emphasis): $(d + 1)^{-2}$\
--   Flatter decay (broad influence): $(d + 1)^{-0.5}$\
--   Scaled inverse (controls effective range): $(c \cdot d + 1)^{-1}$
-    with $c = 0.0005$ vs $0.001$\
--   Exponential decay: $\exp(-k d)$ (here $k = 0.002$)\
--   Log‑based inverse: $1 / \log(d_{\mathrm{km}} + 2)$
+-   *Balanced* (default): keeps distant influence but emphasizes nearby
+    cells\
+    $(d_\text{km} + 1)^{-1}$; scaled variant
+    $(2 \cdot d_\text{km} + 1)^{-1}$
 
-Distances on the x‑axis are in metres. For functions that use
-kilometres, we convert internally as shown.
+-   *Local influence* (steeper decay): strongly down‑weights distant
+    areas\
+    $(d_\text{km} + 1)^{-2}$; $e^{-k d_\text{km}}$
+
+-   *Broad influence* (flatter decay): slowly changing weights with
+    distance\
+    $(d_\text{km} + 1)^{-0.5}$; $log(d_\text{km} + 2)^{-1}$
 
 ```{r inv-formulas-ggplot, message=FALSE, warning=FALSE}
-# Distance vector (metres)
-d_m <- seq(0, 10000, by = 50)  # 0 to 10 km
+## Distances: 0–10 km in 0.05 km steps
+d_km <- seq(0, 10, by = 0.05)
 
-# Helper conversions
-d_km <- d_m / 1000
+## Parameters
+c_scale <- 2.0   # scaling for balanced variant
+k_exp   <- 2.0   # per km for exponential
 
-# Define formulas
-f_inv_1       <- (d_km + 1)^-1
-f_inv_2       <- (d_km + 1)^-2          # steeper
-f_inv_0.5     <- (d_km + 1)^-0.5        # flatter
-f_inv_c_slow  <- (0.0005 * d_m + 1)^-1  # scaled, slower decay
-f_inv_c_fast  <- (0.001  * d_m + 1)^-1  # scaled, faster decay (typical default)
-f_exp         <- exp(-0.002 * d_m)      # exponential (metres)
-f_log         <- 1 / log(d_km + 2)      # log-based (avoid log(1)=0 by +2)
+## Weight functions (all km-based)
+w_balanced        <- (d_km + 1)^(-1)
+w_balanced_scaled <- (c_scale * d_km + 1)^(-1)
+w_local_pow2      <- (d_km + 1)^(-2)
+w_local_exp       <- exp(-k_exp * d_km)
+w_broad_pow05     <- (d_km + 1)^(-0.5)
+w_broad_log       <- (log(d_km + 2))^(-1)
 
-# Assemble data
+## Assemble tidy data for plotting (with clear km-based labels)
 df <- tibble(
-  distance_m = d_m,
-  `Inverse 1/(d_km+1)`           = f_inv_1,
-  `Inverse 1/(d_km+1)^2`         = f_inv_2,
-  `Inverse 1/(d_km+1)^0.5`       = f_inv_0.5,
-  `Scaled 1/(0.0005*d_m+1)`      = f_inv_c_slow,
-  `Scaled 1/(0.001*d_m+1)`       = f_inv_c_fast,
-  `Exponential exp(-0.002*d_m)`  = f_exp,
-  `Log 1/log(d_km+2)`            = f_log
+  distance_km = d_km,
+  `Balanced - (d_km+1)^-1 (default)`       = w_balanced,
+  `Balanced - (c*d_km+1)^-1`     = w_balanced_scaled,
+  `Local - (d_km+1)^-2`          = w_local_pow2,
+  `Local - exp(-k*d_km)`         = w_local_exp,
+  `Broad - (d_km+1)^-0.5`        = w_broad_pow05,
+  `Broad - (log(d_km+2))^-1`     = w_broad_log
 ) |>
-  pivot_longer(-distance_m, names_to = "formula", values_to = "weight")
+  pivot_longer(-distance_km, names_to = "formula", values_to = "weight")
 
-# Order facets for readability
+## Facet order: Balanced → Local → Broad
 df$formula <- factor(
   df$formula,
   levels = c(
-    "Inverse 1/(d_km+1)",
-    "Inverse 1/(d_km+1)^2",
-    "Inverse 1/(d_km+1)^0.5",
-    "Exponential exp(-0.002*d_m)",
-    "Log 1/log(d_km+2)",
-    "Scaled 1/(0.0005*d_m+1)",
-    "Scaled 1/(0.001*d_m+1)"
+    "Balanced - (d_km+1)^-1 (default)",
+    "Local - (d_km+1)^-2",
+    "Broad - (d_km+1)^-0.5",
+    "Balanced - (c*d_km+1)^-1",
+    "Local - exp(-k*d_km)",
+    "Broad - (log(d_km+2))^-1"
   )
 )
 
-# Plot
-ggplot(df, aes(x = distance_m/1000, y = weight, color = formula)) +
+## Plot
+ggplot(df, aes(x = distance_km, y = weight, color = formula)) +
   geom_line(linewidth = 0.9, show.legend = FALSE) +
   facet_wrap(~ formula, ncol = 3, scales = "free_y") +
   scale_x_continuous("Distance (km)", breaks = pretty_breaks()) +
@@ -925,21 +911,6 @@ ggplot(df, aes(x = distance_m/1000, y = weight, color = formula)) +
     plot.margin = margin(5, 5, 5, 5)
   )
 ```
-
-**How to choose a formula:**
-
--   **Stronger local emphasis** → larger exponent or exponential\
-    *Use when near‑target processes dominate (e.g., near‑stream
-    sources).*\
--   **Balanced** → $(d + 1)^{-1}$\
-    *Good general‑purpose default; nearby cells matter most, but distant
-    cells still count.*\
--   **Broad influence** → smaller exponent or log‑based\
-    *Use when distant parts of a watershed retain meaningful
-    influence.*\
--   **Adjust range** → scale constant $c$ in $(c \cdot d + 1)^{-1}$\
-    *Lower* $c$ flattens decay (longer effective range); higher $c$
-    steepens decay.
 
 > **Tip:** In `hydroweight()`, set your function via
 > `inv_function = myinv`. You can parameterize it, e.g.:
@@ -1007,15 +978,15 @@ site3_catchment <- hw$iFLO
 site3_catchment[!is.na(site3_catchment)] <- 1
 site3_catchment <- as.polygons(site3_catchment, dissolve = TRUE) |> st_as_sf()
 
-m_ws <- tm_shape(tg_O_catchment) + tm_fill(col = "blue", alpha = 0.5) +
-  tm_layout(main.title = "Watershed-derived", frame = FALSE)
+m_ws <- tm_shape(tg_O_catchment) + tm_polygons(fill = "blue", fill_alpha = 0.5) +
+  tm_title("Watershed-derived") + tm_layout(frame = FALSE)
 
-m_hw <- tm_shape(site3_catchment) + tm_fill(col = "red", alpha = 0.5) +
-  tm_layout(main.title = "hydroweight-derived", frame = FALSE)
+m_hw <- tm_shape(site3_catchment) + tm_polygons(fill = "red", fill_alpha = 0.5) +
+  tm_title("hydroweight-derived") + tm_layout(frame = FALSE)
 
-m_overlap <- tm_shape(site3_catchment) + tm_fill(col = "blue", alpha = 0.5) +
-  tm_shape(tg_O_catchment) + tm_fill(col = "red", alpha = 0.5) +
-  tm_layout(main.title = "Overlap", frame = FALSE)
+m_overlap <- tm_shape(site3_catchment) + tm_polygons(fill = "blue", fill_alpha = 0.5) +
+  tm_shape(tg_O_catchment) + tm_polygons(fill = "red", fill_alpha = 0.5) +
+  tm_title("Overlap") + tm_layout(frame = FALSE)
 
 tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 ```
@@ -1032,8 +1003,8 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 -   **CRS / resolution mismatches**\
     `hydroweight_attributes()` will internally align inputs to the DEM
-    grid, but large on-the-fly resampling can be expensive. Pre-process
-    LOIs to the DEM grid when possible.
+    grid, but large on-the-fly resampling can be resource expensive.
+    Pre-process LOIs to the DEM grid when possible.
 
 -   **Memory pressure on large rasters**\
     Prefer file-backed rasters (write intermediates to disk); set
@@ -1044,7 +1015,7 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 **Performance tips**
 
--   Limit the `clip_region` in `hydroweight()` to reduce processing.
+-   Limit by `clip_region` in `hydroweight()` to reduce processing.
 -   Batch **numeric** and **categorical** rasters separately.
 -   Cache reprojected/rasterized LOIs so they can be reused across
     sites.
