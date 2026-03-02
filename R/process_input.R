@@ -276,7 +276,7 @@ process_input <- function(
           output <- terra::project(
             x = output,
             y = align_to,
-            field = input_name,
+            name = input_name,
             method = resample_type,
             overwrite = TRUE,
             ...

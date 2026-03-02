@@ -210,8 +210,8 @@ hydroweight_attributes <- function(
       working_dir = own_tempdir
     )
 
-    if (inherits(roi, "SpatRaster") && nlyr(roi) > 1) roi <- roi[[1]]
-    if (inherits(roi, "SpatVector") && ncol(roi) > 1) roi <- roi[, names(roi)[1]]
+    if (inherits(roi, "SpatRaster") && terra::nlyr(roi) > 1) roi <- roi[[1]]
+    if (inherits(roi, "SpatVector") && terra::ncol(roi) > 1) roi <- roi[, names(roi)[1]]
     names(roi) <- "roi"
   }
 
