@@ -306,9 +306,12 @@ process_input <- function(
   ## Clip and mask clip_region prior to heavier processing (if provided) -------
   if (!is.null(clip_region)) {
 
+    align_crs <- sf::st_crs(output)
+    if (!is.null(align_to)) align_crs <- sf::st_crs(align_to)
+
     cr <- process_input(
       input = clip_region,
-      align_to = align_to,
+      align_to = terra::vect(sf::st_as_sfc("POLYGON ((0 -5, 10 0, 10 -10, 0 -5))", crs = align_crs)),
       working_dir = working_root
     )
 
