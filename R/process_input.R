@@ -339,17 +339,14 @@ process_input <- function(
 
           b <- as.numeric(brick_list[[y]])
           f <- brick_list[[y]]
-          (uv <- unlist(terra::unique(b)))
-          (uv <- uv[!sapply(uv,is.nan)])
-          (uv <- uv[!sapply(uv,is.na)])
-          (uv <- uv[!sapply(uv,is.infinite)])
+          uv <- unlist(terra::unique(b))
+          uv <- uv[!sapply(uv,is.nan)]
+          uv <- uv[!sapply(uv,is.na)]
+          uv <- uv[!sapply(uv,is.infinite)]
 
           if (length(uv)>1) {
             out<-lapply(uv,function(x) {
-              repl <- terra::values(b)
-              repl[repl!=x] <- NA
-              repl[!is.na(repl)]<-1
-              out<-terra::setValues(b,repl)
+              out <- terra::classify(b,cbind(x,1),others = NA_integer_)
               if (length(uv)>1) names(out) <-paste0(y,"_",x)
               if (length(uv)==1) names(out) <- y
               return(out)
