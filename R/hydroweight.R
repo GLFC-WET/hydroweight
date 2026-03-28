@@ -229,6 +229,14 @@ hydroweight <- function(
   )
   clip_region <- clip_region[, 1]
 
+  ## now clip dem by clip_region if specified
+  if (!is.null(clip_region)){
+    dem <- process_input(input = dem,
+                         input_name = "dem",
+                         clip_region = clip_region,
+                         working_dir = own_tempdir)
+  }
+
   ## flow_accum
   flow_accum <- process_input(
     input         = flow_accum,

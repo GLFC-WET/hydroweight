@@ -349,7 +349,7 @@ process_input <- function(
 
           if (length(uv)>1) {
             out<-lapply(uv,function(x) {
-              out <- terra::classify(b,cbind(x,1),others = NA_integer_)
+              out <- terra::classify(b, cbind(x,1), others = NA_integer_)
               if (length(uv)>1) names(out) <-paste0(y,"_",x)
               if (length(uv)==1) names(out) <- y
               return(out)
