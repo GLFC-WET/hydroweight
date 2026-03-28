@@ -1,3 +1,6 @@
+## hydroweight 2.0.0 
+* Major update of tutorial and back-end processing with updates through more modern spatial processing.
+
 ## hydroweight 1.2.4 
 
 * Added Peterson et al. 2011 paper to CITATION. 
