@@ -2,7 +2,7 @@ hydroweight: Distance-weighted rasters and landscape attributes
 ================
 
 - [hydroweight](#hydroweight)
-  - [0. Learning objectives](#0-learning-objectives)
+  - [Learning objectives](#learning-objectives)
   - [1. Why distance-weighted landscape
     metrics?](#1-why-distance-weighted-landscape-metrics)
   - [2. Installation & prerequisites](#2-installation--prerequisites)
@@ -22,23 +22,33 @@ hydroweight: Distance-weighted rasters and landscape attributes
       watersheds](#41-generate-multiple-sites-and-watersheds)
     - [4.2 Run `hydroweight()` across
       sites](#42-run-hydroweight-across-sites)
-    - [4.2 Generate `loi` lists populated with layer-specific
+    - [4.3 Generate `loi` lists populated with layer-specific
       `hydroweight_attributes()`
-      parameters](#42-generate-loi-lists-populated-with-layer-specific-hydroweight_attributes-parameters)
-    - [4.3 Run `hydroweight_attributes()` across sites and
-      layers](#43-run-hydroweight_attributes-across-sites-and-layers)
-    - [4.4 Extract and adjust results data
-      frames](#44-extract-and-adjust-results-data-frames)
-  - [5. Effect of different inverse weighting
-    formulas](#5-effect-of-different-inverse-weighting-formulas)
-  - [6. Quick guide to accessing intermediate files for
-    troubleshooting](#6-quick-guide-to-accessing-intermediate-files-for-troubleshooting)
-  - [7. Using iFLO to derive catchments (alternative to watershed
-    tool)](#7-using-iflo-to-derive-catchments-alternative-to-watershed-tool)
-  - [8. Troubleshooting & performance](#8-troubleshooting--performance)
-  - [9. References](#9-references)
-  - [10. Acknowledgements](#10-acknowledgements)
-  - [11. Development team](#11-development-team)
+      parameters](#43-generate-loi-lists-populated-with-layer-specific-hydroweight_attributes-parameters)
+    - [4.4 Run `hydroweight_attributes()` across sites and
+      layers](#44-run-hydroweight_attributes-across-sites-and-layers)
+    - [4.5 Extract and adjust results data
+      frames](#45-extract-and-adjust-results-data-frames)
+  - [5. Quick guide to accessing intermediate files for
+    troubleshooting](#5-quick-guide-to-accessing-intermediate-files-for-troubleshooting)
+  - [6. Effect of different inverse weighting
+    formulas](#6-effect-of-different-inverse-weighting-formulas)
+  - [7. Effect of stream extraction threshold on distance-weighted
+    attributes](#7-effect-of-stream-extraction-threshold-on-distance-weighted-attributes)
+    - [7.1 Define the thresholds](#71-define-the-thresholds)
+    - [7.2 Loop over thresholds](#72-loop-over-thresholds)
+    - [7.3 Reshape results into tidy long-format data
+      frames](#73-reshape-results-into-tidy-long-format-data-frames)
+    - [7.4 Plot: NDVI sensitivity to stream
+      threshold](#74-plot-ndvi-sensitivity-to-stream-threshold)
+    - [7.5 Plot: LULC proportion sensitivity to stream
+      threshold](#75-plot-lulc-proportion-sensitivity-to-stream-threshold)
+  - [8. Using iFLO to derive catchments (alternative to watershed
+    tool)](#8-using-iflo-to-derive-catchments-alternative-to-watershed-tool)
+  - [9. Troubleshooting & performance](#9-troubleshooting--performance)
+  - [10. References](#10-references)
+  - [11. Acknowledgements](#11-acknowledgements)
+  - [12. Development team](#12-development-team)
   - [12. License](#12-license)
 
 <!-- README.md is generated from this file. Please edit README.Rmd. -->
@@ -69,22 +79,23 @@ weighting schemes, data types, and multiple sites.
 
 ------------------------------------------------------------------------
 
-## 0. Learning objectives
+## Learning objectives
 
 By the end of this tutorial, you will be able to:
 
 - Explain why distance-weighted catchment metrics can outperform simple
-  “lumped” metrics for many applications.
+  “lumped” metrics for many applications
 - Prepare a DEM and hydrologic derivatives (flow directions,
-  accumulation, streams) required by `hydroweight()`.
+  accumulation, streams) required by `hydroweight()`
 - Generate distance-weighted rasters with different schemes (e.g.,
-  iEucO, iFLO, HAiFLS) and interpret their meaning.
+  iEucO, iFLO, HAiFLS) and interpret their meaning
 - Compute distance-weighted numeric (i.e., mean) and categorical (i.e.,
-  % cover) attributes with `hydroweight_attributes()`.
-- Scale the workflow to multiple sites and multiple layers.
-- Understand the effect of different inverse weighting formulas.
-- Understand how to extract intermediate products.
-- Troubleshoot common issues and improve performance.
+  % cover) attributes with `hydroweight_attributes()`
+- Scale the workflow to multiple sites and multiple layers
+- Understand how to extract intermediate products
+- Understand the effect of different inverse weighting formulas
+- Understand the effect of different stream initiation thresholds
+- Troubleshoot common issues and improve performance
 
 ------------------------------------------------------------------------
 
@@ -110,40 +121,33 @@ a simple, flexible R workflow built on WhiteboxTools.
 ## 2. Installation & prerequisites
 
 You’ll need R packages for geospatial data and WhiteboxTools bindings
-(and a few others used in demonstration here).
+(and a few others used in demonstration here). Here `pacman::p_load()`
+helps with install of key packages.
 
 ``` r
-# Install CRAN dependencies
-install.packages(c(
-  "terra","sf","dplyr","ggplot2","viridis","foreach","doParallel",
-  "future.apply","purrr","tidyr","readr","whitebox","mapview",
-  "tmap","stars","scales"
-))
-
 # Install hydroweight (replace with your install path/source as needed)
 # install.packages("hydroweight")                         # if on CRAN
 # remotes::install_github("GLFC-WET/hydroweight@dev")   # dev version
 ```
 
 ``` r
-library(hydroweight)
-library(terra)
-library(sf)
-library(whitebox)
-library(viridis)
-library(tmap)
-library(tidyr)
-library(purrr)
-library(tibble)
-library(foreach)
-library(doParallel)
-library(future.apply)
-library(scales)
-library(dplyr)
-library(patchwork)
-library(stringr)
-library(ggplot2)
- 
+if (!require("pacman")) install.packages("pacman")
+
+# Core
+pacman::p_load(hydroweight)
+
+# Spatial
+pacman::p_load(terra, sf, whitebox)
+
+# Tidy/data
+pacman::p_load(dplyr, tidyr, purrr, tibble, stringr)
+
+# Visualization
+pacman::p_load(ggplot2, viridis, tmap, patchwork, scales)
+
+# Parallel
+pacman::p_load(foreach, doParallel, future.apply)
+
 ## Working directory for outputs (temp for the tutorial)
 hydroweight_dir <- tempdir()
 ```
@@ -301,8 +305,8 @@ hw <- hydroweight(
   weighting_scheme = c("lumped","iEucO","iFLO","HAiFLO","iEucS","iFLS","HAiFLS"),
   inv_function    = myinv,
 )
-#> Preparing hydroweight layers @ 2026-02-10 15:51:53.789569
-#> Running distance-weighting @ 2026-02-10 15:51:54.182698
+#> Preparing hydroweight layers @ 2026-03-28 00:26:14.042184
+#> Running distance-weighting @ 2026-03-28 00:26:14.333311
 
 # hw comes in as a list of PackedSpatRaster, ensure elements are SpatRaster for plotting
 hw <- lapply(hw, rast)
@@ -450,7 +454,7 @@ compute distance-weighted ***proportions*** by class.
 ``` r
 ## Toy categorical LULC from elevation classes
 lulc <- toy_dem
-rcl  <- matrix(c(0,220,1,  220,300,2,  300,400,3,  400,Inf,4), ncol=3, byrow=TRUE)
+rcl  <- matrix(c(0,220,1,  220,300,2,  300,400,3,  400, Inf, 4), ncol=3, byrow=TRUE)
 lulc <- classify(lulc, rcl); names(lulc) <- "lulc"
 lulc <- terra::as.factor(lulc)
 
@@ -642,6 +646,8 @@ The basic chain looks like this this:
 Here, we try to make the code easier to troubleshoot rather than make it
 look pretty - recognizing lots of opportunity to clean up
 
+------------------------------------------------------------------------
+
 ### 4.1 Generate multiple sites and watersheds
 
 ``` r
@@ -698,6 +704,8 @@ multi_quick
 ```
 
 <img src="man/figures/README-quick-multi-1.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
 
 ### 4.2 Run `hydroweight()` across sites
 
@@ -771,7 +779,9 @@ wrap_plots(A = g[[1]], B = g[[2]], C = g[[3]])
 
 <img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
 
-### 4.2 Generate `loi` lists populated with layer-specific `hydroweight_attributes()` parameters
+------------------------------------------------------------------------
+
+### 4.3 Generate `loi` lists populated with layer-specific `hydroweight_attributes()` parameters
 
 ``` r
 ## Layers of interest
@@ -813,7 +823,9 @@ loi_lulc_p_c <- list(
 loi_variable <- list(loi_ndvi, loi_lulc, loi_lulc_p_n, loi_lulc_p_c)
 ```
 
-### 4.3 Run `hydroweight_attributes()` across sites and layers
+------------------------------------------------------------------------
+
+### 4.4 Run `hydroweight_attributes()` across sites and layers
 
 ``` r
 sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "pass") %do% {
@@ -844,6 +856,12 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
 
   sel_layers_hwa
 }
+#> 
+#> ******Running hydroweight() on Site 1 of 3 2026-03-28 00:26:38.569146******
+#> 
+#> ******Running hydroweight() on Site 2 of 3 2026-03-28 00:26:41.400563******
+#> 
+#> ******Running hydroweight() on Site 3 of 3 2026-03-28 00:26:44.206478******
 
 ## Sanity checks
 length(sites_attributes_products)                             # one list per site (3)
@@ -866,7 +884,9 @@ names(sites_attributes_products[[1]][[1]]$return_products)    # products by dist
 #> [1] "iEucO"  "iFLO"   "HAiFLO" "iEucS"  "iFLS"   "HAiFLS" "lumped"
 ```
 
-### 4.4 Extract and adjust results data frames
+------------------------------------------------------------------------
+
+### 4.5 Extract and adjust results data frames
 
 Now - like any good environmental scientist - you will have more
 variables and/or metrics than sites.
@@ -970,7 +990,47 @@ names(sites_attributes_df)
 #> [121] "FishDensity.27_HAiFLS_prop"      "FishDensity.30_HAiFLS_prop"
 ```
 
-## 5. Effect of different inverse weighting formulas
+------------------------------------------------------------------------
+
+## 5. Quick guide to accessing intermediate files for troubleshooting
+
+``` r
+## Quick access to a hydroweight output   
+## hw[[1]] or hw[["lumped"]] # index depends on weights input order 
+## hw[[2]] or hw[["iEucO"]]   
+
+## Quick access to a hydroweight attribute table  
+## hwa_cat$attribute_table  
+
+## Quick access to hydroweight attribute intermediate products (if return_products = TRUE)  
+## This is the loi * weight product 
+## rast(hwa_cat$return_products$iEucO$loi_dist_rast)  
+
+## Access to a chained-together process can vary depending on analysis needs. But here:  
+
+## sites_weights 
+## length(sites_weights)            # 3 sites 
+## length(sites_weights[[1]])       # 7 distance-weighted rasters for each site 
+## sites_weights[[1]][[1]]          # site 1, lumped 
+## sites_weights[[1]][[2]]          # site 1, iEucO 
+## sites_weights[[1]][[3]]          # site 1, iFLO 
+## sites_weights[[2]][[4]]          # site 2, HAiFLO 
+## sites_weights[[2]][[5]]          # site 2, iEucS 
+## sites_weights[[2]][[6]]          # site 2, iFLS 
+## sites_weights[[2]][[7]]          # site 2, HAiFLS  
+
+## sites_attributes_products 
+## length(sites_attributes_products)        # 3 sites  
+## length(sites_attributes_products[[1]])   # site 1, 4 loi  
+## length(sites_attributes_products[[1]][[1]]) # site 1, ndvi loi, 2 items (attribute tables, distance products) 
+## sites_attributes_products[[1]][[1]]$attribute_table # site 1, ndvi loi, attribute table  
+## sites_attributes_products[[1]][[1]]$return_products # site 1, ndvi loi, distance products 
+## sites_attributes_products[[1]][[1]]$return_products[["lumped"]] # site 1, ndvi loi, lumped distance products}`
+```
+
+------------------------------------------------------------------------
+
+## 6. Effect of different inverse weighting formulas
 
 The `inv_function` in `hydroweight()` controls *how rapidly weights
 decay with distance*, which in turn governs how strongly distant parts
@@ -1113,45 +1173,359 @@ ggplot(df, aes(x = distance_km, y = weight, color = formula)) +
 
 ------------------------------------------------------------------------
 
-## 6. Quick guide to accessing intermediate files for troubleshooting
+## 7. Effect of stream extraction threshold on distance-weighted attributes
+
+The choice of `threshold` in `wbt_extract_streams()` controls how dense
+the derived stream network is: a **lower** threshold initiates channels
+in more cells, producing a finer network; a **higher** threshold limits
+channels to larger accumulation areas, leaving fewer, broader channels.
+
+Because stream-referenced weighting schemes (`iEucS`, `iFLS`, `HAiFLS`)
+compute distances to the nearest stream cell, the threshold directly
+controls *where* streams are, and therefore how distance weights are
+assigned across the catchment. This section examines a range of
+thresholds and tracks how the choice propagates through `hydroweight()`
+and into the attribute values returned by `hydroweight_attributes()` —
+for both a **numeric** layer (NDVI) and a **categorical** layer (LULC).
+
+**Workflow:**
+
+1.  Define a range of thresholds to examine
+2.  For each threshold:
+    1.  Re-extract the stream raster with `wbt_extract_streams()`
+    2.  Run `hydroweight()` using that stream raster as `target_S`
+    3.  Run `hydroweight_attributes()` for the numeric `loi` (NDVI)
+    4.  Run `hydroweight_attributes()` for the categorical `loi` (LULC)
+3.  Bind results into tidy long-format data frames (one per `loi` type)
+4.  Plot: x = threshold, y = `distwtd_mean`, faceted by weighting scheme
+    (NDVI)
+5.  Plot: x = threshold, y = `distwtd_prop`, faceted by scheme × LULC
+    class
+
+> **Prerequisites:** This section assumes all objects from Sections 3–4
+> of the tutorial are already in your environment: `hydroweight_dir`,
+> `tg_O`, `tg_O_catchment`, `ndvi`, `lulc`, `levels_map`, and `myinv`.
+
+------------------------------------------------------------------------
+
+### 7.1 Define the thresholds
 
 ``` r
-## Quick access to a hydroweight output  
-## hw[[1]] or hw[["lumped"]] # index depends on weights input order
-## hw[[2]] or hw[["iEucO"]] 
+# Threshold values (cells) to test — cover two orders of magnitude to
+# see meaningful changes in network density; adjust to your DEM's drainage
+# area range if needed
+thresholds <- c(100, 250, 500, 1000, 2000, 5000, 10000)
 
-## Quick access to a hydroweight attribute table 
-## hwa_cat$attribute_table
-
-## Quick access to hydroweight attribute intermmediate products (if return_products = TRUE) 
-## This is the loi * weight product
-## rast(hwa_cat$return_products$iEucO$loi_dist_rast)
-
-## Access to a chained-together process can vary depending on analysis needs. But here:
-
-## sites_weights
-## length(sites_weights)            # 3 sites
-## length(sites_weights[[1]])       # 7 distance-weighted rasters for each site
-## sites_weights[[1]][[1]]          # site 1, lumped
-## sites_weights[[1]][[2]]          # site 1, iEucO
-## sites_weights[[1]][[3]]          # site 1, iFLO
-## sites_weights[[2]][[4]]          # site 2, HAiFLO
-## sites_weights[[2]][[5]]          # site 2, iEucS
-## sites_weights[[2]][[6]]          # site 2, iFLS
-## sites_weights[[2]][[7]]          # site 2, HAiFLS
-
-## sites_attributes_products
-## length(sites_attributes_products)        # 3 sites 
-## length(sites_attributes_products[[1]])   # site 1, 4 loi 
-## length(sites_attributes_products[[1]][[1]]) # site 1, ndvi loi, 2 items (attribute tables, distance products)
-## sites_attributes_products[[1]][[1]]$attribute_table # site 1, ndvi loi, attribute table 
-## sites_attributes_products[[1]][[1]]$return_products # site 1, ndvi loi, distance products
-## sites_attributes_products[[1]][[1]]$return_products[["lumped"]] # site 1, ndvi loi, lumped distance products
+# Weighting schemes to run at every threshold
+weighting_schemes <- c("lumped", "iEucO", "iFLO", "HAiFLO",
+                        "iEucS",  "iFLS",  "HAiFLS")
 ```
 
 ------------------------------------------------------------------------
 
-## 7. Using iFLO to derive catchments (alternative to watershed tool)
+### 7.2 Loop over thresholds
+
+Each iteration of the loop below:
+
+- writes a threshold-specific stream raster to `hydroweight_dir`,
+- runs `hydroweight()` once (reused for both `loi` types),
+- runs `hydroweight_attributes()` twice — once for NDVI (numeric), once
+  for LULC (categorical), and
+- returns both attribute tables in a named list.
+
+`.errorhandling = "pass"` means a failing threshold inserts the error
+object into the results list rather than aborting the whole sweep —
+useful when testing a wide range where very high thresholds may produce
+degenerate networks.
+
+``` r
+threshold_results <- foreach(thr = thresholds, .errorhandling = "pass") %do% {
+
+  message("\n*** Stream threshold = ", thr, " cells  (", Sys.time(), ") ***")
+
+  # -- 7.2a  Extract streams at this threshold ---------------------------------
+  stream_path <- file.path(hydroweight_dir,
+                            paste0("streams_thr", thr, ".tif"))
+
+  wbt_extract_streams(
+    flow_accum = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
+    output     = stream_path,
+    threshold  = thr
+  )
+
+  tg_S_thr <- rast(stream_path)   # stream raster for this threshold
+
+  # -- 7.2b  Run hydroweight() with the new stream raster ----------------------
+  # target_S is now threshold-specific; everything else is unchanged
+  hw_thr <- hydroweight(
+    hydroweight_dir  = hydroweight_dir,
+    target_O         = tg_O,
+    target_S         = tg_S_thr,
+    target_uid       = paste0("Lake_thr", thr),
+    clip_region      = NULL,
+    OS_combine       = TRUE,
+    dem              = file.path(hydroweight_dir, "toy_dem_breached.tif"),
+    flow_accum       = file.path(hydroweight_dir, "toy_dem_breached_accum.tif"),
+    weighting_scheme = weighting_schemes,
+    inv_function     = myinv
+  )
+
+  # hydroweight() can return PackedSpatRasters; unpack for hydroweight_attributes()
+  hw_thr <- lapply(hw_thr, rast)
+
+  # -- 7.2c  Compute distance-weighted NDVI attributes (numeric) ---------------
+  hwa_ndvi_thr <- hydroweight_attributes(
+    loi               = ndvi,
+    loi_numeric       = TRUE,
+    loi_numeric_stats = c("distwtd_mean", "distwtd_sd",
+                          "mean", "sd", "cell_count"),
+    roi               = tg_O_catchment,
+    roi_uid           = "1",
+    roi_uid_col       = "Lake",
+    distance_weights  = hw_thr,
+    remove_region     = tg_O,    # exclude the lake itself, as in Section 3.4
+    return_products   = FALSE    # keep memory footprint small across iterations
+  )
+
+  hwa_ndvi_thr$attribute_table$threshold <- thr
+
+  # -- 7.2d  Compute distance-weighted LULC attributes (categorical) -----------
+  # lulc is a factor raster; hydroweight_attributes() returns one _prop column
+  # per class × scheme combination (see Section 3.4 for full explanation)
+  hwa_lulc_thr <- hydroweight_attributes(
+    loi              = lulc,
+    loi_numeric      = FALSE,     # categorical: returns proportions, not means
+    roi              = tg_O_catchment,
+    roi_uid          = "1",
+    roi_uid_col      = "Lake",
+    distance_weights = hw_thr,
+    remove_region    = tg_O,
+    return_products  = FALSE
+  )
+
+  # Rename Class_<id>_* columns to <ClassName>_* using levels_map from Section 3.4
+  hwa_lulc_thr$attribute_table <- hwa_lulc_thr$attribute_table |>
+    rename_with(~ {
+      id   <- str_match(.x, "^Class_(\\d+)_")[, 2]
+      rest <- str_remove(.x, "^Class_\\d+_")
+      cls  <- levels_map[id]
+      ifelse(!is.na(cls), paste0(cls, "_", rest), .x)
+    })
+
+  hwa_lulc_thr$attribute_table$threshold <- thr
+
+  # Return both tables in a named list so the loop result is self-documenting
+  list(
+    ndvi = hwa_ndvi_thr$attribute_table,
+    lulc = hwa_lulc_thr$attribute_table
+  )
+}
+```
+
+------------------------------------------------------------------------
+
+### 7.3 Reshape results into tidy long-format data frames
+
+The loop returns a list of `list(ndvi = ..., lulc = ...)` - one per
+threshold. `map()` extracts each sub-table by name before binding rows.
+
+``` r
+# Split the per-threshold lists into two flat wide data frames
+threshold_df_wide_ndvi <- bind_rows(map(threshold_results, "ndvi"))
+threshold_df_wide_lulc <- bind_rows(map(threshold_results, "lulc"))
+```
+
+#### NDVI: one row per threshold × scheme
+
+``` r
+# Target the distwtd_mean columns plus the plain "mean" (= lumped equivalent)
+threshold_df_long_ndvi <- threshold_df_wide_ndvi |>
+  select(threshold,
+         ndvi_mean,                  # unweighted (equivalent to lumped)
+         ends_with("_distwtd_mean")  # distance-weighted means per scheme
+         ) |>
+  pivot_longer(
+    cols      = -threshold,
+    names_to  = "column",
+    values_to = "distwtd_mean"
+  ) |>
+  # Parse a clean scheme label from the column name:
+  #   "ndvi_mean"               → "lumped"
+  #   "ndvi_iEucO_distwtd_mean" → "iEucO"
+  mutate(
+    scheme = case_when(
+      column == "ndvi_mean" ~ "lumped",
+      TRUE ~ str_extract(column, "(?<=ndvi_).*(?=_distwtd_mean)")
+    ),
+    scheme = factor(scheme, levels = weighting_schemes)
+  ) |>
+  select(threshold, scheme, distwtd_mean)
+
+# Quick check: should have length(thresholds) × length(weighting_schemes) rows
+stopifnot(nrow(threshold_df_long_ndvi) == length(thresholds) * length(weighting_schemes))
+
+glimpse(threshold_df_long_ndvi)
+#> Rows: 49
+#> Columns: 3
+#> $ threshold    <dbl> 100, 100, 100, 100, 100, 100, 100, 250, 250, 250, 250, 25…
+#> $ scheme       <fct> lumped, iEucO, iFLO, HAiFLO, iEucS, iFLS, HAiFLS, lumped,…
+#> $ distwtd_mean <dbl> 0.4987395, 0.4986637, 0.4986506, 0.4845075, 0.4989526, 0.…
+```
+
+#### LULC: one row per threshold × class × scheme
+
+``` r
+# Column names follow the pattern <ClassName>_<scheme>_prop.
+# We exclude:
+#   - _prop_NA columns: these track missing-data coverage, not land-cover area
+#   - Lake_ columns: the target itself, removed via remove_region = tg_O
+threshold_df_long_lulc <- threshold_df_wide_lulc |>
+  select(threshold, ends_with("_prop")) |>
+  select(-ends_with("_prop_NA")) |>
+  select(-starts_with("Lake_")) |>
+  pivot_longer(
+    cols      = -threshold,
+    names_to  = "column",
+    values_to = "prop"
+  ) |>
+  # Parse lulc_class and scheme from the column name:
+  #   "Forest_iEucO_prop"  → class = "Forest", scheme = "iEucO"
+  #   "Forest_lumped_prop" → class = "Forest", scheme = "lumped"
+  mutate(
+    lulc_class = str_extract(column, "^[^_]+"),
+    scheme     = str_remove(column, "^[^_]+_") |> str_remove("_prop$"),
+    scheme     = factor(scheme, levels = weighting_schemes)
+  ) |>
+  select(threshold, lulc_class, scheme, prop)
+
+# Quick check: rows = thresholds × classes × schemes
+# (classes = Forest, Urban, Agriculture = 3; Lake excluded above)
+n_classes <- length(unique(threshold_df_long_lulc$lulc_class))
+stopifnot(nrow(threshold_df_long_lulc) ==
+            length(thresholds) * n_classes * length(weighting_schemes))
+
+glimpse(threshold_df_long_lulc)
+#> Rows: 147
+#> Columns: 4
+#> $ threshold  <dbl> 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,…
+#> $ lulc_class <chr> "Forest", "Urban", "Agriculture", "Forest", "Urban", "Agric…
+#> $ scheme     <fct> lumped, lumped, lumped, iEucO, iEucO, iEucO, iFLO, iFLO, iF…
+#> $ prop       <dbl> 0.06272549, 0.17926538, 0.75800913, 0.16238075, 0.26822626,…
+```
+
+------------------------------------------------------------------------
+
+### 7.4 Plot: NDVI sensitivity to stream threshold
+
+**Interpretation guide:**
+
+- `lumped` and `iEucO` use no stream information – flat lines are
+  expected.
+- `iFLO` / `HAiFLO` are flow-path schemes referenced to `target_O` (the
+  lake), not `target_S`, so they also change very little with threshold.
+- `iEucS`, `iFLS`, and `HAiFLS` are stream-referenced: as threshold
+  rises and the network thins, distances from catchment cells to the
+  nearest stream increase, shifting weights toward more distant areas.
+- Because NDVI was randomly generated (Section 3.4), absolute values
+  will differ each session, but the *shape* of the response is
+  meaningful.
+
+``` r
+p_threshold_ndvi <- ggplot(threshold_df_long_ndvi, aes(x = threshold, y = distwtd_mean, colour = scheme)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2) +
+  # Free y-scales: each panel uses its full range, making within-scheme
+  # variation visible even when absolute values differ across schemes
+  facet_wrap(~ scheme, ncol = 4, scales = "free_y") +
+  # Log10 x-axis: thresholds span orders of magnitude; a linear axis would
+  # compress the low end where stream density changes most rapidly
+  scale_x_log10(
+    "Stream extraction threshold (cells, log scale)",
+    labels = label_comma()
+  ) +
+  scale_y_continuous("Distance-weighted mean NDVI", breaks = pretty_breaks()) +
+  scale_colour_viridis_d(option = "D", end = 0.9, guide = "none") +
+  theme_bw(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    plot.margin      = margin(5, 10, 5, 5),
+    axis.text.x      = element_text(angle = 30, hjust = 1)
+  ) +
+  labs(
+    title    = "Sensitivity of distance-weighted NDVI to stream extraction threshold"
+  )
+
+p_threshold_ndvi
+```
+
+<img src="man/figures/README-plot-ndvi-1.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
+
+### 7.5 Plot: LULC proportion sensitivity to stream threshold
+
+**Interpretation guide:**
+
+- Each facet column is a weighting scheme; each facet row is a LULC
+  class.
+- Proportions across all classes sum to ~1 within each scheme ×
+  threshold combination (the Lake class is excluded via
+  `remove_region`).
+- Stream-referenced schemes (`iEucS`, `iFLS`, `HAiFLS`) are expected to
+  show the most variation: as threshold rises and the network thins,
+  weights shift spatially, which can tip the proportion balance between
+  classes that are near vs. far from stream channels.
+- If a LULC class clusters near typical stream locations (e.g., Forest
+  in lowland riparian zones), its distance-weighted proportion should
+  decline as the stream network retracts to larger channels at high
+  thresholds.
+
+``` r
+# One colour per LULC class, viridis palette
+lulc_colours <- setNames(
+  viridis::viridis(n_classes, end = 0.85),
+  sort(unique(threshold_df_long_lulc$lulc_class))
+)
+
+p_threshold_lulc <- ggplot(
+  threshold_df_long_lulc,
+  aes(x = threshold, y = prop, colour = lulc_class)
+) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2) +
+  # Grid facet: columns = scheme, rows = LULC class
+  # Fixed y-scale so proportions are directly comparable across classes
+  facet_grid(lulc_class ~ scheme, scales = "fixed") +
+  scale_x_log10(
+    "Stream extraction threshold (cells, log scale)",
+    labels = label_comma()
+  ) +
+  scale_y_continuous(
+    "Distance-weighted proportion",
+    labels = label_number(accuracy = 0.01),
+    breaks = pretty_breaks()
+  ) +
+  scale_colour_manual(values = lulc_colours, guide = "none") +
+  theme_bw(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    plot.margin      = margin(5, 10, 5, 5),
+    axis.text.x      = element_text(angle = 30, hjust = 1)
+  ) +
+  labs(
+    title    = "Sensitivity of distance-weighted LULC proportions to stream extraction threshold"
+  )
+
+p_threshold_lulc
+```
+
+<img src="man/figures/README-plot-lulc-1.png" alt="" width="100%" />
+
+------------------------------------------------------------------------
+
+## 8. Using iFLO to derive catchments (alternative to watershed tool)
 
 A practical trick: the **non-NA** domain of an iFLO raster approximates
 the contributing area to the target site. You can convert iFLO to
@@ -1181,7 +1555,7 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 ------------------------------------------------------------------------
 
-## 8. Troubleshooting & performance
+## 9. Troubleshooting & performance
 
 **Potential issues**
 
@@ -1209,7 +1583,7 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 ------------------------------------------------------------------------
 
-## 9. References
+## 10. References
 
 - Lindsay, J.B. (2016). Whitebox GAT: A case study in geomorphometric
   analysis. *Computers & Geosciences*, 95: 75–84.
@@ -1243,17 +1617,17 @@ tmap_arrange(m_ws, m_hw, m_overlap, ncol = 3)
 
 ------------------------------------------------------------------------
 
-## 10. Acknowledgements
+## 11. Acknowledgements
 
 Early review/testing (alphabetical): Darren McCormick, Courtney Mondoux,
-Emily Smenderovac
+and Emily Smenderovac
 
 Funding: Natural Resources Canada, Ontario Ministry of Natural
 Resources, and NSERC Strategic Partnership Grant (STPGP 521405-2018).
 
 ------------------------------------------------------------------------
 
-## 11. Development team
+## 12. Development team
 
 The development of this package is a collaborative project led and
 developed by Dr. Erik Emilson with planning and conceptual contributions
@@ -1263,7 +1637,9 @@ To date, the coding and development of this package has been completed
 by Dr. Brian Kielstra and Dr. Erik Emilson, with minor maintenance and
 updates being incorporated by Emily Smenderovac and other WETlab
 members. Version \>2.0 was greatly enhanced by major contributions from
-Patrick Schaeffer.
+Patrick Schaeffer who is now an author. Tutorial enhancement with
+respect to th effect of stream thresholds on distance-weighted
+attributes was contributed by Sam Woodman.
 
 ------------------------------------------------------------------------
 
