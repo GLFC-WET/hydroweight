@@ -273,14 +273,15 @@ process_input <- function(
         )
 
         if (need_reproj) {
+          orig_lyr_names <- names(output)
           output <- terra::project(
             x = output,
             y = align_to,
-            names = input_name,
             method = resample_type,
             overwrite = TRUE,
             ...
           )
+          names(output) <- orig_lyr_names
           terra::varnames(output) <- input_name
         }
       }
