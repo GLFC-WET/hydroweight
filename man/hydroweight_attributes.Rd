@@ -2,59 +2,124 @@
 % Please edit documentation in R/hydroweight_attributes.R
 \name{hydroweight_attributes}
 \alias{hydroweight_attributes}
-\title{Generate inverse distance-weighted attributes}
+\title{Generate inverse distance–weighted landscape attributes}
 \usage{
 hydroweight_attributes(
-  loi = NULL,
-  loi_attr_col = NULL,
+  attributes_dir = NULL,
+  loi,
   loi_columns = NULL,
-  loi_numeric = NULL,
-  loi_numeric_stats = NULL,
+  loi_numeric,
+  loi_numeric_stats = c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min",
+    "max", "sum", "cell_count", "NA_cell_count"),
   roi = NULL,
-  roi_uid = NULL,
-  roi_uid_col = NULL,
-  distance_weights = NULL,
+  roi_uid,
+  roi_uid_col = "ID",
+  distance_weights,
   remove_region = NULL,
-  return_products = TRUE
+  return_products = TRUE,
+  clean_tempfiles = TRUE
 )
 }
 \arguments{
-\item{loi}{\code{sf} or \code{RasterLayer}. Layer of interest (e.g., land use layer).}
+\item{attributes_dir}{Character or \code{NULL}.
+Directory in which a \strong{temporary working subdirectory} will be created
+for raster alignment and intermediate files.
+If \code{NULL} (default), a subdirectory is created under the system temp
+directory.
 
-\item{loi_attr_col}{character. A name that will precede the calculated attributes (e.g., loi_mean, loi_median etc.)}
+This behaviour mirrors the temporary‑workspace handling in \code{hydroweight()},
+and enables reproducible temp‑folder placement during batch or parallel
+processing.}
 
-\item{loi_columns}{character. The column names over which to summarize the attributes.}
+\item{loi}{Character (filepath to \code{.shp}/\code{.tif}), \code{sf}, \code{SpatVector},
+\code{PackedSpatVector}, \code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}.
+The layer of interest whose attributes will be summarized (e.g.,
+land‑cover raster or polygons).}
 
-\item{loi_numeric}{logical. If \code{TRUE}, the \code{loi_columns} being summarized are numeric. If \code{FALSE}, the \code{loi_columns} being summarized are categorical.}
+\item{loi_columns}{Character vector of attribute column names within \code{loi} to
+summarize. If \code{NULL}, all columns (for vectors) or all layers (for rasters)
+are used.}
 
-\item{loi_numeric_stats}{character. One or more of c("distwtd_mean", "distwtd_sd", "mean", "sd", "median", "min", "max", "sum", "cell_count"). Those without distwtd_ are simple "lumped" statistics.}
+\item{loi_numeric}{Logical. If \code{TRUE}, columns in \code{loi_columns} are treated as
+numeric and summarized using continuous statistics.
+If \code{FALSE}, columns represent categorical variables and proportional
+summaries are returned.}
 
-\item{roi}{\code{sf} or \code{RasterLayer}. Region of interest (e.g., catchment boundary). Everything within this region will be used to calculate attributes.}
+\item{loi_numeric_stats}{Character vector specifying the statistics to
+compute for numeric \code{loi}. Options include:
+\code{"distwtd_mean"}, \code{"distwtd_sd"}, \code{"mean"}, \code{"sd"}, \code{"median"}, \code{"min"},
+\code{"max"}, \code{"sum"}, \code{"cell_count"}.
+Statistics without the \code{"distwtd_"} prefix are unweighted ("lumped")
+summaries.}
 
-\item{roi_uid}{character. Unique identifier value for the roi.}
+\item{roi}{Character (filepath to \code{.shp}/\code{.tif}), \code{sf}, \code{SpatVector}, \code{PackedSpatVector},
+\code{RasterLayer}, \code{SpatRaster}, or \code{PackedSpatRaster}.
+Region of interest within which attributes are summarized (e.g., a single
+watershed polygon). If \code{NULL}, the full extent of \code{distance_weights[[1]]} is
+used.}
 
-\item{roi_uid_col}{character. Column name that will be assigned to the roi_uid.}
+\item{roi_uid}{Character. A unique identifier for the region of interest.
+Included as a column in the output attribute table.}
 
-\item{distance_weights}{\code{list}. The distance-weighted rasters output from \code{hydroweight}.}
+\item{roi_uid_col}{Character. Name of the column in which to store
+\code{roi_uid} in the final attribute table.}
 
-\item{remove_region}{\code{sf} or \code{RasterLayer}. Regions to remove when summarizing the attributes (e.g., remove lake from catchment)}
+\item{distance_weights}{Character (filepath to \code{.tif} or \code{.zip}) or
+a list of \code{SpatRaster} objects.
+These are the distance‑weighted rasters output from \code{hydroweight()}.}
 
-\item{return_products}{logical. If \code{TRUE}, a list containing attribute summary table, the \code{roi-} and \code{remove_region}-masked layer (i.e., all cells contributing to attribute calculation), and \code{distance_weights} raster. If \code{FALSE}, attribute summary table only.}
+\item{remove_region}{Character or spatial object. Optional polygon or raster
+region to be excluded from calculations (e.g., lakes masked out of a
+catchment).}
+
+\item{return_products}{Logical. If \code{TRUE}, the function returns a list
+containing:
+\enumerate{
+\item the attribute summary table, and
+\item a list of intermediate rasters (masked \code{loi} × \code{distance_weights}) used
+to calculate the statistics.
+If \code{FALSE}, only the summary table is returned.
+}}
+
+\item{clean_tempfiles}{Logical. If \code{TRUE} (default), temporary files and the
+working directory are deleted on exit. Set to \code{FALSE} to retain intermediate
+rasters for debugging.}
 }
 \value{
-If \code{return_products = TRUE}, a list containing 1) attribute summary table, and 2) a list of return_products of \code{length(distance_weights)} where each list element contains a list of 2 sub-elements: 1) \code{roi-} and \code{remove_region}-masked \code{loi} (i.e., all cells contributing to attribute calculation), and 2) the \code{roi-} and \code{remove_region}-masked \code{distance_weights} raster. If \code{return_products = FALSE}, attribute summary table only.
+If \code{return_products = FALSE}, a tibble containing weighted and unweighted
+attribute statistics.
+
+If \code{return_products = TRUE}, a list with:
+\itemize{
+\item \strong{\code{attribute_table}} — the summary statistics table, and
+\item \strong{\code{return_products}} — a list (length = number of distance‑weight rasters),
+each containing:
+\itemize{
+\item the \code{loi} raster masked to the \code{roi} and \code{remove_region}, and
+\item the corresponding masked \code{distance_weights} raster.
+}
+}
 }
 \description{
-\code{hydroweight::hydroweight_attributes()} calculates distance-weighted
-attributes using distance-weighted rasters generated in \code{hydroweight::hydroweight()},
-an attribute layer (\code{loi}, e.g., land use polygon/raster), and a region of interest
-(\code{roi}, e.g., a catchment polygon). The function outputs an attribute
-summary table or a list that includes the summary table and layers used for calculation.
-Summary statistics are calculated as in Peterson et al. 2011 \url{https://doi:10.1111/j.1365-2427.2010.02507.x}).
-IMPORTANTLY, this function only produces one instance of the \code{loi} x \code{distance_weights}
-summary statistics (i.e., one \code{loi}, one \code{roi}, and one set of \code{distance_weights}).
-See https://github.com/bkielstr/hydroweight for workflows.
+\code{hydroweight_attributes()} computes landscape attributes weighted by
+inverse‑distance rasters generated by \code{hydroweight()}. The workflow follows the attribute‑weighting approach of
+\strong{Peterson et al. (2011)} \url{https://doi.org/10.1111/j.1365-2427.2010.02507.x}.
+IMPORTANTLY, this function produces \emph{\strong{one}} set of summary statistics for a \emph{\strong{single}} combination of:
+\itemize{
+\item a layer of interest (\code{loi}; e.g., land‑use polygons or rasters),
+\item a region of interest (\code{roi}; e.g., a catchment boundary), and
+\item one or more distance‑weighted rasters (\code{distance_weights}) to produce a
+summary table of weighted and/or unweighted statistics.
+}
 }
 \details{
-Spatial layers are aligned to \code{distance_weights} (i.e., identical coordinate reference systems - CRS).
+All spatial inputs are internally aligned to the CRS and grid geometry of
+\code{distance_weights}. Alignment and clipping are handled through
+\code{process_input()}.
+}
+\seealso{
+\itemize{
+\item \code{\link[=hydroweight]{hydroweight()}} for generating distance‑weighted rasters
+\item \code{\link[=process_input]{process_input()}} for input standardization and alignment
+}
 }
