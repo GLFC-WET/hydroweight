@@ -53,7 +53,7 @@ hydroweight: Distance-weighted rasters and landscape attributes
 
 <!-- README.md is generated from this file. Please edit README.Rmd. -->
 
-[![](https://zenodo.org/badge/330996075.svg)](https://zenodo.org/badge/latestdoi/330996075)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4728558.svg)](https://doi.org/10.5281/zenodo.4728558)
 
 # hydroweight
 
@@ -305,8 +305,8 @@ hw <- hydroweight(
   weighting_scheme = c("lumped","iEucO","iFLO","HAiFLO","iEucS","iFLS","HAiFLS"),
   inv_function    = myinv,
 )
-#> Preparing hydroweight layers @ 2026-03-28 00:26:14.042184
-#> Running distance-weighting @ 2026-03-28 00:26:14.333311
+#> Preparing hydroweight layers @ 2026-07-04 09:33:40.797256
+#> Running distance-weighting @ 2026-07-04 09:33:41.209143
 
 # hw comes in as a list of PackedSpatRaster, ensure elements are SpatRaster for plotting
 hw <- lapply(hw, rast)
@@ -857,11 +857,11 @@ sites_attributes_products <- foreach(xx = 1:nrow(tg_O_multi), .errorhandling = "
   sel_layers_hwa
 }
 #> 
-#> ******Running hydroweight() on Site 1 of 3 2026-03-28 00:26:38.569146******
+#> ******Running hydroweight() on Site 1 of 3 2026-07-04 09:34:06.701007******
 #> 
-#> ******Running hydroweight() on Site 2 of 3 2026-03-28 00:26:41.400563******
+#> ******Running hydroweight() on Site 2 of 3 2026-07-04 09:34:09.837875******
 #> 
-#> ******Running hydroweight() on Site 3 of 3 2026-03-28 00:26:44.206478******
+#> ******Running hydroweight() on Site 3 of 3 2026-07-04 09:34:13.023312******
 
 ## Sanity checks
 length(sites_attributes_products)                             # one list per site (3)
@@ -1369,7 +1369,7 @@ glimpse(threshold_df_long_ndvi)
 #> Columns: 3
 #> $ threshold    <dbl> 100, 100, 100, 100, 100, 100, 100, 250, 250, 250, 250, 25…
 #> $ scheme       <fct> lumped, iEucO, iFLO, HAiFLO, iEucS, iFLS, HAiFLS, lumped,…
-#> $ distwtd_mean <dbl> 0.4987395, 0.4986637, 0.4986506, 0.4845075, 0.4989526, 0.…
+#> $ distwtd_mean <dbl> 0.4984095, 0.4980152, 0.4978532, 0.5042273, 0.4986610, 0.…
 ```
 
 #### LULC: one row per threshold × class × scheme
